@@ -1,0 +1,4532 @@
+{
+  "cases": [
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "enabled": true,
+              "meta": {
+                "owner": "team-a"
+              },
+              "name": "svc",
+              "ports": [
+                80,
+                443
+              ],
+              "replicas": 3
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 15
+      },
+      "expected": "projected",
+      "id": "Y01-valid",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "equal",
+      "id": "Y01-values-exact",
+      "layer": "projection",
+      "observed": "equal",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "l1": {
+                "l2": {
+                  "l3": {
+                    "l4": {
+                      "l5": [
+                        {
+                          "l6": {
+                            "l7": {
+                              "l8": [
+                                {
+                                  "l9": {
+                                    "l10": "leaf"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 23
+      },
+      "expected": "projected",
+      "id": "Y02-nested",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "equal",
+      "id": "Y02-values-exact",
+      "layer": "projection",
+      "observed": "equal",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "at": {
+          "byte": 16,
+          "col": 2,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 1,
+            "index": 16,
+            "line": 2
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "error": "while parsing a flow mapping, did not find expected ',' or '}'",
+        "expanded_nodes": 0
+      },
+      "expected": "syntax_error",
+      "id": "Y03a-unclosed-flow",
+      "layer": "yaml",
+      "observed": "syntax_error",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "declared_lines": [
+          2,
+          3
+        ],
+        "reported": {
+          "byte": 16,
+          "col": 2,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 1,
+            "index": 16,
+            "line": 2
+          }
+        }
+      },
+      "expected": "line_in_declared_set",
+      "id": "Y03a-unclosed-flow-line",
+      "layer": "parser",
+      "observed": "line_in_declared_set",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "at": {
+          "byte": 11,
+          "col": 2,
+          "line": 3,
+          "mapped": true,
+          "raw": {
+            "col": 1,
+            "index": 11,
+            "line": 3
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "error": "while parsing a block mapping, did not find expected key",
+        "expanded_nodes": 0
+      },
+      "expected": "syntax_error",
+      "id": "Y03b-bad-indent",
+      "layer": "yaml",
+      "observed": "syntax_error",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "declared_lines": [
+          3
+        ],
+        "reported": {
+          "byte": 11,
+          "col": 2,
+          "line": 3,
+          "mapped": true,
+          "raw": {
+            "col": 1,
+            "index": 11,
+            "line": 3
+          }
+        }
+      },
+      "expected": "line_in_declared_set",
+      "id": "Y03b-bad-indent-line",
+      "layer": "parser",
+      "observed": "line_in_declared_set",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "at": {
+          "byte": 4,
+          "col": 2,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 1,
+            "index": 4,
+            "line": 2
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "error": "tabs disallowed within this context (block indentation)",
+        "expanded_nodes": 0
+      },
+      "expected": "syntax_error",
+      "id": "Y03c-tab-indent",
+      "layer": "yaml",
+      "observed": "syntax_error",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "declared_lines": [
+          2
+        ],
+        "reported": {
+          "byte": 4,
+          "col": 2,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 1,
+            "index": 4,
+            "line": 2
+          }
+        }
+      },
+      "expected": "line_in_declared_set",
+      "id": "Y03c-tab-indent-line",
+      "layer": "parser",
+      "observed": "line_in_declared_set",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "name": "a",
+              "replicas": 1
+            }
+          },
+          {
+            "projected": {
+              "name": "b",
+              "replicas": "not-a-number"
+            }
+          },
+          {
+            "projected": {
+              "name": "c",
+              "replicas": 2
+            }
+          }
+        ],
+        "documents_composed": 3,
+        "elapsed_ms": 0,
+        "expanded_nodes": 15
+      },
+      "expected": "projected",
+      "id": "Y04-multidoc",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "documents": 3
+      },
+      "expected": "schema_valid,schema_invalid,schema_valid",
+      "id": "Y04-per-doc-verdicts",
+      "layer": "pipeline",
+      "observed": "schema_valid,schema_invalid,schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "at": {
+          "byte": 22,
+          "col": 1,
+          "line": 5,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 22,
+            "line": 5
+          }
+        },
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "a": 1
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "error": "while parsing a flow sequence, expected ',' or ']'",
+        "expanded_nodes": 3
+      },
+      "expected": "syntax_error",
+      "id": "Y05-multidoc-syntax",
+      "layer": "yaml",
+      "observed": "syntax_error",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "note": "documents after the error are not assessed"
+      },
+      "expected": "1",
+      "id": "Y05-docs-before-error-kept",
+      "layer": "composer",
+      "observed": "1",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0,
+        "first": {
+          "byte": 0,
+          "col": 1,
+          "line": 1,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 0,
+            "line": 1
+          }
+        },
+        "key": "str:a",
+        "second": {
+          "byte": 10,
+          "col": 1,
+          "line": 3,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 10,
+            "line": 3
+          }
+        }
+      },
+      "expected": "policy_rejected:duplicate_key",
+      "id": "Y06a-dup-top",
+      "layer": "yaml",
+      "observed": "policy_rejected:duplicate_key",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0,
+        "first": {
+          "byte": 5,
+          "col": 3,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 2,
+            "index": 5,
+            "line": 2
+          }
+        },
+        "key": "str:k",
+        "second": {
+          "byte": 12,
+          "col": 3,
+          "line": 3,
+          "mapped": true,
+          "raw": {
+            "col": 2,
+            "index": 12,
+            "line": 3
+          }
+        }
+      },
+      "expected": "policy_rejected:duplicate_key",
+      "id": "Y06b-dup-nested",
+      "layer": "yaml",
+      "observed": "policy_rejected:duplicate_key",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0,
+        "first": {
+          "byte": 0,
+          "col": 1,
+          "line": 1,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 0,
+            "line": 1
+          }
+        },
+        "key": "str:a",
+        "second": {
+          "byte": 5,
+          "col": 1,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 5,
+            "line": 2
+          }
+        }
+      },
+      "expected": "policy_rejected:duplicate_key",
+      "id": "Y06c-dup-quoted-vs-plain",
+      "layer": "yaml",
+      "observed": "policy_rejected:duplicate_key",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 0,
+              "col": 1,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 0,
+                "index": 0,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "non_string_key:Int(1)"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 5
+      },
+      "expected": "unsupported_for_validation:non_string_key",
+      "id": "Y07-int-key-alongside-string-key",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:non_string_key",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "composed_without_duplicate_error",
+      "id": "Y07-not-a-yaml-duplicate",
+      "layer": "composer",
+      "observed": "composed_without_duplicate_error",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "note": "collision check kept defensively; not exercised"
+      },
+      "expected": "observation",
+      "id": "Y07-projection-key-collision-path",
+      "layer": "projection",
+      "observed": "unreachable_under_Y19_policy_not_tested",
+      "status": "observation"
+    },
+    {
+      "detail": {
+        "table": [
+          {
+            "expected": "Str(\"yes\")",
+            "got": "Some(Str(\"yes\"))",
+            "key": "yes_",
+            "ok": true
+          },
+          {
+            "expected": "Str(\"no\")",
+            "got": "Some(Str(\"no\"))",
+            "key": "no_",
+            "ok": true
+          },
+          {
+            "expected": "Str(\"on\")",
+            "got": "Some(Str(\"on\"))",
+            "key": "on_",
+            "ok": true
+          },
+          {
+            "expected": "Str(\"off\")",
+            "got": "Some(Str(\"off\"))",
+            "key": "off_",
+            "ok": true
+          },
+          {
+            "expected": "Bool(true)",
+            "got": "Some(Bool(true))",
+            "key": "True_",
+            "ok": true
+          },
+          {
+            "expected": "Bool(true)",
+            "got": "Some(Bool(true))",
+            "key": "TRUE_",
+            "ok": true
+          },
+          {
+            "expected": "Null",
+            "got": "Some(Null)",
+            "key": "tilde",
+            "ok": true
+          },
+          {
+            "expected": "Null",
+            "got": "Some(Null)",
+            "key": "null_",
+            "ok": true
+          },
+          {
+            "expected": "Null",
+            "got": "Some(Null)",
+            "key": "empty",
+            "ok": true
+          },
+          {
+            "expected": "Int(15)",
+            "got": "Some(Int(15))",
+            "key": "octal",
+            "ok": true
+          },
+          {
+            "expected": "Int(31)",
+            "got": "Some(Int(31))",
+            "key": "hex",
+            "ok": true
+          },
+          {
+            "expected": "Int(17)",
+            "got": "Some(Int(17))",
+            "key": "leading_zero",
+            "ok": true
+          },
+          {
+            "expected": "Str(\"1_000\")",
+            "got": "Some(Str(\"1_000\"))",
+            "key": "underscore",
+            "ok": true
+          },
+          {
+            "expected": "Float(1000.0)",
+            "got": "Some(Float(1000.0))",
+            "key": "exp",
+            "ok": true
+          },
+          {
+            "expected": "Float(inf)",
+            "got": "Some(Float(inf))",
+            "key": "inf",
+            "ok": true
+          },
+          {
+            "expected": "Float(-inf)",
+            "got": "Some(Float(-inf))",
+            "key": "neginf",
+            "ok": true
+          },
+          {
+            "expected": "Float(NaN)",
+            "got": "Some(Float(NaN))",
+            "key": "nan",
+            "ok": true
+          },
+          {
+            "expected": "Str(\"true\")",
+            "got": "Some(Str(\"true\"))",
+            "key": "quoted_true",
+            "ok": true
+          },
+          {
+            "expected": "Str(\"123\")",
+            "got": "Some(Str(\"123\"))",
+            "key": "quoted_num",
+            "ok": true
+          },
+          {
+            "expected": "Str(\"2026-10-24\")",
+            "got": "Some(Str(\"2026-10-24\"))",
+            "key": "date_like",
+            "ok": true
+          }
+        ],
+        "yaml": "1.2 core schema"
+      },
+      "expected": "all_match",
+      "id": "Y08-core-schema-scalars",
+      "layer": "composer",
+      "observed": "all_match",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 3,
+              "col": 4,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 3,
+                "index": 3,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "non_finite_float(inf):not_a_json_number"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:non_finite_float(inf)",
+      "id": "Y09a-inf",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:non_finite_float(inf)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 3,
+              "col": 4,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 3,
+                "index": 3,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "non_finite_float(nan):not_a_json_number"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:non_finite_float(nan)",
+      "id": "Y09b-nan",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:non_finite_float(nan)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 3,
+              "col": 4,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 3,
+                "index": 3,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "integer_outside_lossless_range(i64/u64):18446744073709551616"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:integer_outside_lossless_range(i64/u64)",
+      "id": "Y09c-int-above-u64",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:integer_outside_lossless_range(i64/u64)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 3,
+              "col": 4,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 3,
+                "index": 3,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "integer_outside_lossless_range(i64/u64):340282366920938463463374607431768211456"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:integer_outside_lossless_range(i64/u64)",
+      "id": "Y09d-int-above-i128",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:integer_outside_lossless_range(i64/u64)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 3,
+              "col": 4,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 3,
+                "index": 3,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "float_literal_overflows_f64:1e400"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:float_literal_overflows_f64",
+      "id": "Y09e-float-overflow",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:float_literal_overflows_f64",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "a": 18446744073709551615
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "projected",
+      "id": "Y09f-u64-max-ok",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 3,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "base": {
+                "image": "app",
+                "tag": "v1"
+              },
+              "first": {
+                "image": "app",
+                "tag": "v1"
+              },
+              "second": {
+                "image": "app",
+                "tag": "v1"
+              },
+              "third": {
+                "image": "app",
+                "tag": "v1"
+              }
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 25
+      },
+      "expected": "projected",
+      "id": "Y10-alias-ok",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "equal",
+      "id": "Y10-alias-copies-equal",
+      "layer": "projection",
+      "observed": "equal",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 38,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0,
+        "limit": "> 100000"
+      },
+      "expected": "limit_exceeded:expanded_nodes",
+      "id": "Y11-alias-bomb",
+      "layer": "yaml",
+      "observed": "limit_exceeded:expanded_nodes",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 1,
+        "anchor": 1,
+        "at": {
+          "byte": 7,
+          "col": 8,
+          "line": 1,
+          "mapped": true,
+          "raw": {
+            "col": 7,
+            "index": 7,
+            "line": 1
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0
+      },
+      "expected": "observation",
+      "id": "Y12a-seq-cycle",
+      "layer": "yaml",
+      "observed": "policy_rejected:alias_cycle",
+      "status": "observation"
+    },
+    {
+      "detail": {
+        "observed": "policy_rejected:alias_cycle"
+      },
+      "expected": "rejected",
+      "id": "Y12a-not-pass",
+      "layer": "composer",
+      "observed": "rejected",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 1,
+        "anchor": 1,
+        "at": {
+          "byte": 14,
+          "col": 9,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 8,
+            "index": 14,
+            "line": 2
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0
+      },
+      "expected": "observation",
+      "id": "Y12b-map-cycle",
+      "layer": "yaml",
+      "observed": "policy_rejected:alias_cycle",
+      "status": "observation"
+    },
+    {
+      "detail": {
+        "observed": "policy_rejected:alias_cycle"
+      },
+      "expected": "rejected",
+      "id": "Y12b-not-pass",
+      "layer": "composer",
+      "observed": "rejected",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "at": {
+          "byte": 3,
+          "col": 4,
+          "line": 1,
+          "mapped": true,
+          "raw": {
+            "col": 3,
+            "index": 3,
+            "line": 1
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "error": "while parsing node, found unknown anchor",
+        "expanded_nodes": 0
+      },
+      "expected": "observation",
+      "id": "Y13-undefined-alias",
+      "layer": "yaml",
+      "observed": "syntax_error",
+      "status": "observation"
+    },
+    {
+      "detail": {
+        "observed": "syntax_error"
+      },
+      "expected": "rejected",
+      "id": "Y13-not-pass",
+      "layer": "parser/composer",
+      "observed": "rejected",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "a": [
+                [
+                  [
+                    [
+                      [
+                        [
+                          [
+                            [
+                              [
+                                [
+                                  [
+                                    [
+                                      [
+                                        [
+                                          [
+                                            [
+                                              [
+                                                [
+                                                  [
+                                                    [
+                                                      [
+                                                        [
+                                                          [
+                                                            [
+                                                              [
+                                                                [
+                                                                  [
+                                                                    [
+                                                                      [
+                                                                        [
+                                                                          [
+                                                                            [
+                                                                              [
+                                                                                [
+                                                                                  [
+                                                                                    [
+                                                                                      [
+                                                                                        [
+                                                                                          [
+                                                                                            [
+                                                                                              [
+                                                                                                [
+                                                                                                  [
+                                                                                                    [
+                                                                                                      [
+                                                                                                        [
+                                                                                                          [
+                                                                                                            [
+                                                                                                              [
+                                                                                                                [
+                                                                                                                  [
+                                                                                                                    [
+                                                                                                                      [
+                                                                                                                        [
+                                                                                                                          [
+                                                                                                                            [
+                                                                                                                              [
+                                                                                                                                [
+                                                                                                                                  [
+                                                                                                                                    [
+                                                                                                                                      [
+                                                                                                                                        [
+                                                                                                                                          []
+                                                                                                                                        ]
+                                                                                                                                      ]
+                                                                                                                                    ]
+                                                                                                                                  ]
+                                                                                                                                ]
+                                                                                                                              ]
+                                                                                                                            ]
+                                                                                                                          ]
+                                                                                                                        ]
+                                                                                                                      ]
+                                                                                                                    ]
+                                                                                                                  ]
+                                                                                                                ]
+                                                                                                              ]
+                                                                                                            ]
+                                                                                                          ]
+                                                                                                        ]
+                                                                                                      ]
+                                                                                                    ]
+                                                                                                  ]
+                                                                                                ]
+                                                                                              ]
+                                                                                            ]
+                                                                                          ]
+                                                                                        ]
+                                                                                      ]
+                                                                                    ]
+                                                                                  ]
+                                                                                ]
+                                                                              ]
+                                                                            ]
+                                                                          ]
+                                                                        ]
+                                                                      ]
+                                                                    ]
+                                                                  ]
+                                                                ]
+                                                              ]
+                                                            ]
+                                                          ]
+                                                        ]
+                                                      ]
+                                                    ]
+                                                  ]
+                                                ]
+                                              ]
+                                            ]
+                                          ]
+                                        ]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 65
+      },
+      "expected": "projected",
+      "id": "Y14c-flow-depth-64-limit",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0,
+        "limit": "> 64"
+      },
+      "expected": "limit_exceeded:depth(composer)",
+      "id": "Y14a-flow-depth-65-limit+1",
+      "layer": "yaml",
+      "observed": "limit_exceeded:depth(composer)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0,
+        "limit": "> 64"
+      },
+      "expected": "limit_exceeded:depth(composer)",
+      "id": "Y14d-flow-depth-201",
+      "layer": "yaml",
+      "observed": "limit_exceeded:depth(composer)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "at": {
+          "byte": 258,
+          "col": 259,
+          "line": 1,
+          "mapped": true,
+          "raw": {
+            "col": 258,
+            "index": 258,
+            "line": 1
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 1,
+        "expanded_nodes": 0,
+        "parser_diagnostic": "recursion limit exceeded"
+      },
+      "expected": "limit_exceeded:depth(parser)",
+      "id": "Y14b-flow-depth-10001",
+      "layer": "yaml",
+      "observed": "limit_exceeded:depth(parser)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "at": {
+          "byte": 258,
+          "col": 259,
+          "line": 1,
+          "mapped": true,
+          "raw": {
+            "col": 258,
+            "index": 258,
+            "line": 1
+          }
+        }
+      },
+      "expected": "recursion limit exceeded",
+      "id": "Y14b-parser-diagnostic-preserved",
+      "layer": "parser",
+      "observed": "recursion limit exceeded",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "k0": {
+                "k1": {
+                  "k2": {
+                    "k3": {
+                      "k4": {
+                        "k5": {
+                          "k6": {
+                            "k7": {
+                              "k8": {
+                                "k9": {
+                                  "k10": {
+                                    "k11": {
+                                      "k12": {
+                                        "k13": {
+                                          "k14": {
+                                            "k15": {
+                                              "k16": {
+                                                "k17": {
+                                                  "k18": {
+                                                    "k19": {
+                                                      "k20": {
+                                                        "k21": {
+                                                          "k22": {
+                                                            "k23": {
+                                                              "k24": {
+                                                                "k25": {
+                                                                  "k26": {
+                                                                    "k27": {
+                                                                      "k28": {
+                                                                        "k29": {
+                                                                          "k30": {
+                                                                            "k31": {
+                                                                              "k32": {
+                                                                                "k33": {
+                                                                                  "k34": {
+                                                                                    "k35": {
+                                                                                      "k36": {
+                                                                                        "k37": {
+                                                                                          "k38": {
+                                                                                            "k39": {
+                                                                                              "k40": {
+                                                                                                "k41": {
+                                                                                                  "k42": {
+                                                                                                    "k43": {
+                                                                                                      "k44": {
+                                                                                                        "k45": {
+                                                                                                          "k46": {
+                                                                                                            "k47": {
+                                                                                                              "k48": {
+                                                                                                                "k49": {
+                                                                                                                  "k50": {
+                                                                                                                    "k51": {
+                                                                                                                      "k52": {
+                                                                                                                        "k53": {
+                                                                                                                          "k54": {
+                                                                                                                            "k55": {
+                                                                                                                              "k56": {
+                                                                                                                                "k57": {
+                                                                                                                                  "k58": {
+                                                                                                                                    "k59": {
+                                                                                                                                      "k60": {
+                                                                                                                                        "k61": {
+                                                                                                                                          "k62": {
+                                                                                                                                            "leaf": 1
+                                                                                                                                          }
+                                                                                                                                        }
+                                                                                                                                      }
+                                                                                                                                    }
+                                                                                                                                  }
+                                                                                                                                }
+                                                                                                                              }
+                                                                                                                            }
+                                                                                                                          }
+                                                                                                                        }
+                                                                                                                      }
+                                                                                                                    }
+                                                                                                                  }
+                                                                                                                }
+                                                                                                              }
+                                                                                                            }
+                                                                                                          }
+                                                                                                        }
+                                                                                                      }
+                                                                                                    }
+                                                                                                  }
+                                                                                                }
+                                                                                              }
+                                                                                            }
+                                                                                          }
+                                                                                        }
+                                                                                      }
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 129
+      },
+      "expected": "projected",
+      "id": "Y14e-block-depth-64-limit",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0,
+        "limit": "> 64"
+      },
+      "expected": "limit_exceeded:depth(composer)",
+      "id": "Y14f-block-depth-65-limit+1",
+      "layer": "yaml",
+      "observed": "limit_exceeded:depth(composer)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 1,
+        "expanded_nodes": 0,
+        "limit": "> 64"
+      },
+      "expected": "limit_exceeded:depth(composer)",
+      "id": "Y14h-block-depth-300",
+      "layer": "yaml",
+      "observed": "limit_exceeded:depth(composer)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "at": {
+          "byte": 9,
+          "col": 1,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 9,
+            "line": 2
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "error": "while parsing a flow sequence, expected ',' or ']'",
+        "expanded_nodes": 0
+      },
+      "expected": "syntax_error",
+      "id": "Y14g-unrelated-syntax-error-stays-syntax",
+      "layer": "yaml",
+      "observed": "syntax_error",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0,
+        "limit": "1048582 > 1048576"
+      },
+      "expected": "limit_exceeded:input_bytes",
+      "id": "Y15a-input-bytes",
+      "layer": "yaml",
+      "observed": "limit_exceeded:input_bytes",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          },
+          {
+            "projected": {
+              "a": 1
+            }
+          }
+        ],
+        "documents_composed": 100,
+        "elapsed_ms": 0,
+        "expanded_nodes": 300,
+        "limit": "more than 100"
+      },
+      "expected": "limit_exceeded:documents",
+      "id": "Y15b-101-documents",
+      "layer": "yaml",
+      "observed": "limit_exceeded:documents",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 8,
+        "expanded_nodes": 0,
+        "limit": "65537 > 65536"
+      },
+      "expected": "limit_exceeded:scalar_bytes",
+      "id": "Y15c-scalar-bytes",
+      "layer": "yaml",
+      "observed": "limit_exceeded:scalar_bytes",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 1001,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "projected": {
+              "b": 1,
+              "l": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        ],
+        "documents_composed": 40,
+        "elapsed_ms": 2,
+        "expanded_nodes": 1200,
+        "limit": "more than 1000"
+      },
+      "expected": "limit_exceeded:alias_events",
+      "id": "Y15d-alias-budget-across-docs",
+      "layer": "yaml",
+      "observed": "limit_exceeded:alias_events",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "bom_stripped": false,
+        "error": null,
+        "expected": {
+          "byte": 5,
+          "char_index": 5,
+          "col": 1,
+          "line": 2
+        },
+        "reported": {
+          "byte": 5,
+          "col": 1,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 5,
+            "line": 2
+          }
+        }
+      },
+      "expected": "mapped_exact+raw_char_index_0based_col",
+      "id": "Y16-P1-ascii",
+      "layer": "position",
+      "observed": "mapped_exact+raw_char_index_0based_col",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "bom_stripped": false,
+        "error": null,
+        "expected": {
+          "byte": 33,
+          "char_index": 20,
+          "col": 15,
+          "line": 2
+        },
+        "reported": {
+          "byte": 33,
+          "col": 15,
+          "line": 2,
+          "mapped": true,
+          "raw": {
+            "col": 14,
+            "index": 20,
+            "line": 2
+          }
+        }
+      },
+      "expected": "mapped_exact+raw_char_index_0based_col",
+      "id": "Y16-P2-multibyte-same-line",
+      "layer": "position",
+      "observed": "mapped_exact+raw_char_index_0based_col",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "bom_stripped": true,
+        "error": null,
+        "expected": {
+          "byte": 3,
+          "char_index": 0,
+          "col": 1,
+          "line": 1
+        },
+        "reported": {
+          "byte": 3,
+          "col": 1,
+          "line": 1,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 0,
+            "line": 1
+          }
+        }
+      },
+      "expected": "mapped_exact+raw_char_index_0based_col",
+      "id": "Y16-P3-bom-line1-col1",
+      "layer": "position",
+      "observed": "mapped_exact+raw_char_index_0based_col",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "bom_stripped": false,
+        "error": null,
+        "expected": {
+          "byte": 12,
+          "char_index": 12,
+          "col": 1,
+          "line": 3
+        },
+        "reported": {
+          "byte": 12,
+          "col": 1,
+          "line": 3,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 12,
+            "line": 3
+          }
+        }
+      },
+      "expected": "mapped_exact+raw_char_index_0based_col",
+      "id": "Y16-P4-crlf-ascii",
+      "layer": "position",
+      "observed": "mapped_exact+raw_char_index_0based_col",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "bom_stripped": true,
+        "error": null,
+        "expected": {
+          "byte": 56,
+          "char_index": 34,
+          "col": 15,
+          "line": 3
+        },
+        "reported": {
+          "byte": 56,
+          "col": 15,
+          "line": 3,
+          "mapped": true,
+          "raw": {
+            "col": 14,
+            "index": 34,
+            "line": 3
+          }
+        }
+      },
+      "expected": "mapped_exact+raw_char_index_0based_col",
+      "id": "Y16-P5-bom-unicode-crlf",
+      "layer": "position",
+      "observed": "mapped_exact+raw_char_index_0based_col",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "bom_stripped": false,
+        "error": null,
+        "expected": {
+          "byte": 58,
+          "char_index": 35,
+          "col": 8,
+          "line": 4
+        },
+        "reported": {
+          "byte": 58,
+          "col": 8,
+          "line": 4,
+          "mapped": true,
+          "raw": {
+            "col": 7,
+            "index": 35,
+            "line": 4
+          }
+        }
+      },
+      "expected": "mapped_exact+raw_char_index_0based_col",
+      "id": "Y16-P6-fixture-lf",
+      "layer": "position",
+      "observed": "mapped_exact+raw_char_index_0based_col",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "bom_stripped": true,
+        "error": null,
+        "expected": {
+          "byte": 64,
+          "char_index": 38,
+          "col": 8,
+          "line": 4
+        },
+        "reported": {
+          "byte": 64,
+          "col": 8,
+          "line": 4,
+          "mapped": true,
+          "raw": {
+            "col": 7,
+            "index": 38,
+            "line": 4
+          }
+        }
+      },
+      "expected": "mapped_exact+raw_char_index_0based_col",
+      "id": "Y16-P7-fixture-bom-crlf",
+      "layer": "position",
+      "observed": "mapped_exact+raw_char_index_0based_col",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "at": {
+          "byte": 28,
+          "col": 1,
+          "line": 3,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 18,
+            "line": 3
+          }
+        },
+        "char_boundary": true,
+        "info": "while parsing a flow sequence, expected ',' or ']'"
+      },
+      "expected": "syntax_error+position_consistent_on_or_after_multibyte_line",
+      "id": "Y16-E1-error-after-multibyte",
+      "layer": "position",
+      "observed": "syntax_error+position_consistent_on_or_after_multibyte_line",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "at": {
+          "byte": 33,
+          "col": 1,
+          "line": 3,
+          "mapped": true,
+          "raw": {
+            "col": 0,
+            "index": 20,
+            "line": 3
+          }
+        },
+        "char_boundary": true,
+        "info": "while parsing a flow sequence, expected ',' or ']'"
+      },
+      "expected": "syntax_error+position_consistent_on_or_after_multibyte_line",
+      "id": "Y16-E2-error-after-multibyte-bom-crlf",
+      "layer": "position",
+      "observed": "syntax_error+position_consistent_on_or_after_multibyte_line",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": true,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0
+      },
+      "expected": "no_documents",
+      "id": "Y16-B1-bom-only",
+      "layer": "yaml",
+      "observed": "no_documents",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "true",
+      "id": "Y16-B1-bom-stripped-flag",
+      "layer": "input_gate",
+      "observed": "true",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "bom_stripped": true,
+        "first_key": "<U+FEFF>k",
+        "note": "recorded as unsupported input, not normalised"
+      },
+      "expected": "key_starts_with_U+FEFF",
+      "id": "Y16-B2-second-bom-retained-in-key",
+      "layer": "input_gate",
+      "observed": "key_starts_with_U+FEFF",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "v": "a﻿b"
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "projected",
+      "id": "Y16-B3-internal-feff-in-value",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "retained",
+      "id": "Y16-B3-internal-feff-retained",
+      "layer": "input_gate",
+      "observed": "retained",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0
+      },
+      "expected": "input_rejected:invalid_utf8",
+      "id": "Y17a-invalid-utf8",
+      "layer": "yaml",
+      "observed": "input_rejected:invalid_utf8",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "at": {
+          "byte": 4,
+          "col": 5,
+          "line": 1,
+          "mapped": true,
+          "raw": {
+            "col": 4,
+            "index": 4,
+            "line": 1
+          }
+        },
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "error": "found unprintable character",
+        "expanded_nodes": 0
+      },
+      "expected": "observation",
+      "id": "Y17b-nul-byte",
+      "layer": "yaml",
+      "observed": "syntax_error",
+      "status": "observation"
+    },
+    {
+      "detail": {
+        "detail": {
+          "alias_events": 0,
+          "at": {
+            "byte": 4,
+            "col": 5,
+            "line": 1,
+            "mapped": true,
+            "raw": {
+              "col": 4,
+              "index": 4,
+              "line": 1
+            }
+          },
+          "bom_stripped": false,
+          "documents_composed": 0,
+          "elapsed_ms": 0,
+          "error": "found unprintable character",
+          "expanded_nodes": 0
+        },
+        "documents": [],
+        "observed": "syntax_error"
+      },
+      "expected": "rejected",
+      "id": "Y17b-not-silently-projected",
+      "layer": "parser/composer",
+      "observed": "rejected",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": {
+              "i": 7,
+              "s": "123"
+            }
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 5
+      },
+      "expected": "projected",
+      "id": "Y18a-core-tags",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "s=\"123\",i=7",
+      "id": "Y18a-core-tag-values",
+      "layer": "composer",
+      "observed": "s=\"123\",i=7",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 8,
+              "col": 9,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 8,
+                "index": 8,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "tag:!Ref"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:tag",
+      "id": "Y18b-custom-tag",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:tag",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "note": "tags are recorded, never instantiated"
+      },
+      "expected": "tag:!Ref",
+      "id": "Y18b-custom-tag-name",
+      "layer": "composer",
+      "observed": "tag:!Ref",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 29,
+              "col": 30,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 29,
+                "index": 29,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "tag:tag:yaml.org,2002:python/object:os.system"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:tag",
+      "id": "Y18c-python-tag",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:tag",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "note": "tags are recorded, never instantiated"
+      },
+      "expected": "tag:tag:yaml.org,2002:python/object:os.system",
+      "id": "Y18c-python-tag-name",
+      "layer": "composer",
+      "observed": "tag:tag:yaml.org,2002:python/object:os.system",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 12,
+              "col": 13,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 12,
+                "index": 12,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "tag:tag:yaml.org,2002:binary"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:tag",
+      "id": "Y18d-binary-tag",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:tag",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "note": "tags are recorded, never instantiated"
+      },
+      "expected": "tag:tag:yaml.org,2002:binary",
+      "id": "Y18d-binary-tag-name",
+      "layer": "composer",
+      "observed": "tag:tag:yaml.org,2002:binary",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 0,
+              "col": 1,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 0,
+                "index": 0,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "non_string_key:Int(1)"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:non_string_key",
+      "id": "Y19a-int-key",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:non_string_key",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 0,
+              "col": 1,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 0,
+                "index": 0,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "non_string_key:Bool(true)"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:non_string_key",
+      "id": "Y19b-bool-key",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:non_string_key",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 0,
+              "col": 1,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 0,
+                "index": 0,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "non_string_key:Null"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 3
+      },
+      "expected": "unsupported_for_validation:non_string_key",
+      "id": "Y19c-null-key",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:non_string_key",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 2,
+              "col": 3,
+              "line": 1,
+              "mapped": true,
+              "raw": {
+                "col": 2,
+                "index": 2,
+                "line": 1
+              }
+            },
+            "unsupported_for_validation": "complex_key(collection used as key)"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 5
+      },
+      "expected": "unsupported_for_validation:complex_key(collection used as key)",
+      "id": "Y19d-complex-key",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:complex_key(collection used as key)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 1,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "at": {
+              "byte": 27,
+              "col": 3,
+              "line": 3,
+              "mapped": true,
+              "raw": {
+                "col": 2,
+                "index": 27,
+                "line": 3
+              }
+            },
+            "unsupported_for_validation": "merge_key(<<):merge semantics not applied"
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 13
+      },
+      "expected": "unsupported_for_validation:merge_key(<<)",
+      "id": "Y20-merge-key",
+      "layer": "yaml",
+      "observed": "unsupported_for_validation:merge_key(<<)",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0
+      },
+      "expected": "no_documents",
+      "id": "Y21a-empty",
+      "layer": "yaml",
+      "observed": "no_documents",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [],
+        "documents_composed": 0,
+        "elapsed_ms": 0,
+        "expanded_nodes": 0
+      },
+      "expected": "no_documents",
+      "id": "Y21b-comments-only",
+      "layer": "yaml",
+      "observed": "no_documents",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "alias_events": 0,
+        "bom_stripped": false,
+        "documents": [
+          {
+            "projected": null
+          }
+        ],
+        "documents_composed": 1,
+        "elapsed_ms": 0,
+        "expanded_nodes": 1
+      },
+      "expected": "projected",
+      "id": "Y21c-explicit-empty-doc",
+      "layer": "yaml",
+      "observed": "projected",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_invalid",
+      "id": "Y21c-null-doc-vs-object-schema",
+      "layer": "pipeline",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J01-valid",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"replicas\" is a required property",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J01-missing-required",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "Additional properties are not allowed ('x' was unexpected)",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J01-additional-property",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"1\" is not of type \"integer\"",
+            "path": "/replicas"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J01-wrong-type",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J02-valid",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"c\" is not one of \"a\" or \"b\"",
+            "path": "/mode"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J02-enum",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"1.3\" was expected",
+            "path": "/v"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J02-const",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J03-valid",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "1 is not of type \"string\"",
+            "path": "/p/0"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J03-prefixItems",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"x\" is not of type \"boolean\"",
+            "path": "/p/2"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J03-items",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "[\"a\"] has less than 2 items",
+            "path": "/p"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J03-minItems",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "[1,1] has non-unique elements",
+            "path": "/u"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J03-uniqueItems",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J04-valid-on",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"2026-13-40T00:00:00Z\" is not a \"date-time\"",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J04-bad-date-on",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"2026-10-24 05:25\" is not a \"date-time\"",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J04-no-T-on",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J04-bad-date-off",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J04-no-T-off",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J05-valid-on",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"526a9739-68cb-5ef8-8c3a\" is not a \"uuid\"",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J05-malformed-on",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J05-malformed-off",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J06-40-hex",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J06-64-hex",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\" does not match \"^(?:[a-f0-9]{40}|[a-f0-9]{64})$\"",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J06-uppercase",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" does not match \"^(?:[a-f0-9]{40}|[a-f0-9]{64})$\"",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J06-39-hex",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J07-valid",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "-1 is less than the minimum of 0",
+            "path": "/1"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J07-invalid",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "error": "Resource 'https://example.invalid/s.json' is not present in a registry and retrieving it failed: `resolve-http` feature or a custom resolver is required to resolve external schemas via HTTP",
+        "kind": "Referencing(Unretrievable { uri: \"https://example.invalid/s.json\", source: \"`resolve-http` feature or a custom resolver is required to resolve external schemas via HTTP\" })"
+      },
+      "expected": "schema_unavailable+disabled_path",
+      "id": "J08-http-ref-default",
+      "layer": "validator",
+      "observed": "schema_unavailable+disabled_path",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "detail": {
+          "error": "Resource 'https://example.invalid/s.json' is not present in a registry and retrieving it failed: spike retriever: retrieval refused",
+          "kind": "Referencing(Unretrievable { uri: \"https://example.invalid/s.json\", source: \"spike retriever: retrieval refused\" })"
+        },
+        "retriever_calls": [
+          "https://example.invalid/s.json"
+        ]
+      },
+      "expected": "schema_unavailable+retriever_called",
+      "id": "J08-http-ref-instrumented",
+      "layer": "validator",
+      "observed": "schema_unavailable+retriever_called",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "error": "Resource 'file:///home/kali/.local/share/pwt-dev-tools/_spikes/t06-d01-run/canary-schema.json' is not present in a registry and retrieving it failed: `resolve-file` feature or a custom resolver is required to resolve external schemas via files",
+        "kind": "Referencing(Unretrievable { uri: \"file:///home/kali/.local/share/pwt-dev-tools/_spikes/t06-d01-run/canary-schema.json\", source: \"`resolve-file` feature or a custom resolver is required to resolve external schemas via files\" })"
+      },
+      "expected": "schema_unavailable+disabled_path",
+      "id": "J09-file-ref-default",
+      "layer": "validator",
+      "observed": "schema_unavailable+disabled_path",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "detail": {
+          "error": "Resource 'file:///home/kali/.local/share/pwt-dev-tools/_spikes/t06-d01-run/canary-schema.json' is not present in a registry and retrieving it failed: spike retriever: retrieval refused",
+          "kind": "Referencing(Unretrievable { uri: \"file:///home/kali/.local/share/pwt-dev-tools/_spikes/t06-d01-run/canary-schema.json\", source: \"spike retriever: retrieval refused\" })"
+        },
+        "retriever_calls": [
+          "file:///home/kali/.local/share/pwt-dev-tools/_spikes/t06-d01-run/canary-schema.json"
+        ]
+      },
+      "expected": "schema_unavailable+retriever_called",
+      "id": "J09-file-ref-instrumented",
+      "layer": "validator",
+      "observed": "schema_unavailable+retriever_called",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "error": "[{\"type\":\"string\"}] is not of types \"boolean\", \"object\"",
+        "kind": "Type { kind: Multiple((boolean, object)) }"
+      },
+      "expected": "observation",
+      "id": "J10-draft07-array-items",
+      "layer": "validator",
+      "observed": "schema_build_error",
+      "status": "observation"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "[\"a\",1] is not of type \"string\"",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "observation",
+      "id": "J10-draft201909",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "observation"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J11-store-1.3-repositories",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "{\"repositories\":[{\"canonical_remote\":\"github.com/example/example-service\",\"checkout_state\":\"not_cloned\",\"default_ref_kind\":\"branch\",\"default_ref_value\":\"main\",\"display_name\":\"example-service\",\"files\":[],\"inventory_at\":null,\"inventory_revision\":0,\"last_commit_oid\":null,\"last_error_redacted\":null,\"las",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J12-store-repositories-labelled-1.2",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J11-store-1.3-workflows",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "{\"schema_version\":\"1.2\",\"store_type\":\"workflows\",\"updated_at\":\"2026-10-16T05:25:00Z\",\"workflows\":[{\"approval_ids\":[],\"created_at\":\"2026-10-16T05:25:00Z\",\"description\":\"Example only; framework support depends on installed approved adapters.\",\"enabled\":false,\"name\":\"Daily configuration review\",\"output",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J12-store-workflows-labelled-1.2",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J11-store-1.3-log",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "{\"events\":[],\"reports\":[],\"runs\":[],\"schema_version\":\"1.2\",\"store_type\":\"log\",\"updated_at\":\"2026-10-16T05:25:00Z\"} is not valid under any of the schemas listed in the 'oneOf' keyword",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J12-store-log-labelled-1.2",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_valid",
+      "id": "J13-wrapper-control-1.1",
+      "layer": "validator",
+      "observed": "schema_valid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"1.1\" was expected",
+            "path": "/protocol_version"
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J13-wrapper-control-labelled-1.0",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "errors": [
+          {
+            "error": "\"output_streams\" is a required property",
+            "path": ""
+          }
+        ]
+      },
+      "expected": "schema_invalid",
+      "id": "J13-wrapper-control-missing-output_streams",
+      "layer": "validator",
+      "observed": "schema_invalid",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "json": [
+          "schema_valid",
+          "schema_invalid",
+          "schema_valid"
+        ],
+        "yaml": [
+          "schema_valid",
+          "schema_invalid",
+          "schema_valid"
+        ]
+      },
+      "expected": "equal",
+      "id": "J14-yaml-equals-json-verdicts",
+      "layer": "pipeline",
+      "observed": "equal",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "schema_unavailable",
+      "id": "J15-valid-yaml-unavailable-schema",
+      "layer": "pipeline",
+      "observed": "schema_unavailable",
+      "status": "pass"
+    },
+    {
+      "detail": {},
+      "expected": "absent",
+      "id": "J09-canary-content-not-in-output",
+      "layer": "validator",
+      "observed": "absent",
+      "status": "pass"
+    },
+    {
+      "detail": {
+        "other_processes": []
+      },
+      "expected": "scratch_removed+no_other_processes",
+      "id": "CLEANUP",
+      "layer": "harness",
+      "observed": "scratch_removed+no_other_processes",
+      "status": "pass"
+    }
+  ],
+  "fail": 0,
+  "limits": {
+    "alias_events_per_input": 1000,
+    "depth": 64,
+    "documents_per_input": 100,
+    "expanded_nodes_per_input": 100000,
+    "input_bytes": 1048576,
+    "scalar_bytes": 65536
+  },
+  "observations": 7,
+  "pass": 121
+}

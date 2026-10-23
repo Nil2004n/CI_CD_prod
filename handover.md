@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, P00-T06 spike built and run (formal run failed 5/101, D01 proposed); phase branch pushed to `origin/phase/P00-decisions-spikes`, not merged. Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, P00-T06-D01 re-run passed (121/0/7, J16 35/35), committed locally on `phase/P00-decisions-spikes` (not pushed); T06 awaiting owner review. Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`, `git status -sb`. Expect branch `phase/P00-decisions-spikes` equal to `origin/phase/P00-decisions-spikes`, clean tree; `main` = `origin/main` = `008e80c` (phase branch not merged).
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`, `git status -sb`. Expect branch `phase/P00-decisions-spikes` one commit ahead of `origin/phase/P00-decisions-spikes` (`8c10585`), clean tree; `main` = `origin/main` = `008e80c`.
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
@@ -31,7 +31,7 @@ Checkpoint: 2026-10-24, P00-T06 spike built and run (formal run failed 5/101, D0
 
 - P00-T06: `spikes/P00-T06-request-and-fixtures.md` — layers (parser vs spike composer vs projection vs validator), limits, cases Y01–Y21 / J01–J16, request §5, failure criteria §6, open questions §7. Nothing resolved/fetched/built yet.
 
-- P00-T06: spike `spikes/rust/t06-yaml/` (composer, projection, harness, fixtures). Build/run only via the recorded namespace commands (env check first, `ulimit -v 1048576`). Failed run and proposed D01 in `evidence/P00/P00-T06/record.md`. Do not fix without approval.
+- P00-T06: spike `spikes/rust/t06-yaml/` (composer, projection, harness, fixtures). Build/run only via the recorded namespace commands (env check first, `ulimit -v 1048576`). First run failed; D01 re-run passed (`evidence/P00/P00-T06/D01/`); details in `evidence/P00/P00-T06/record.md`.
 
 ## Next
-Await approval of debug cycle P00-T06-D01. No repair, dependency or limit change without it.
+Await owner review of P00-T06 (D01). Do not mark accepted or start D02/other tasks without approval.

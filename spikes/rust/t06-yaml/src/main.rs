@@ -17,7 +17,26 @@ fn clean(s: &str) -> String {
 }
 
 fn pos_json(p: compose::Pos) -> Value {
-    json!({"byte": p.byte, "line": p.line, "col": p.col})
+    json!({"byte": p.byte, "line": p.line, "col": p.col, "mapped": p.mapped, "raw": {"index": p.raw_index, "line": p.raw_line, "col": p.raw_col}})
+}
+
+/// Find the first scalar (key or value) equal to `s`, depth-first.
+fn find_scalar(n: &Node, s: &str) -> Option<compose::Pos> {
+    match n {
+        Node::Scalar { v: Scalar::Str(x), at, .. } if x == s => Some(*at),
+        Node::Scalar { .. } => None,
+        Node::Seq { items, .. } => items.iter().find_map(|i| find_scalar(i, s)),
+        Node::Map { entries, .. } => entries.iter().find_map(|(k, v)| find_scalar(k, s).or_else(|| find_scalar(v, s))),
+    }
+}
+
+/// Expected coordinates of `target` under the D01 convention, computed from the original bytes.
+fn expected_pos(bytes: &[u8], target: &str) -> Value {
+    let prefix = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) { 3 } else { 0 };
+    let text = std::str::from_utf8(&bytes[prefix..]).unwrap();
+    let tb = text.find(target).unwrap();
+    let ls = text[..tb].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    json!({"byte": tb + prefix, "line": text[..tb].matches('\n').count() + 1, "col": text[ls..tb].chars().count() + 1, "char_index": text[..tb].chars().count()})
 }
 
 /// Outcome category of the YAML pipeline for one input (all documents).
@@ -25,10 +44,11 @@ fn pipeline(bytes: &[u8]) -> (String, Value, Vec<Value>) {
     let t = Instant::now();
     let c = compose(bytes, &SPIKE_LIMITS);
     let mut projected = Vec::new();
-    let mut detail = json!({"documents_composed": c.docs.len(), "alias_events": c.alias_events, "expanded_nodes": c.expanded_nodes});
+    let mut detail = json!({"bom_stripped": c.bom_stripped, "documents_composed": c.docs.len(), "alias_events": c.alias_events, "expanded_nodes": c.expanded_nodes});
     let category = match &c.error {
         Some(ComposeError::InvalidUtf8) => "input_rejected:invalid_utf8".to_string(),
         Some(ComposeError::Limit(which, d)) => { detail["limit"] = json!(d); format!("limit_exceeded:{which}") }
+        Some(ComposeError::ParserDepthLimit { info, at }) => { detail["parser_diagnostic"] = json!(clean(info)); detail["at"] = pos_json(*at); "limit_exceeded:depth(parser)".into() }
         Some(ComposeError::Syntax { info, at }) => { detail["error"] = json!(clean(info)); detail["at"] = pos_json(*at); "syntax_error".into() }
         Some(ComposeError::DuplicateKey { key, first, second }) => { detail["key"] = json!(clean(key)); detail["first"] = pos_json(*first); detail["second"] = pos_json(*second); "policy_rejected:duplicate_key".into() }
         Some(ComposeError::AliasCycle { anchor, at }) => { detail["anchor"] = json!(anchor); detail["at"] = pos_json(*at); "policy_rejected:alias_cycle".into() }
@@ -144,7 +164,11 @@ fn main() {
     for (id, f) in [("Y06a-dup-top", "y06a_dup_top.yaml"), ("Y06b-dup-nested", "y06b_dup_nested.yaml"), ("Y06c-dup-quoted-vs-plain", "y06c_dup_quoted.yaml")] {
         yaml_case(&mut r, id, &y(f), "policy_rejected:duplicate_key");
     }
-    yaml_case(&mut r, "Y07-int-vs-string-key", &y("y07_int_vs_str_key.yaml"), "unsupported_for_validation:non_string_key");
+    // Y07 (D01 disposition): under the approved Y19 policy, non-string keys are unsupported, so the
+    // design's "key_collision_after_projection" scenario is unreachable; keys are never stringified.
+    let (_, d, _) = yaml_case(&mut r, "Y07-int-key-alongside-string-key", &y("y07_int_vs_str_key.yaml"), "unsupported_for_validation:non_string_key");
+    r.row("Y07-not-a-yaml-duplicate", "composer", "composed_without_duplicate_error", if d["documents_composed"] == json!(1) { "composed_without_duplicate_error" } else { "rejected_by_composer" }, json!({}));
+    r.row("Y07-projection-key-collision-path", "projection", "observation", "unreachable_under_Y19_policy_not_tested", json!({"note": "collision check kept defensively; not exercised"}));
     // Y08: scalar resolution checked on composed nodes (before projection).
     let c = compose(&y("y08_scalars.yaml"), &SPIKE_LIMITS);
     let expect: Vec<(&str, Scalar)> = vec![
@@ -184,42 +208,78 @@ fn main() {
     r.row("Y12b-not-pass", "composer", "rejected", if o == "policy_rejected:alias_cycle" || o == "syntax_error" { "rejected" } else { "accepted" }, json!({"observed": o}));
     let (o, _, _) = yaml_case(&mut r, "Y13-undefined-alias", &y("y13_undefined_alias.yaml"), "observation");
     r.row("Y13-not-pass", "parser/composer", "rejected", if o == "policy_rejected:undefined_alias" || o == "syntax_error" { "rejected" } else { "accepted" }, json!({"observed": o}));
-    yaml_case(&mut r, "Y14a-depth-65", format!("a: {}{}\n", "[".repeat(65), "]".repeat(65)).as_bytes(), "limit_exceeded:depth");
-    yaml_case(&mut r, "Y14b-depth-10000", format!("a: {}{}\n", "[".repeat(10000), "]".repeat(10000)).as_bytes(), "limit_exceeded:depth");
+    // Depth counts open collections including the root mapping: "a: " + n '[' => n+1 collections.
+    yaml_case(&mut r, "Y14c-flow-depth-64-limit", format!("a: {}{}\n", "[".repeat(63), "]".repeat(63)).as_bytes(), "projected");
+    yaml_case(&mut r, "Y14a-flow-depth-65-limit+1", format!("a: {}{}\n", "[".repeat(64), "]".repeat(64)).as_bytes(), "limit_exceeded:depth(composer)");
+    yaml_case(&mut r, "Y14d-flow-depth-201", format!("a: {}{}\n", "[".repeat(200), "]".repeat(200)).as_bytes(), "limit_exceeded:depth(composer)");
+    let (_, d, _) = yaml_case(&mut r, "Y14b-flow-depth-10001", format!("a: {}{}\n", "[".repeat(10000), "]".repeat(10000)).as_bytes(), "limit_exceeded:depth(parser)");
+    r.row("Y14b-parser-diagnostic-preserved", "parser", "recursion limit exceeded", d["parser_diagnostic"].as_str().unwrap_or(""), json!({"at": d["at"]}));
+    let block = |n: usize| -> String { (0..n).map(|i| format!("{}k{i}:\n", " ".repeat(i))).collect::<String>() + &format!("{}leaf: 1\n", " ".repeat(n)) };
+    yaml_case(&mut r, "Y14e-block-depth-64-limit", block(63).as_bytes(), "projected");
+    yaml_case(&mut r, "Y14f-block-depth-65-limit+1", block(64).as_bytes(), "limit_exceeded:depth(composer)");
+    yaml_case(&mut r, "Y14h-block-depth-300", block(299).as_bytes(), "limit_exceeded:depth(composer)");
+    yaml_case(&mut r, "Y14g-unrelated-syntax-error-stays-syntax", b"a: [1, 2\n", "syntax_error");
     let mut big = String::from("a: \""); big += &"x".repeat(1 << 20); big += "\"\n";
     yaml_case(&mut r, "Y15a-input-bytes", big.as_bytes(), "limit_exceeded:input_bytes");
     yaml_case(&mut r, "Y15b-101-documents", "---\na: 1\n".repeat(101).as_bytes(), "limit_exceeded:documents");
     yaml_case(&mut r, "Y15c-scalar-bytes", format!("a: {}\n", "y".repeat((64 << 10) + 1)).as_bytes(), "limit_exceeded:scalar_bytes");
     let per_doc = format!("---\nb: &b 1\nl: [{}]\n", vec!["*b"; 25].join(", "));
     yaml_case(&mut r, "Y15d-alias-budget-across-docs", per_doc.repeat(50).as_bytes(), "limit_exceeded:alias_events");
-    // Y16: positions with multibyte text on the target line; plus BOM + CRLF variant.
-    let u = y("y16_unicode.yaml");
-    for (id, bytes) in [("Y16a-unicode-lf", u.clone()), ("Y16b-unicode-bom-crlf", { let mut v = vec![0xEF, 0xBB, 0xBF]; v.extend(String::from_utf8(u.clone()).unwrap().replace('\n', "\r\n").into_bytes()); v })] {
-        let text = String::from_utf8(bytes.clone()).unwrap();
-        let byte = text.find("TARGET_VALUE").unwrap();
-        let line_start = text[..byte].rfind('\n').map(|i| i + 1).unwrap_or(0);
-        let line = text[..byte].matches('\n').count() + 1;
-        let char_col1 = text[line_start..byte].chars().count() + 1;
-        let byte_col1 = byte - line_start + 1;
-        let c = compose(&bytes, &SPIKE_LIMITS);
-        let found = c.docs.first().and_then(|d| match &**d { Node::Map { entries, .. } => entries.iter().find(|(k, _)| matches!(&**k, Node::Scalar { v: Scalar::Str(s), .. } if s.starts_with("ключ"))).map(|(_, v)| v.at()), _ => None });
-        let first_key = c.docs.first().and_then(|d| match &**d { Node::Map { entries, .. } => entries.first().and_then(|(k, _)| match &**k { Node::Scalar { v: Scalar::Str(s), .. } => Some(s.clone()), _ => None }), _ => None });
-        let obs = match found {
+    // Y16 (D01): position regression matrix. Convention: 0-based original byte, 1-based line, 1-based char column.
+    let bom = |s: &str| { let mut v = vec![0xEF, 0xBB, 0xBF]; v.extend_from_slice(s.as_bytes()); v };
+    let u = String::from_utf8(y("y16_unicode.yaml")).unwrap();
+    let matrix: Vec<(&str, Vec<u8>, &str)> = vec![
+        ("Y16-P1-ascii", b"a: 1\nTARGET_KEY: 2\n".to_vec(), "TARGET_KEY"),
+        ("Y16-P2-multibyte-same-line", "名前: 値\nx: {ключ😀: 1, TARGET_KEY: 2}\n".as_bytes().to_vec(), "TARGET_KEY"),
+        ("Y16-P3-bom-line1-col1", bom("TARGET_KEY: 1\n"), "TARGET_KEY"),
+        ("Y16-P4-crlf-ascii", b"a: 1\r\nb: 2\r\nTARGET_KEY: 3\r\n".to_vec(), "TARGET_KEY"),
+        ("Y16-P5-bom-unicode-crlf", bom("名前: 値\r\nemoji: \"😀😀\"\r\nx: {ключ😀: 1, TARGET_KEY: 2}\r\n"), "TARGET_KEY"),
+        ("Y16-P6-fixture-lf", u.as_bytes().to_vec(), "TARGET_VALUE"),
+        ("Y16-P7-fixture-bom-crlf", bom(&u.replace('\n', "\r\n")), "TARGET_VALUE"),
+    ];
+    for (id, bytes, target) in &matrix {
+        let c = compose(bytes, &SPIKE_LIMITS);
+        let exp = expected_pos(bytes, target);
+        let got = c.docs.first().and_then(|d| find_scalar(d, target));
+        let obs = match got {
             Some(p) => {
-                let unit = if p.col == char_col1 { "char_1based" } else if p.col + 1 == char_col1 { "char_0based" } else if p.col == byte_col1 { "byte_1based" } else if p.col + 1 == byte_col1 { "byte_0based" } else { "unknown" };
-                json!({"reported": pos_json(p), "expected_byte": byte, "expected_line": line, "char_col_1based": char_col1, "byte_col_1based": byte_col1, "col_unit": unit, "first_key": first_key})
+                let mapped = json!({"byte": p.byte, "line": p.line, "col": p.col});
+                let ok_mapped = mapped["byte"] == exp["byte"] && mapped["line"] == exp["line"] && mapped["col"] == exp["col"] && p.mapped;
+                let ok_raw = json!(p.raw_index) == exp["char_index"] && json!(p.raw_line) == exp["line"] && json!(p.raw_col + 1) == exp["col"];
+                (format!("{}+{}", if ok_mapped { "mapped_exact" } else { "mapped_mismatch" }, if ok_raw { "raw_char_index_0based_col" } else { "raw_convention_differs" }),
+                 json!({"expected": exp, "reported": pos_json(p), "bom_stripped": c.bom_stripped, "error": c.error.as_ref().map(|e| format!("{e:?}"))}))
             }
-            None => json!({"error": "target not found"}),
+            None => ("target_not_found".into(), json!({"expected": exp, "error": c.error.as_ref().map(|e| format!("{e:?}"))})),
         };
-        let ok = obs["reported"]["byte"] == json!(byte) && obs["reported"]["line"] == json!(line) && obs["col_unit"] != json!("unknown") && first_key.as_deref() == Some("名前");
-        r.row(id, "parser", "byte_and_line_exact+col_unit_identified+bom_not_in_key", if ok { "byte_and_line_exact+col_unit_identified+bom_not_in_key" } else { "mismatch" }, obs);
+        r.row(id, "position", "mapped_exact+raw_char_index_0based_col", &obs.0, obs.1);
     }
+    for (id, bytes) in [("Y16-E1-error-after-multibyte", "名前: 値\nключ: [1, 2\n".as_bytes().to_vec()), ("Y16-E2-error-after-multibyte-bom-crlf", bom("名前: 値\r\nключ: [1, 2\r\n"))] {
+        let c = compose(&bytes, &SPIKE_LIMITS);
+        let obs = match &c.error {
+            Some(ComposeError::Syntax { at, info }) => {
+                let boundary = std::str::from_utf8(&bytes[if c.bom_stripped { 3 } else { 0 }..]).map(|t| t.is_char_boundary(at.byte - if c.bom_stripped { 3 } else { 0 })).unwrap_or(false);
+                let consistent = at.mapped && at.raw_line == at.line && at.raw_col + 1 == at.col && at.line >= 2 && boundary;
+                (if consistent { "syntax_error+position_consistent_on_or_after_multibyte_line" } else { "syntax_error+position_inconsistent" }.to_string(), json!({"at": pos_json(*at), "info": clean(info), "char_boundary": boundary}))
+            }
+            other => ("not_syntax_error".to_string(), json!({"error": other.as_ref().map(|e| format!("{e:?}"))})),
+        };
+        r.row(id, "position", "syntax_error+position_consistent_on_or_after_multibyte_line", &obs.0, obs.1);
+    }
+    // BOM edge cases (D01): only one leading BOM is removed; others are content and are recorded.
+    let (_, d, _) = yaml_case(&mut r, "Y16-B1-bom-only", &[0xEF, 0xBB, 0xBF], "no_documents");
+    r.row("Y16-B1-bom-stripped-flag", "input_gate", "true", &d["bom_stripped"].to_string(), json!({}));
+    let mut dbl = vec![0xEF, 0xBB, 0xBF]; dbl.extend(bom("k: v\n"));
+    let c = compose(&dbl, &SPIKE_LIMITS);
+    let first_key = c.docs.first().and_then(|d| match &**d { Node::Map { entries, .. } => entries.first().and_then(|(k, _)| match &**k { Node::Scalar { v: Scalar::Str(s), .. } => Some(s.clone()), _ => None }), _ => None });
+    r.row("Y16-B2-second-bom-retained-in-key", "input_gate", "key_starts_with_U+FEFF", if first_key.as_deref().map_or(false, |k| k.starts_with('\u{feff}')) { "key_starts_with_U+FEFF" } else { "other" }, json!({"first_key": first_key.map(|k| clean(&k.replace('\u{feff}', "<U+FEFF>"))), "bom_stripped": c.bom_stripped, "note": "recorded as unsupported input, not normalised"}));
+    let (_, _, p) = yaml_case(&mut r, "Y16-B3-internal-feff-in-value", "v: a\u{feff}b\n".as_bytes(), "projected");
+    r.row("Y16-B3-internal-feff-retained", "input_gate", "retained", if p.first().and_then(|d| d["projected"]["v"].as_str()).map_or(false, |s| s.contains('\u{feff}')) { "retained" } else { "removed" }, json!({}));
     yaml_case(&mut r, "Y17a-invalid-utf8", b"a: \xff\xfe\n", "input_rejected:invalid_utf8");
     let (o, d, p) = yaml_case(&mut r, "Y17b-nul-byte", b"a: b\x00c\n", "observation");
     r.row("Y17b-not-silently-projected", "parser/composer", "rejected", if o == "syntax_error" || o.starts_with("input_rejected") { "rejected" } else { "accepted" }, json!({"observed": o, "detail": d, "documents": p}));
     let (_, _, p) = yaml_case(&mut r, "Y18a-core-tags", &y("y18a_core_tags.yaml"), "projected");
     r.row("Y18a-core-tag-values", "composer", "s=\"123\",i=7", &format!("s={},i={}", p.first().map(|d| d["projected"]["s"].to_string()).unwrap_or_default(), p.first().map(|d| d["projected"]["i"].to_string()).unwrap_or_default()), json!({}));
-    for (id, f, tag) in [("Y18b-custom-tag", "y18b_custom_tag.yaml", "!Ref"), ("Y18c-python-tag", "y18c_python_tag.yaml", "!!python/object:os.system"), ("Y18d-binary-tag", "y18d_binary_tag.yaml", "!!binary")] {
+    for (id, f, tag) in [("Y18b-custom-tag", "y18b_custom_tag.yaml", "!Ref"), ("Y18c-python-tag", "y18c_python_tag.yaml", "tag:yaml.org,2002:python/object:os.system"), ("Y18d-binary-tag", "y18d_binary_tag.yaml", "tag:yaml.org,2002:binary")] {
         let (_, _, p) = yaml_case(&mut r, id, &y(f), "unsupported_for_validation:tag");
         let reason = p.first().and_then(|d| d["unsupported_for_validation"].as_str()).unwrap_or("").to_string();
         r.row(&format!("{id}-name"), "composer", &format!("tag:{tag}"), &reason, json!({"note": "tags are recorded, never instantiated"}));

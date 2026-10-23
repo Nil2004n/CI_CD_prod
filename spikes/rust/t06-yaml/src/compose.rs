@@ -5,7 +5,7 @@
 //! materialisation, duplicate-key detection on the lossless entry list, YAML 1.2 core-schema scalar
 //! resolution, tag policy. Projection to JSON lives in `project.rs`.
 
-use saphyr_parser::{Event, Parser, ScalarStyle, Span};
+use saphyr_parser::{Event, Parser, ScalarStyle};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
@@ -27,15 +27,55 @@ pub const SPIKE_LIMITS: Limits = Limits {
     scalar_bytes: 64 << 10,
 };
 
+/// Source position (start only; end spans are not reported).
+/// Convention (P00-T06-D01): `byte` = 0-based offset into the ORIGINAL input bytes (a stripped BOM
+/// counts); `line` = 1-based; `col` = 1-based Unicode scalar (char) column within the line of the
+/// text given to the parser (a stripped leading BOM is not a column). `raw_*` = saphyr-parser 0.2.2
+/// marker as returned (observed: index = char offset, line 1-based, col 0-based chars). `mapped` is
+/// false if the raw index fell outside the input (then byte/col are not exact).
 #[derive(Clone, Copy, Debug)]
 pub struct Pos {
     pub byte: usize,
     pub line: usize,
     pub col: usize,
+    pub raw_index: usize,
+    pub raw_line: usize,
+    pub raw_col: usize,
+    pub mapped: bool,
 }
 
-fn pos(s: &Span) -> Pos {
-    Pos { byte: s.start.index(), line: s.start.line(), col: s.start.col() }
+/// Char-offset -> byte-offset map built once per input in O(n) (bounded by the 1 MiB input limit).
+pub struct PosMap {
+    char_byte: Vec<u32>,      // byte offset (within parsed text) of each char, plus one past the end
+    line_start_char: Vec<u32>, // char offset at which each line starts (line 1 at index 0)
+    prefix: usize,            // bytes removed before parsing (BOM)
+}
+
+impl PosMap {
+    pub fn new(text: &str, prefix: usize) -> PosMap {
+        let mut char_byte = Vec::with_capacity(text.len() + 1);
+        let mut line_start_char = vec![0u32];
+        for (ci, (bi, c)) in text.char_indices().enumerate() {
+            char_byte.push(bi as u32);
+            if c == '\n' {
+                line_start_char.push(ci as u32 + 1);
+            }
+        }
+        char_byte.push(text.len() as u32);
+        PosMap { char_byte, line_start_char, prefix }
+    }
+    pub fn pos(&self, m: &saphyr_parser::Marker) -> Pos {
+        let ci = m.index();
+        let raw = (ci, m.line(), m.col());
+        match self.char_byte.get(ci) {
+            Some(b) => {
+                let line_idx = self.line_start_char.partition_point(|s| (*s as usize) <= ci) - 1;
+                let col = ci - self.line_start_char[line_idx] as usize + 1;
+                Pos { byte: *b as usize + self.prefix, line: line_idx + 1, col, raw_index: raw.0, raw_line: raw.1, raw_col: raw.2, mapped: true }
+            }
+            None => Pos { byte: ci + self.prefix, line: raw.1, col: raw.2 + 1, raw_index: raw.0, raw_line: raw.1, raw_col: raw.2, mapped: false },
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -70,6 +110,10 @@ impl Node {
 pub enum ComposeError {
     InvalidUtf8,
     Limit(&'static str, String),
+    /// saphyr-parser's own flow-nesting guard (`flow_level: u8` overflow), identified ONLY by its exact
+    /// pinned message "recursion limit exceeded" (no structured error kind exists in 0.2.2). Fragile:
+    /// coupled to this parser version's wording.
+    ParserDepthLimit { info: String, at: Pos },
     Syntax { info: String, at: Pos },
     DuplicateKey { key: String, first: Pos, second: Pos },
     AliasCycle { anchor: usize, at: Pos },
@@ -78,6 +122,8 @@ pub enum ComposeError {
 }
 
 pub struct Composed {
+    /// Whether one leading UTF-8 BOM was removed before parsing.
+    pub bom_stripped: bool,
     /// Documents successfully composed, in order (index 0 = document 1).
     pub docs: Vec<Rc<Node>>,
     /// Error that stopped composition (later documents not assessed).
@@ -191,7 +237,7 @@ fn key_identity(n: &Node) -> String {
 }
 
 pub fn compose(bytes: &[u8], l: &Limits) -> Composed {
-    let mut out = Composed { docs: Vec::new(), error: None, alias_events: 0, expanded_nodes: 0 };
+    let mut out = Composed { bom_stripped: false, docs: Vec::new(), error: None, alias_events: 0, expanded_nodes: 0 };
     macro_rules! fail {
         ($e:expr) => {{
             out.error = Some($e);
@@ -201,7 +247,14 @@ pub fn compose(bytes: &[u8], l: &Limits) -> Composed {
     if bytes.len() > l.input_bytes {
         fail!(ComposeError::Limit("input_bytes", format!("{} > {}", bytes.len(), l.input_bytes)));
     }
-    let Ok(text) = std::str::from_utf8(bytes) else { fail!(ComposeError::InvalidUtf8) };
+    // Input gate: remove at most ONE leading UTF-8 BOM; internal/repeated U+FEFF is left as content.
+    let (prefix, body) = match bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]) {
+        Some(rest) => (3, rest),
+        None => (0, bytes),
+    };
+    out.bom_stripped = prefix == 3;
+    let Ok(text) = std::str::from_utf8(body) else { fail!(ComposeError::InvalidUtf8) };
+    let map = PosMap::new(text, prefix);
     let mut anchors: HashMap<usize, (Rc<Node>, u64)> = HashMap::new();
     let mut open_anchors: HashSet<usize> = HashSet::new();
     let mut stack: Vec<Frame> = Vec::new();
@@ -211,11 +264,14 @@ pub fn compose(bytes: &[u8], l: &Limits) -> Composed {
         let (event, span) = match ev {
             Ok(x) => x,
             Err(e) => {
-                let m = e.marker();
-                fail!(ComposeError::Syntax { info: e.info().to_string(), at: Pos { byte: m.index(), line: m.line(), col: m.col() } })
+                let at = map.pos(e.marker());
+                if e.info() == "recursion limit exceeded" {
+                    fail!(ComposeError::ParserDepthLimit { info: e.info().to_string(), at })
+                }
+                fail!(ComposeError::Syntax { info: e.info().to_string(), at })
             }
         };
-        let at = pos(&span);
+        let at = map.pos(&span.start);
         let is_seq = matches!(event, Event::SequenceStart(..));
         // Each completed node, with its expanded size, is attached to the parent below.
         let completed: Option<(Rc<Node>, u64, usize)> = match event {
@@ -267,7 +323,7 @@ pub fn compose(bytes: &[u8], l: &Limits) -> Composed {
             }
             Event::SequenceStart(anchor, tag) | Event::MappingStart(anchor, tag) => {
                 if stack.len() + 1 > l.depth {
-                    fail!(ComposeError::Limit("depth", format!("> {}", l.depth)));
+                    fail!(ComposeError::Limit("depth(composer)", format!("> {}", l.depth)));
                 }
                 if anchor != 0 {
                     open_anchors.insert(anchor);

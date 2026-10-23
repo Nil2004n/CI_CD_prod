@@ -87,3 +87,32 @@ Command: `timeout -s KILL 120 unshare -rn --pid --fork --mount-proc --kill-child
 3. Classify the parser's "recursion limit exceeded" error as `limit_exceeded:depth(parser)`; keep the composer limit of 64; record that the effective first limit for deeply nested flow input is the parser's (matching on error text is fragile and noted).
 4. Correct the Y18c/d expected names to the expanded form `tag:yaml.org,2002:…` (expectation correction, not a behaviour change).
 5. Retest: full harness and J16 under the same verified setup; no dependency or limit changes.
+
+## Debug cycle P00-T06-D01 (owner-approved 2026-10-24) — appended; the failed run above is unchanged
+
+**Result: formal re-run PASSED — 128 rows: 121 pass, 0 fail, 7 observations (harness exit 0). J16: 35 agree / 0 disagree / 0 skipped.** Evidence: `evidence/P00/P00-T06/D01/` (`C-build-1.log`, `artifact.sha256`, `D-env-check.log`, `D-run.log`, `results.json`, `j16-cases.json`, `J16-compare.log`). P00-T06 is **not** marked accepted pending owner review.
+
+### Boundary
+Dependency graph, features, manifests and `Cargo.lock` unchanged (verified against `2931774` and the recorded post-fetch hash before and after the build); limits unchanged; no fallback crates; no resolution, fetch, installation or network access. Rebuild `unshare -rn env -i … cargo build --frozen -p t06-yaml` → exit 0, no warnings. Artifact SHA-256 `b4e7783d82f248ef611ccd46a8ffc15eafa2a2eda7d935b7ebaf75af3a16e825` (differs from the failed run because spike code changed). Run under the same verified setup (PID 1 in user+net+PID namespace, `ulimit -v 1048576`, `timeout -s KILL 120`; env check and watchdog check repeated).
+
+### Changes (spike code only)
+1. **Positions** (`compose.rs` `PosMap`): built once per input in O(n) (≤ 1 MiB): per-char byte offsets plus line-start char offsets; lookups by index + binary search, no rescanning. Reported convention: **0-based byte offset into the original input bytes** (a stripped BOM counts), **1-based line**, **1-based Unicode-scalar column** within the parsed line (not display width; a stripped leading BOM is not a column). Raw saphyr-parser markers are preserved alongside (`raw.index/line/col`); start positions only — no end spans are reported. Observed raw convention (consistent across all matrix cases): `index` = 0-based **character** offset into the text given to the parser (after BOM removal), `line` 1-based, `col` 0-based characters. The crate's doc comment and `ScanError` Display call `index` "byte" — contradicted by observation.
+2. **BOM**: the input gate removes at most **one** leading UTF-8 BOM before parsing and records `bom_stripped`; original bytes are unchanged and offsets account for the prefix. A second BOM and internal U+FEFF are left as content and recorded (not normalised).
+3. **Depth classification**: saphyr-parser 0.2.2 exposes no structured error kind; its guard is a `flow_level: u8` overflow in the scanner (flow collections only, > 255 levels) with the literal message `recursion limit exceeded`. That exact string is matched (nothing broader) and reported as `limit_exceeded:depth(parser)` with the original diagnostic preserved; the composer's own limit is reported as `limit_exceeded:depth(composer)`. Fragility recorded: the mapping is coupled to this version's wording.
+4. **Expectation corrections**: Y18c/Y18d expected names changed from the shorthand `!!python/object:os.system` / `!!binary` (old, wrong) to the parser's expanded canonical `tag:yaml.org,2002:python/object:os.system` / `tag:yaml.org,2002:binary`; the "unsupported, never instantiated" assertion is unchanged. Y07 renamed `Y07-int-key-alongside-string-key`: expected `non_string_key` (Y19 policy), plus an explicit check that the composer does not treat `1` and `"1"` as duplicates; the design's `key_collision_after_projection` scenario is recorded as **unreachable under the Y19 policy and not tested** (observation row), keys are never stringified.
+
+### Original failures → D01 outcome
+| Original | D01 cases | Outcome |
+|---|---|---|
+| Y16a (char index treated as bytes) | Y16-P1 ASCII; P2 multibyte on the same line; P4 CRLF; P6 fixture LF; E1 syntax error after multibyte | all mapped exactly (e.g. P2 byte 33/line 2/col 15 from raw index 20/col 14; P6 byte 58/line 4/col 8 from raw 35/7); E1 at byte 28, line 3, col 1, on a char boundary |
+| Y16b (BOM in first key) | Y16-P3 BOM + target at line 1 col 1; P5 BOM + Unicode + CRLF; P7 fixture BOM + CRLF; E2 BOM + CRLF error after multibyte; B1 BOM-only; B2 double BOM; B3 internal U+FEFF | P3 byte 3/line 1/col 1; P5 byte 56/line 3/col 15; P7 byte 64/line 4/col 8; E2 byte 33 (= 28 + 3 BOM + 2 CR); B1 `no_documents` with `bom_stripped=true`; B2 key `<U+FEFF>k` (second BOM retained, recorded); B3 retained |
+| Y14b (parser limit classified as syntax) | flow: 64 (limit) / 65 (limit+1) / 201 / 10,001; block: 64 / 65 / 300; unrelated unclosed sequence | flow 64 projected; 65 and 201 → `depth(composer)`; 10,001 → `depth(parser)`, diagnostic `recursion limit exceeded` at char 258 preserved; block 64 projected; 65 and 300 → `depth(composer)` (the parser guard does not cover block nesting); unrelated error stays `syntax_error` |
+| Y18c/Y18d (expectation) | same cases, corrected names | pass; tags unsupported, not instantiated |
+
+All other original cases re-ran with the same outcomes (now with byte/line/1-based-col positions plus raw markers). J16 unchanged: 35/35 agree.
+
+### Remaining unsupported / unverified
+End spans not reported; display-width columns not computed; repeated or internal U+FEFF is content (unsupported, recorded); parser depth mapping coupled to the exact 0.2.2 message; YAML 1.1 behaviour, merge keys, non-string keys, non-core tags remain unsupported by policy; JSON-Schema-Test-Suite conformance not run; production limits are a P05 decision; no filesystem sandbox; build-code and transitive dependencies reviewed only by pattern.
+
+### Housekeeping (optional, later)
+`j16-cases.json` embeds the full store schema per contract case (large diff). Deduplicating schemas or packaging fixtures reproducibly is optional later housekeeping; not done in this cycle.

@@ -145,3 +145,10 @@ Not requested: `saphyr`, `yaml-rust2`, `boon` (fallbacks), `serde` with `derive`
 1. Approve the §5 request (A → A-review → **A2 advisory lookup** → B → B-review → C → D) for exactly three direct dependencies, including implementing the spike composer/projection/harness and committing fixtures?
 2. Accept the §2 spike limits and the §3 scalar/tag/merge-key/non-string-key policies as **spike** policies (P05 decides production)?
 3. Approve using the host's existing Python `jsonschema` 4.26.0 for the J16 differential comparison (no installation)?
+
+## 8. Design corrections recorded during execution (P00-T06 run and D01)
+
+- **Y07 vs Y19**: the original Y07 expectation (`key_collision_after_projection` for `1:` + `"1":`) contradicted the approved Y19 policy (non-string keys unsupported). Resolved per Y19: keys are never stringified; Y07 now asserts `non_string_key` and that the composer does not treat `1` and `"1"` as duplicates. The projection-collision scenario is unreachable under this policy and is recorded as not tested.
+- **Y18c/Y18d**: expected tag names corrected to the parser's expanded canonical form (`tag:yaml.org,2002:…`); the disallowed tags remain unsupported and are never instantiated.
+- **Positions (Y16)**: saphyr-parser 0.2.2 reports character offsets and 0-based character columns; the spike converts to 0-based original-byte offsets, 1-based lines and 1-based character columns. One leading UTF-8 BOM is removed at the input gate.
+- **Depth (Y14)**: limit cases now include limit/limit+1 for flow and block nesting; the parser's flow-only `u8` guard is reported separately as `depth(parser)`.
