@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, installs accepted (with limitations) and pushed (`008e80c`); P00-T03 crate request completed, awaiting decisions C-1–C-6. Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, on `phase/P00-decisions-spikes`; P00-T03 rev 2 research-backed crate request committed (local only), awaiting D3-1–D3-3. Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git log --oneline -3`. Expect `main` = `origin/main` = `008e80c` with uncommitted P00-T03 and documentation changes, unless a commit was since approved.
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the rev 2 commit on top of `f1bd80d`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
@@ -19,8 +19,8 @@ Checkpoint: 2026-10-24, installs accepted (with limitations) and pushed (`008e80
 
 - Installed dev tools (absolute paths only; nothing on PATH changed): see `evidence/P00/P00-T02/install-record.md`. Re-hash `~/.local/bin/gitleaks` and `/usr/local/bin/cosign` before reuse (user-writable, outside the prefix). Python tools: `~/.local/share/pwt-dev-tools/{yamllint/1.38.0,checkov/3.3.30}/venv/bin/`.
 
-- P00-T03: `spikes/P00-T03-crate-request.md`. Versions are deliberately unresolved (no lookups authorised); §6 lists the exact lookups; §7 decisions C-1–C-6.
+- P00-T03: `spikes/P00-T03-crate-request.md` rev 2 (selections §2, build exposure §3, first libc-only request §4, unknowns needing build tests §6); evidence `evidence/P00/P00-T03/research.md`. Only direct candidates were RustSec-screened; no transitive review; nothing resolved/fetched/built. Branch policy: phase branches; merges/pushes need approval.
 - Conventions: capture exit codes without pipes (`evidence/README.md`); re-hash protected inputs against `install-record.md` "Trusted hashes" before execution (not complete tamper protection). PyPI provenance exception accepted for development only.
 
 ## Next
-Await owner decisions C-1–C-6 and the branch-policy question. Do not start P00-T04/T05/T09.
+Await D3-1–D3-3. Do not start P00-T04/T05/T09, resolution, fetch or builds.
