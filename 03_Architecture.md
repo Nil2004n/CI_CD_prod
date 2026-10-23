@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3 | Date: 2026-10-23 | Status: Proposed architecture
+Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed architecture
 Scope: Single-user local application; Rust-oriented reference design, subject to language sign-off.
 
 ## 1. Architectural intent
@@ -139,16 +139,70 @@ Denied tasks do not become passes. Dynamic discoveries that introduce new networ
 - Per-repo locks prevent app-owned updates overlapping assessment.
 - Terminating the parent must not leave unattended assessment intentionally running; platform-specific child-tree cleanup is a release test.
 
-### Proposed event vocabulary
+### Canonical application command/event contract (app contract v1.0, CA-01)
 
-```text
-RepoRegistered, RepoUpdateStarted, RepoUpdateFailed, InventoryUpdated
-SelectionChanged, WorkflowSaved, TriggerSkipped
-RunPlanned, RunStarted, TaskStarted, TaskProgress, CheckCompleted
-FindingObserved, ApprovalRequested, ApprovalResolved
-RunCancelling, RunFinalised, ReportWritten, StorageFailure
-ChatRetrievalStarted, ChatTokenReceived, ChatCompleted, ChatFailed
-```
+This section is the single canonical command/event vocabulary (resolves C4/C5). UI Schema §17, the demo TUI and mocks refer to it; on conflict this section wins. The contract has its own version line (`app_contract_version` 1.0), independent of the document revision, store schema v1.2, wrapper protocol v1.0 and UI schema v1.0. Commands are typed requests from the UI reducer to the coordinator; events are typed projections back. Field-level DTOs are defined in code during P01 and reviewed as a shared contract.
+
+Status: **pilot** = command/event is implemented in the pilot. **reserved (deferred)** = name and intent reserved so later work does not invent a conflicting interface; it is not implemented, is not shown as available in the UI and returns an explicit `OperationFailed{code="deferred"}` if dispatched.
+
+| Command | Status | Purpose / requirement |
+|---|---|---|
+| AddRepository | pilot | Validate URL, register, request acquisition approval (REP-01) |
+| RefreshRepository | pilot | Clone if absent, otherwise fast-forward update under lock (REP-02, REP-05) |
+| RemoveRepository | pilot | Deregister with explicit choices for checkout deletion, derived-index purge and report retention (Data §14) |
+| DiscoverFiles | pilot | Re-inventory a repository (DISC-01–DISC-05) |
+| UpdateSelection | pilot | Apply tristate/selector changes (DISC-03) |
+| ReviewScanPlan | pilot | Build and freeze a reviewable plan, list required approvals |
+| StartScan | pilot | Execute a reviewed plan |
+| CancelRun | pilot | Request supervisor cancellation of a run (WF-05) |
+| SaveWorkflow | pilot | Create/update a workflow; increments revision (WF-01) |
+| DeleteWorkflow | pilot | Remove a workflow definition; history retained |
+| SetWorkflowEnabled | pilot | Enable/disable app-open triggers (WF-02) |
+| RunWorkflow | pilot | Manual run of a saved workflow |
+| ResolveApproval | pilot | Approve once / approve workflow scope / deny a pending request |
+| RevokeApproval | pilot | Revoke an existing grant (Approval state machine) |
+| ConfigureCredential | pilot | Set, validate, replace or delete the BYOK key (session-only; OS store if verified) (KEY-01) |
+| ConfigureProvider | pilot | Set explicit model ID and optional provider allowlist (KEY-02) |
+| SetChatContext | pilot | Choose repo/run/finding context for retrieval (RAG-01, RAG-07) |
+| SendChatMessage | pilot | Retrieve, redact, request approval if needed, send (RAG) |
+| CancelChatResponse | pilot | Stop an in-flight streamed response |
+| ExportReport | pilot | Locate/open-path information for an existing report export (no external open) |
+| RegenerateExport | pilot | Re-derive a failed/missing Markdown or PDF from retained JSON without rescanning (RES-08) |
+| InspectDependencies | pilot | Re-run preflight and refresh `tools.json` view (TOOL-01) |
+| RequestShutdown | pilot | Cancel work, persist, restore terminal |
+| SuppressFinding / UpdateSuppression | reserved (deferred) | RES-06 suppression/baseline |
+| CompareRuns | reserved (deferred) | History comparison with scope-compatibility warnings |
+| GenerateReportNarrative | reserved (deferred) | Optional cited AI narration as a new/versioned report (RES-07) |
+| PersistConversation | reserved (deferred) | Opt-in sanitised chat history |
+| StartLiveVerification | reserved (deferred) | SCAN-06 non-mutating verification |
+
+| Event | Status | Delivery |
+|---|---|---|
+| RepositoryRegistered, RepositoryRemoved | pilot | must-deliver |
+| RepositoryStatusChanged | pilot | must-deliver; carries clone/update started/succeeded/failed/skipped state (replaces RepoUpdateStarted/RepoUpdateFailed) |
+| InventoryUpdated | pilot | must-deliver |
+| SelectionChanged | pilot | latest-value (intermediate states may be coalesced) |
+| WorkflowSaved, WorkflowDeleted, WorkflowStateChanged | pilot | must-deliver |
+| TriggerFired, TriggerSkipped | pilot | must-deliver (overlap/missed reasons) |
+| RunPlanned, RunStarted | pilot | must-deliver |
+| RunStateChanged | pilot | must-deliver; includes `cancelling` and `awaiting_approval` transitions (replaces RunCancelling) |
+| TaskStarted, CheckCompleted | pilot | must-deliver |
+| TaskProgress | pilot | coalescible |
+| FindingObserved | pilot | must-deliver |
+| RunFinished | pilot | must-deliver; terminal execution/assessment/coverage (replaces RunFinalised) |
+| ApprovalRequested, ApprovalResolved, ApprovalRevoked | pilot | must-deliver |
+| ReportWritten | pilot | must-deliver; per-format JSON/MD/PDF status |
+| ExportStatusChanged | pilot | must-deliver; regeneration outcome |
+| DependencyStatusChanged | pilot | must-deliver |
+| CredentialStatusChanged | pilot | must-deliver; never contains key material |
+| ChatRetrievalCompleted | pilot | must-deliver; selected source IDs only (replaces ChatRetrievalStarted) |
+| ChatResponseStarted, ChatResponseFinished | pilot | must-deliver; finish carries completed/cancelled/incomplete (replaces ChatCompleted) |
+| ChatResponseChunk | pilot | coalescible by merging text, never dropping it (replaces ChatTokenReceived) |
+| ChatFailed | pilot | must-deliver; typed reason (invalid key, credits, rate limit, no compliant route, timeout, truncation) |
+| StorageFailure, OperationFailed | pilot | must-deliver |
+| SuppressionChanged, RunComparisonReady | reserved (deferred) | — |
+
+Persisted `log.json` events use these names in `event_type`; mock events in the demo TUI carry a visible mock marker and cannot satisfy real-scan acceptance.
 
 No event includes raw secret values or raw child-process output. Progress can be coalesced; findings, permission decisions and terminal run states cannot be silently dropped.
 
@@ -240,6 +294,8 @@ No unrestricted secret verification: an adapter must not submit detected secret 
   workflows.json
   approvals.json
   log.json
+  tools.json                   # preflight/manifest view; application-owned, not executable config
+  suppressions.json            # reserved (RES-06 deferred); not written by the pilot
   .app.lock
   checkouts/<repo-id>/...
   backup/<utc-time>_<repo-slug>_<run-id>.json
@@ -290,13 +346,16 @@ Directory root is resolved by the platform application-data mechanism or explici
 | ADR | Proposed decision | Reason / unresolved condition |
 |---|---|---|
 | A-01 | Modular monolith | Local app; avoid distributed deployment complexity |
-| A-02 | Rust + Ratatui/Crossterm | Fits proposed UI; needs team sign-off |
+| A-02 | Rust + Ratatui/Crossterm, Tokio, Serde | Accepted by owner (D-01, 2026-10-23); other dependencies via spikes |
 | A-03 | External scanner adapters | Reuse rule engines; dependency coverage must be tested |
 | A-04 | JSON persistence | Matches agreed storage; scale/retention limits need benchmarks |
 | A-05 | No daemon | Matches terminal-open runtime |
 | A-06 | Chat has no execution tools | Preserves advisory safety model |
-| A-07 | Direct Git invocation, script optional | Portability; needs explicit approval of script replacement |
+| A-07 | Direct Git invocation, script optional | Accepted by owner (D-03); `.sh` wrappers are extension X6 |
 | A-08 | No implicit all-network grant | Approval matches requested external access requirement |
+| A-09 | Native Rust process adapters implement protocol v1.0 DTOs | Accepted (D-03); supervisor owns timeout/cancel/process-tree kill out-of-band (CA-01) |
+| A-10 | Linux x86_64 first pilot target, portable interfaces | Accepted (D-02); Windows/macOS unverified extensions (X5) |
+| A-11 | Independent version lines: document 0.3.x, store 1.2, wrapper protocol 1.0, app command/event contract 1.0, UI schema 1.0 | Resolves C6; see Data Schema §17 and §22 |
 
 Physical deployment matrix, scanner/framework coverage, OpenRouter inference-model choice and performance budgets are sign-off gates, not architecture facts established by this draft.
 
@@ -323,7 +382,7 @@ flowchart TD
   LEDGER --> STORE[Single writer and reports]
 ```
 
-All execution passes through manifest/preflight, permission policy and process supervision. Scripts are an adapter transport, not an alternate uncontrolled execution path. Shell scripts are optional on native platforms; direct executable invocation must provide equivalent contracts where supported.
+All execution passes through manifest/preflight, permission policy and process supervision. Scripts are an adapter transport, not an alternate uncontrolled execution path. Shell scripts are optional (extension X6); the pilot uses direct executable invocation through native adapters, which must provide the full protocol contract.
 
 The core alone owns JSON parsing/normalisation, selected-scope enforcement, deduplication, durable data and UI events. Application-supplied wrappers may invoke only allowlisted pinned tools. No eval, arbitrary commands, repository custom-check loading, fixes, deployment or cluster scans. Unrelated secrets/model key are removed from child environments.
 

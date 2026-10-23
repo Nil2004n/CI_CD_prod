@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3 | Date: 2026-10-23 | Status: Review-ready draft
+Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Review-ready draft
 Owner: PWT | Working product name: PWT YAML Security Workbench
 
 ## 1. Document status and decision rules
@@ -71,12 +71,12 @@ The initial product is a single-user local application. Shared tenancy, central 
 | Workflow lifetime | Agreed | Automation only while terminal application is open |
 | UI | Agreed foundation | Full-screen, mouse-responsive, panel-based terminal UI and integrated RAG window |
 | Hybrid UI | Proposed | Dashboard-first with expandable conversational workspace |
-| Rust stack | Proposed | Rust, Ratatui/Crossterm, adapter-based scanners |
-| Repository script | Earlier design, proposed revision | Replace mandatory `repo_ext.sh` with direct config parsing and Git execution for portability |
+| Rust stack | Agreed (D-01) | Rust, Ratatui/Crossterm, Tokio, Serde reference stack; other dependencies remain subject to spikes |
+| Repository script | Agreed (D-03) | Rust reads `repo.json` and invokes Git directly; native Rust process adapters are the pilot baseline; `.sh` wrappers are optional parity extension X6 |
 | Storage | Agreed | `log.json`; dated JSON/Markdown/PDF under `backup` |
 | LLM runtime | Agreed | OpenRouter BYOK; no bundled shared key or PWT inference server |
 | Development | Agreed | Opus 5.5 orchestrator/test executor, Sonnet 5.5 workers, Haiku documentation, human gates |
-| Platform versions | Open | Exact OS/architecture/terminal certification matrix |
+| Platform versions | Partly agreed (D-02) | Linux x86_64 is the first pilot target; Windows/macOS are explicit extensions (X5), not verified or supported until their acceptance matrix passes; exact distribution/terminal matrix remains open |
 
 ## 6. Functional requirements
 
@@ -222,6 +222,8 @@ These slices are sequencing guidance, not dates. Estimate only after dependency 
 | O-07 | Cross-platform replacement of mandatory `repo_ext.sh` | Engineering lead |
 | O-08 | Coverage/performance/quality targets and scanner license review | Security + QA |
 
+Resolution status (owner decisions 2026-10-23, recorded in `plan.md`): O-01 resolved by D-01 (Rust). O-02 partly resolved by D-02 (Linux x86_64 first). O-04 partly resolved by D-06 (minimal BYOK assistant stays in the pilot; the owner supplies the production model ID, which is not chosen by development agents). O-05 remains open (D-09 cadence, D-12 Figma timing). O-07 resolved by D-03. O-03, O-06 and O-08 remain open.
+
 
 ## 12. Named scanner and wrapper roadmap
 
@@ -235,11 +237,13 @@ The following is the complete planned integration inventory, not a claim that ev
 | checkov | Checkov | `scan_misconfig.sh` | Security policies for supported configuration frameworks | Pilot baseline |
 | actionlint | actionlint | `scan_actions.sh` | GitHub Actions structure/expressions; controlled embedded-script analysis | Pilot framework adapter |
 | kubeconform | kubeconform | `scan_kubernetes.sh` | Versioned Kubernetes schema checks, approved CRD schemas | Pilot framework adapter |
-| zizmor | zizmor | `scan_actions_security.sh` | GitHub Actions security-specific analysis, no fixes | Recommended next / owner-selected pilot extension |
+| zizmor | zizmor | `scan_actions_security.sh` | GitHub Actions security-specific analysis, no fixes | Conditional extension X1 (owner D-04) |
 | docker-compose | Docker Compose CLI | `validate_compose.sh` | Explicit Compose model validation, not security certification | Conditional on Compose scope |
 | helm | Helm | `scan_helm.sh` | Chart lint and controlled local template rendering | Conditional on Helm scope |
 | trivy | Trivy | `scan_referenced_images.sh` | Known vulnerabilities in approved referenced images | Conditional on image-vulnerability scope |
 | rust-schema | Chosen Rust schema validator | In-process adapter, not mandatory shell | Automatic bindings/local supplied schemas for supported dialects | Pilot baseline |
+
+Invocation (owner D-03, CA-01): the Linux pilot invokes every tool through an application-owned native Rust process adapter (Git directly). The named `.sh` wrappers are the optional parity extension X6, not a mandatory runtime layer; the tool-to-capability mapping above is retained. Exact versions, flags and supported-framework coverage are frozen only after the approved per-tool spikes; a baseline capability is never silently downgraded. The canonical pilot/conditional/deferred label register is PRD §16.
 
 Development-only tooling: Rustfmt/Cargo formatting, Clippy, Cargo tests/build, cargo-audit, ShellCheck and Bats-core. Scanner fixtures and contract tests verify the tool integration itself. These must not all become mandatory customer runtime dependencies.
 
@@ -260,7 +264,7 @@ Development-only tooling: Rustfmt/Cargo formatting, Clippy, Cargo tests/build, c
 
 KEY-01: User supplies OpenRouter key; session-only or supported OS credential-store storage. No plaintext fallback, bundled key, runtime PWT account or PWT LLM gateway. Config stores only credential reference, never the key. Provide validation/replacement/deletion; absent key affects AI only.
 
-KEY-02: Explicit configurable inference-model ID, distinct from coding-agent models. Default private-context request policy is `data_collection=deny`, `zdr=true`, `allow_fallbacks=false`. A compliant route being unavailable is an explicit error; no silent model/privacy downgrade. Eligible-provider allowlist may further restrict the request.
+KEY-02: Explicit configurable inference-model ID, distinct from coding-agent models. Default private-context request policy is `data_collection=deny`, `zdr=true`, `allow_fallbacks=false`. `allow_fallbacks` is a schema constant (`const false`, CA-01) and an enforced request field; changing it needs a new contract version and owner approval. A compliant route being unavailable is an explicit error; no silent model/privacy downgrade. Eligible-provider allowlist may further restrict the request.
 
 KEY-03: Only relevant approved redacted findings/source excerpts leave the device. Do not send the entire repository or raw secrets. No automatic web/plugin tools; model cannot execute commands or modify files. Show intermediary and downstream disclosure.
 
@@ -289,3 +293,38 @@ The four-week cap remains a pilot constraint, not the old five-person estimate a
 5. BYOK key and seeded secrets are absent from logs, durable intermediate data, RAG index, reports, Figma and releases.
 6. Same-feature formal checks include relevant regression; release runs the agreed full suite and manual platform/UI checks.
 7. No claim of universal YAML coverage, no payment-free claim for cloud inference/Docker Desktop, and no unverified production-certification claim.
+
+## 16. Pilot capability release labels
+
+Owner decisions D-01 to D-14 (2026-10-23). This register is canonical; other documents and `plan.md` refer to it. Labels: **pilot** = in the Linux x86_64 pilot scope and acceptance; **conditional** = implemented only after a named owner decision, approval or spike result; **deferred** = retained target, not in the pilot, with any interface explicitly reserved. A label is a scope decision, not evidence of implementation.
+
+| Requirement / capability | Label | Pilot boundary |
+|---|---|---|
+| REP-01–REP-06 | pilot | HTTPS and SSH remotes (D-13); submodule recursion, LFS/filter execution and hooks disabled unless separately approved |
+| DISC-01–DISC-05 | pilot | Symlinks not followed; exclusions/errors listed |
+| SCAN-01 | pilot | Syntax, schema, secrets and misconfiguration tracked as separate capabilities |
+| SCAN-02 | pilot | Generic YAML, GitHub Actions and Kubernetes classification; Compose/Helm detected and reported as conditional/unsupported until X2/X3 |
+| SCAN-03 | pilot | Local user-supplied schemas and the approved versioned Kubernetes schema cache (D-11); runtime remote schema/`$ref` fetch is conditional on `schema_fetch` approval |
+| SCAN-04 | pilot (source) / conditional (rendering) | Template sources are classified and assessed as sources; approved local rendering requires Helm extension X3 |
+| SCAN-05 | conditional / deferred | Referenced images: conditional (Trivy X4, needs a pinnable build). Referenced actions, reusable workflows, dependencies and external configurations: deferred. Where a pilot parser identifies such a reference it is recorded as an explicit unsupported coverage gap, never as passed |
+| SCAN-06 | deferred | Non-mutating live verification is not executed in the pilot; the `non_mutating_verification` capability is reserved and any such task is reported as deferred/skipped |
+| SCAN-07, SCAN-08 | pilot | SCAN-08 behaviour per tool is verified in P00 spikes |
+| SCAN-09 | deferred | Historical secret mode; `secret_scope="history"` is rejected by pilot semantic validation |
+| WF-01–WF-06 | pilot | Interval/daily triggers while the app is open; reduction to manual saved workflows is a possible owner-approved scope exchange, not a default |
+| RES-01–RES-05, RES-08, RES-09 | pilot | JSON, deterministic Markdown and restricted local PDF; renderer chosen after the D-07 spike |
+| RES-06 | deferred | Suppression/baseline; `SuppressionFile` schema and commands are reserved, `suppressions.json` is not written by the pilot |
+| RES-07 | pilot (deterministic) / deferred (AI narration, pending owner confirmation) | Reports never depend on AI |
+| RAG-01 | pilot (narrowed) | Local lexical retrieval over selected findings, relevant redacted source excerpts, local approved rule descriptions and schema metadata. Logs/workflows as retrieval sources and remote documentation ingestion (`documentation_fetch`) are deferred separate capabilities |
+| RAG-02–RAG-07 | pilot | Redaction before indexing/transmission, context isolation, citation validation, no execution/write tools; historical chat is deferred |
+| Embedding retrieval, chat persistence | deferred | `embedding_key` stays null; `chat_persistence_enabled=false` |
+| KEY-01 | pilot (session-only) / conditional (OS credential store) | OS credential-store mode only if the Linux keyring spike verifies a supported backend; never plaintext fallback |
+| KEY-02, KEY-03 | pilot | Explicit owner-supplied model ID; mock HTTP is the automated baseline; real provider behaviour unverified until a separately approved real-API acceptance check |
+| UI-01–UI-03 | pilot | Demo TUI on labelled mocks, then real backend |
+| UI-04 | pilot (collapse/compact) / deferred (draggable splits) | |
+| Figma translation | conditional | Depends on Figma delivery (D-12); separately estimated, nonblocking; shipping demo styling needs owner approval at release cut |
+| TOOL-01–TOOL-06, DIST-01, DIST-02 | pilot | Scanners are separately installed prerequisites detected by preflight (D-05); no bundling or automatic install |
+| yamllint, Gitleaks, Checkov, rust-schema | pilot baseline | Versions frozen after spikes; no silent downgrade |
+| actionlint, kubeconform | pilot framework adapters | kubeconform depends on the approved schema cache |
+| zizmor (X1), Compose (X2), Helm (X3), Trivy (X4) | conditional | Separate install requests and owner selection |
+| Windows/macOS (X5) | conditional extension | Not described as supported until their acceptance matrix passes |
+| `.sh` wrapper parity (X6) | conditional extension | ShellCheck/Bats required only for scripts actually implemented |

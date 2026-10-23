@@ -1,0 +1,23 @@
+PASS store: valid Draft 2020-12 schema
+PASS wrapper-request: valid Draft 2020-12 schema
+PASS wrapper-control: valid Draft 2020-12 schema
+PASS wrapper-request $defs identical to store
+PASS wrapper-control $defs identical to store
+PASS embedded schema identical to canonical file
+PASS 05 example 1 (repositories) validates against store schema
+PASS 05 example 2 (workflows) validates against store schema
+PASS 05 example 3 (log) validates against store schema
+PASS ProviderPolicy allow_fallbacks=false accepted
+PASS ProviderPolicy allow_fallbacks=true rejected
+PASS Tech spec provider snippet satisfies ProviderPolicy (with only=[])
+PASS WrapperRequest synthetic minimal accepted
+PASS WrapperRequest missing category rejected
+PASS WrapperRequest missing required_capabilities rejected
+PASS WrapperRequest missing termination_policy rejected
+PASS WrapperRequest single-PID kill scope rejected
+PASS WrapperRequest duplicate capabilities rejected
+PASS WrapperRequest extra command field rejected
+PASS WrapperControl synthetic timed_out accepted
+PASS WrapperControl missing termination rejected
+PASS WrapperControl output_limit_exceeded accepted
+SUMMARY pass=22 fail=0 skip=0

@@ -15,6 +15,10 @@ Five canonical root Markdown specifications are the deliverables. The ZIP also i
 5. Include the full tool/wrapper roadmap and explicit pilot/conditional/deferred labels in the plan. Proposed baseline is not universal coverage or licence clearance.
 6. Pin tool/model versions, CLI flags, OS targets and output/exit contracts during spikes. No API keys/client data in planning or fixtures.
 
-Document v0.3 and store schema v1.2 are separate. Wrapper protocol is v1.0. Migration/read-only historical handling is specified in the Data Schema document. Existing stored reports cannot be upgraded merely by changing the version string.
+Document v0.3.1 (pre-implementation amendment CA-01, 2026-10-23) and store schema v1.2 are separate. Wrapper protocol is v1.0; app command/event contract is v1.0; UI schema is v1.0. CA-01 changed contract text before any implementation existed and kept the version identifiers; see Data Schema §22. Migration/read-only historical handling is specified in the Data Schema document. Existing stored reports cannot be upgraded merely by changing the version string.
 
 No current app tests, scanners, API calls, platform installs or Git operations were executed in preparing this package. Package verification covers document structure and schema fixtures only.
+
+## Repository state note (2026-10-23)
+
+This repository contains the five specifications, `CLAUDE.md` and `schemas/`. The bootstrap guidance, Haiku documentation-agent template and revision notes mentioned above are not present here. Planning controls now live in `plan.md`, `status.md` and `handover.md`; evidence in `evidence/`; agent definitions and the CLAUDE.md amendment are in `proposals/` awaiting owner review (not active).

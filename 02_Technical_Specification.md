@@ -2,12 +2,12 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3 | Date: 2026-10-23 | Status: Proposed design for review
+Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed design for review
 Related document: PRD v0.3. Requirement IDs refer to that PRD.
 
 ## 1. Technical decision
 
-Propose Rust for the core and full-screen TUI, with external scanners behind typed adapters. Java remains a valid alternative if team skill or delivery constraints make it preferable; this document does not imply final language approval.
+Rust with Ratatui, Crossterm, Tokio and Serde is the owner-confirmed reference implementation stack (D-01, 2026-10-23), with external scanners behind typed native adapters (D-03). All other dependency choices (YAML parser, schema validator, keyring, PDF renderer, process-tree control, HTTP client) remain subject to approved spikes. The first pilot release target is Linux x86_64 (D-02); the architecture and adapter interfaces stay portable, but Windows/macOS are extensions that are not verified or supported until their acceptance matrix passes.
 
 Ratatui supports Linux, macOS and Windows. Its backend libraries handle terminal/input facilities; application code still owns event routing and interactions. [web:86][web:87]
 
@@ -45,7 +45,9 @@ Required: supported terminal, Git, configured Git credentials/credential manager
 - Preflight verifies tools and reports missing capabilities; never silently installs/executes arbitrary packages.
 - External binaries or Python-based tools mean the complete product is not necessarily a single standalone binary.
 - No background daemon; scheduler exists in the live application process only.
-- Final supported OS versions, terminal matrix and packaging formats remain open.
+- Final supported OS versions, terminal matrix and packaging formats remain open beyond the Linux x86_64 first target.
+
+Linux pilot prerequisites (D-05): scanners are separately installed by the user and detected by preflight; the application never installs, upgrades, bundles or uses `sudo`. yamllint and Checkov are Python tools: the prerequisite is a Python interpreter version that the pinned tool release declares supported, with each tool installed into an isolated environment (dedicated virtual environment or equivalent isolated installer) whose executable path is recorded in `tools.json`. Host Python is not assumed compatible: the planning host's Python 3.14 is unverified for the candidate versions until the approved spike checks it. Go/Rust release binaries (Gitleaks, actionlint, kubeconform) are installed from official releases with checksum/signature verification under a separate installation request (D-10).
 
 ## 4. Workspace layout proposal
 
@@ -70,7 +72,7 @@ Project structure is illustrative. Avoid splitting into microservices for the in
 
 ## 5. Repository acquisition and identity
 
-1. Parse URL; reject embedded credentials, unsupported schemes and malformed input. Initial supported transports should be explicitly enumerated, e.g. HTTPS and SSH.
+1. Parse URL; reject embedded credentials, unsupported schemes and malformed input. Approved pilot transports are HTTPS and SSH (D-13); every other scheme (including `file://`, `git://` and `ext::`) is rejected.
 2. Canonicalise provider/host/owner/path to detect duplicates, but use UUID as primary identity; preserve distinct repository refs in run targets.
 3. Show acquisition destination and request required approval.
 4. Clone into a unique app-managed directory; existing registered checkouts update under a per-repo exclusive lock.
@@ -78,6 +80,7 @@ Project structure is illustrative. Avoid splitting into microservices for the in
 6. Proposed update policy: fast-forward-only pull. On divergence/failure, skip the repo for that run and preserve diagnostic evidence.
 7. Capture exact commit OID after update and before inventory; prevent app-owned update/scan overlap.
 8. Do not auto-init submodules, Git LFS downloads or alternate protocols without explicit capability approval.
+9. Pilot Git safety controls (D-13), to be verified for the pinned Git version in the P00 Git spike before they are treated as effective: no submodule recursion; LFS smudge/filter-process execution disabled; repository and template hooks disabled; protocol allowlist limited to HTTPS/SSH; repository-local configuration not trusted to add helpers, filters or hooks. The user's existing credential helper or SSH agent is preserved. Where a control cannot be verified for a Git or helper version, the limitation is documented and the affected operation is refused or reported rather than assumed safe.
 
 Execute Git with argument arrays and explicit working directory, never an interpolated shell command. Validate branch/ref input and URL options. Git inherits the approved credential mechanism; never capture credentials for storage.
 
@@ -134,11 +137,13 @@ Rules:
 | checkov | Checkov | `scan_misconfig.sh` | Security policies for supported configuration frameworks | Pilot baseline |
 | actionlint | actionlint | `scan_actions.sh` | GitHub Actions structure/expressions; controlled embedded-script analysis | Pilot framework adapter |
 | kubeconform | kubeconform | `scan_kubernetes.sh` | Versioned Kubernetes schema checks, approved CRD schemas | Pilot framework adapter |
-| zizmor | zizmor | `scan_actions_security.sh` | GitHub Actions security-specific analysis, no fixes | Recommended next / owner-selected pilot extension |
+| zizmor | zizmor | `scan_actions_security.sh` | GitHub Actions security-specific analysis, no fixes | Conditional extension X1 (owner D-04) |
 | docker-compose | Docker Compose CLI | `validate_compose.sh` | Explicit Compose model validation, not security certification | Conditional on Compose scope |
 | helm | Helm | `scan_helm.sh` | Chart lint and controlled local template rendering | Conditional on Helm scope |
 | trivy | Trivy | `scan_referenced_images.sh` | Known vulnerabilities in approved referenced images | Conditional on image-vulnerability scope |
 | rust-schema | Chosen Rust schema validator | In-process adapter, not mandatory shell | Automatic bindings/local supplied schemas for supported dialects | Pilot baseline |
+
+Invocation (owner D-03, CA-01): the Linux pilot invokes every tool through an application-owned native Rust process adapter (Git directly). The named `.sh` wrappers are the optional parity extension X6, not a mandatory runtime layer; the tool-to-capability mapping above is retained. Exact versions, flags and supported-framework coverage are frozen only after the approved per-tool spikes; a baseline capability is never silently downgraded. The canonical pilot/conditional/deferred label register is PRD §16.
 
 Versions and exact command flags are selected in a dependency spike, pinned and tested. This matrix is not proof of complete coverage. Standalone Checkov policies are the baseline; vendor-platform SCA/severity enrichments are not assumed free or enabled. Helm rendering, Compose validation and image scans are conditional. Generic parser validation and yamllint style diagnostics are kept distinct.
 
@@ -232,7 +237,7 @@ Measure UI input-to-render latency, discovery throughput, queue wait, scanner ru
 
 ## 16. Outstanding sign-offs
 
-Confirm the Rust/Ratatui reference baseline before scaffolding, exact OS/architecture/terminal and scanner matrix, YAML/schema/PDF dependencies, pinned tool flags/versions, OpenRouter model and provider policy, release licensing, retention and solo pilot cut. The developer owns coding; the separate team supplies Figma, not assumed Rust implementation.
+Resolved 2026-10-23: Rust/Ratatui reference baseline (D-01), Linux x86_64 first target (D-02), native adapters (D-03). Still outstanding: confirm exact OS/architecture/terminal and scanner matrix, YAML/schema/PDF dependencies, pinned tool flags/versions, OpenRouter model and provider policy, release licensing, retention and solo pilot cut. The developer owns coding; the separate team supplies Figma, not assumed Rust implementation.
 
 
 ## 17. Wrapper tree and runtime boundary
@@ -253,13 +258,19 @@ scripts/
   tests/                   # Bats tests, development only
 ```
 
+Status (D-03): this tree is the optional parity extension X6, not part of the pilot runtime. The pilot invokes Git and every scanner through native Rust process adapters that implement the same protocol DTOs in-process. ShellCheck/Bats apply only to scripts actually implemented.
+
 Scripts are application-owned wrappers, not the vulnerability engine. Rust owns selection, approval, process supervision, native-output parsing, normalisation, persistence and UI events. Direct executable adapters provide equivalent operation on native platforms; mandatory Bash/Make is not a platform-independent installer. If a shell route is used on Windows, document/test its prerequisite rather than pretending it is native.
 
 Clone first; fast-forward-only update on existing checkouts. Do not `git pull` into an absent repo or delete non-YAML files. `pull.sh` reads only validated core-provided arguments; the core reads `repo.json`. No shell interpolation of user URLs/refs/paths. Disable unapproved Git hooks/filters/helpers/submodules and unexpected protocols while retaining the approved credential mechanism. Scan/update locks and working-tree digest checks preserve provenance.
 
 ## 18. Wrapper protocol and tool-output mapping
 
-Proposed protocol v1.0, distinct from store schema v1.2:
+Proposed protocol v1.0 (with pre-implementation amendment CA-01), distinct from store schema v1.2. Native adapters use the same `WrapperRequest`/`WrapperControl` DTOs in-process; stdin or an app-owned request file is the transport only for the optional `.sh` extension.
+
+Requested scope (CA-01, resolves C3): every request carries `category` (the single assessment `Category` the task is asked to produce, e.g. `secrets`) and `required_capabilities` (the permission `Capability` values the task may exercise; empty means local-only with no network). The core must hold a valid grant in `approval_ids` covering each listed capability before launch; the adapter rejects work outside `category`.
+
+Timeout and cancellation contract (CA-01): `timeout_seconds` and `termination_policy` (`control="supervisor_out_of_band"`, `grace_ms`, `kill_scope="process_tree"`) are declarations, not enforcement. The core process supervisor owns the timer and the cancellation token; on timeout, cancel or output-limit breach it requests graceful termination of the process tree, waits at most `grace_ms`, then forcibly kills the tree using platform-specific handling verified in the P00 process spike. `WrapperControl.termination` records the observed `reason`, `method` and whether the tree was confirmed exited (`null` when unknown); `transport_status` adds `output_limit_exceeded`. A JSON field alone never stops a running process.
 
 - Core provides a validated request JSON via stdin or app-owned request file: request/task/run/repo IDs, checkout root, frozen file IDs/paths/digests, capability, approved context/network resources, config identity and resource limits. Never include the LLM key.
 - Wrapper/native adapter has a pinned executable and argument template; do not accept an arbitrary executable, shell string, plugin directory or repo-authored script.
@@ -284,6 +295,8 @@ Per-tool parser plans:
 | Trivy | Explicit approved referenced images, resolved digest and JSON | Vulnerability capability only when that task is selected; database/registry access/freshness recorded; no cluster scan |
 | Rust schema | Local/approved schema, chosen dialect and YAML projection | Non-JSON YAML/tag/type limitations explicit; approved `$ref` resolution only |
 
+Repository-config and scope hypotheses (C1/C11) are verified per pinned tool, not assumed: for each tool the P00 spike records which repository config/ignore/allowlist/plugin files it auto-loads (for example `.yamllint*`, `.gitleaks.toml`/`.gitleaksignore`, `.checkov.y*ml`, `.github/actionlint.y*ml`), whether an explicit app-owned config fully neutralises them, whether explicit file arguments are honoured or the tool walks directories (requiring staged selected-file copies), how findings appear in its output with and without its redaction option, and its exact exit-code semantics. No single universal override flag is assumed to solve these for every tool; a tool that cannot be controlled has that capability disabled with the reason shown.
+
 Do not fabricate current flags. Each pinned version must have a contract test proving input/output/exit behaviour before release. Directory-only tools require a safe selected-file staging strategy or an explicit wider read scope, not scanning everything and merely hiding unwanted findings.
 
 ## 19. Routing and security assessment policy
@@ -304,7 +317,7 @@ Cross-engine duplicates retain engine/check provenance; deduplicate only compati
 
 ## 20. OpenRouter BYOK and RAG
 
-Credential mode: session-only or OS credential store; no plaintext fallback, shared key or PWT account. Config contains a reference, not a secret. Origin: `https://openrouter.ai/api/v1`; do not forward auth headers across unapproved-origin redirects.
+Credential mode: session-only (pilot) or OS credential store (conditional on the Linux keyring spike verifying a supported backend); no plaintext fallback, shared key or PWT account. Config contains a reference, not a secret. Origin: `https://openrouter.ai/api/v1`; do not forward auth headers across unapproved-origin redirects.
 
 ```json
 {
@@ -316,7 +329,7 @@ Credential mode: session-only or OS credential store; no plaintext fallback, sha
 }
 ```
 
-Explicit model and optional provider allowlist. Empty internal allowlist means omit `only`, not generate a wildcard. No automatic model/policy downgrade. OpenRouter intermediary/downstream access is disclosed; routing settings are not a claim that all intermediary metadata disappears. No tools/web/plugins by default.
+`allow_fallbacks` is `const false` in the store schema (CA-01) and is also enforced in the request builder; neither layer alone is relied upon. Explicit model and optional provider allowlist. The model ID is supplied by the owner/user; development agents do not invent or silently choose a production model ID. Empty internal allowlist means omit `only`, not generate a wildcard. No automatic model/policy downgrade. OpenRouter intermediary/downstream access is disclosed; routing settings are not a claim that all intermediary metadata disappears. No tools/web/plugins by default.
 
 Local lexical retrieval filters context before ranking, then redacts/chunks with source/commit/run provenance and budgets tokens. Validate citation IDs, stale-source warnings and cross-repo isolation. Seeded secret redaction tests are mandatory, not a universal confidentiality guarantee. Raw prompts/response bodies are not routine logs. Assistant has no command or write tools.
 
@@ -326,7 +339,7 @@ Handle invalid key, credits, rate limits, incompatible/private route, streaming 
 
 Normalised evidence -> JSON -> deterministic Markdown -> local PDF. Optional cited AI narrative is separate from evidence. No key/model outage can block assessment or basic reports. A new narrative generation creates a new/versioned report, not silent mutation of accepted history.
 
-Spike/select a renderer with Unicode/table support, license/runtime and platform packaging checked. Disable active HTML/scripts, automatic remote assets and unrestricted local filesystem references. Bound process resources; check nonempty output before success. JSON/MD/PDF have independent manifests/digests/errors; retry derived exports from retained evidence without rescanning. Keep the installation directory separate from writable app data.
+The renderer is not yet selected (D-07). Candidates are compared in an approved spike against restricted-rendering requirements, runtime dependencies, platform implications and packaging; a tool being installed on the planning host (e.g. WeasyPrint) is not a selection criterion. Spike/select a renderer with Unicode/table support, license/runtime and platform packaging checked. Disable active HTML/scripts, automatic remote assets and unrestricted local filesystem references. Bound process resources; check nonempty output before success. JSON/MD/PDF have independent manifests/digests/errors; retry derived exports from retained evidence without rescanning. Keep the installation directory separate from writable app data.
 
 ## 22. Development verification tools and regression policy
 
@@ -341,7 +354,7 @@ Spike/select a renderer with Unicode/table support, license/runtime and platform
 | Fixtures/golden snapshots | Scanner parser, scope, redaction, schema, UI and report regressions | No |
 | Mock HTTP | OpenRouter auth/privacy/stream/error cases without real credentials | No |
 
-After workspace creation, verify canonical commands before calling them valid: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo build --workspace`, `cargo audit`; `shellcheck scripts/*.sh` and `bats scripts/tests` once paths/files exist. Document network/dependency needs; do not execute blindly during planning.
+ShellCheck and Bats-core are required only for shell scripts actually implemented (D-03); the pilot baseline has none. After workspace creation, verify canonical commands before calling them valid: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo build --workspace`, `cargo audit`; `shellcheck scripts/*.sh` and `bats scripts/tests` once paths/files exist. Document network/dependency needs; do not execute blindly during planning.
 
 Negative cases: missing dependency, findings exit vs crash, timeout/kill, malformed/oversized output, secret-bearing stderr, hostile filename/ANSI, repo config injection, schema denial, stale CVE data, missing CRDs, source-template vs YAML distinction, model outage, raw secret in PDF context, filesystem escape, interrupted write/run, same-day report collision and UI mock/real separation.
 
@@ -368,3 +381,17 @@ Root plan includes implementation and preauthorised verification in each feature
 UI team supplies Figma frames, tokens, states and interactions; developer implements demo and final TUI. Use terminal-cell layout, stable mock/application contracts, no Figma auto-code assumption. Design changes are presentation-only unless a contract change is proposed/approved. Preserve live scan state and selections through restyling.
 
 Root controls: concise CLAUDE.md, owner-approved plan.md, compact status.md and handover.md. Opus validates Haiku drafts and genuine approval records. On resume inspect Git/dirty worktree, active phase/cycle and changed/stale evidence, loading relevant spec sections only. No zero-token claim and no assumption that five agents equal five engineers. Four-week cap is a scoped pilot target.
+
+## 25. Versioned Kubernetes schema cache (planned, D-11)
+
+kubeconform needs Kubernetes JSON schemas. The pilot plans an approved, versioned, local cache; no download or bundling is authorised until a separate approval.
+
+| Aspect | Planned rule |
+|---|---|
+| Origin | A named upstream schema source recorded with URL, publisher and retrieval revision; candidates are evaluated in the spike, none is assumed |
+| Target Kubernetes version | One or more explicitly selected minor versions recorded in `tools.json` and each check's engine snapshot; no implicit "latest" |
+| Licence / redistribution | Licence of the schema set verified before any redistribution; until then the cache is user-populated, not shipped |
+| Integrity | Cache manifest with per-file SHA-256 and retrieval timestamp; mismatches make the cache unavailable, not partially trusted |
+| Freshness | Retrieval date and target version shown in diagnostics and reports; staleness thresholds are an open policy decision |
+| Network | Populating or refreshing the cache is a `schema_fetch` operation requiring approval; scans use the cache only (`network_policy="cache_only"`), verified per pinned kubeconform version |
+| Missing CRD / kind | A resource without a cached schema yields `unsupported` (gap), never `passed`; user-supplied CRD schemas are local inputs with recorded digest |

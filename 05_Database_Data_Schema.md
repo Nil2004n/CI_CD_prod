@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3 | Date: 2026-10-23 | Status: Proposed implementation contract
+Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed implementation contract
 
 ## 1. Storage decision
 
@@ -19,7 +19,7 @@ The JSON Schema below uses Draft 2020-12, a published JSON Schema dialect. [web:
 | `workflows.json` | WorkflowFile | Versioned workflow definitions and selections |
 | `approvals.json` | ApprovalFile | Pending decisions and constrained grants/denials |
 | `log.json` | LogFile | Run summaries, sanitised events, report manifests |
-| `suppressions.json` | SuppressionFile | Optional justified finding suppressions |
+| `suppressions.json` | SuppressionFile | Reserved: justified finding suppressions (RES-06 deferred; not written by the pilot) |
 | `backup/<timestamp>_<repo-slug>_<run-id>.json` | ReportFile | Immutable per-repository assessment snapshot |
 | Matching `.md` report | Derived text | Deterministic evidence with optional labelled AI narrative |
 | Matching `.pdf` report | Derived binary | Restricted local conversion; independent export result |
@@ -110,6 +110,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Pre-implementation contract amendment CA-01 (2026-10-23, owner decision D-08): applied before any implementation or persisted record existed; version identifiers retained. See 05_Database_Data_Schema.md section 22.",
   "title": "PWT Workbench Store Contract v1.2",
   "description": "Proposed shared contract; semantic and referential constraints are enforced by application code.",
   "oneOf": [
@@ -1267,7 +1268,8 @@ This single schema validates all proposed root store types via `oneOf` and `$def
             "exited",
             "timed_out",
             "cancelled",
-            "launch_failed"
+            "launch_failed",
+            "output_limit_exceeded"
           ]
         },
         "approval_ids": {
@@ -2614,7 +2616,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
           "const": true
         },
         "allow_fallbacks": {
-          "type": "boolean"
+          "const": false
         },
         "only": {
           "type": "array",
@@ -3270,6 +3272,16 @@ This single schema validates all proposed root store types via `oneOf` and `$def
         "adapter_id": {
           "type": "string"
         },
+        "category": {
+          "$ref": "#/$defs/Category"
+        },
+        "required_capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Capability"
+          }
+        },
         "manifest_digest": {
           "$ref": "#/$defs/Digest"
         },
@@ -3317,6 +3329,9 @@ This single schema validates all proposed root store types via `oneOf` and `$def
         "max_output_bytes": {
           "type": "integer",
           "minimum": 1
+        },
+        "termination_policy": {
+          "$ref": "#/$defs/TerminationPolicy"
         }
       },
       "required": [
@@ -3326,6 +3341,8 @@ This single schema validates all proposed root store types via `oneOf` and `$def
         "run_id",
         "repo_id",
         "adapter_id",
+        "category",
+        "required_capabilities",
         "manifest_digest",
         "checkout_root",
         "selected_files",
@@ -3334,7 +3351,8 @@ This single schema validates all proposed root store types via `oneOf` and `$def
         "network_resources",
         "config_digest",
         "timeout_seconds",
-        "max_output_bytes"
+        "max_output_bytes",
+        "termination_policy"
       ]
     },
     "WrapperControl": {
@@ -3370,7 +3388,8 @@ This single schema validates all proposed root store types via `oneOf` and `$def
             "launch_failed",
             "timed_out",
             "cancelled",
-            "invalid_output"
+            "invalid_output",
+            "output_limit_exceeded"
           ]
         },
         "tool_exit_code": {
@@ -3382,6 +3401,9 @@ This single schema validates all proposed root store types via `oneOf` and `$def
               "type": "null"
             }
           ]
+        },
+        "termination": {
+          "$ref": "#/$defs/TerminationRecord"
         },
         "native_format": {
           "type": "string"
@@ -3415,10 +3437,74 @@ This single schema validates all proposed root store types via `oneOf` and `$def
         "tool_version",
         "transport_status",
         "tool_exit_code",
+        "termination",
         "native_format",
         "output_channel_id",
         "diagnostics_redacted",
         "elapsed_ms"
+      ]
+    },
+    "TerminationPolicy": {
+      "$comment": "Declarative only. Timeout and cancellation are enforced out-of-band by the core process supervisor; this record does not itself stop a running process.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "control": {
+          "const": "supervisor_out_of_band"
+        },
+        "grace_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kill_scope": {
+          "const": "process_tree"
+        }
+      },
+      "required": [
+        "control",
+        "grace_ms",
+        "kill_scope"
+      ]
+    },
+    "TerminationRecord": {
+      "$comment": "Observed supervisor outcome; process_tree_exited is null when the supervisor could not determine it.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": [
+            "none",
+            "timeout",
+            "cancel_requested",
+            "output_limit",
+            "supervisor_shutdown"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "graceful",
+            "forced",
+            "failed"
+          ]
+        },
+        "process_tree_exited": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "reason",
+        "method",
+        "process_tree_exited"
       ]
     }
   }
@@ -3627,7 +3713,7 @@ Retention durations, maximum store/index sizes, provider credential backend, fin
 
 ## 17. Contract versions and new entities
 
-This document is v0.3; machine store schema is v1.2; wrapper control protocol is v1.0. Keep these independent. Original stores used v1.0 and the previous specification defined v1.1. Migration is explicit and historical evidence is never silently rewritten.
+This document is v0.3.1; machine store schema is v1.2; wrapper control protocol is v1.0; the app command/event contract (Architecture §6) is v1.0; the declarative UI schema (UI Schema §5, `ui_schema_version`) is v1.0. Keep these independent; the UI schema version is not the storage-contract version. Pre-implementation amendment CA-01 is recorded in §22. Original stores used v1.0 and the previous specification defined v1.1. Migration is explicit and historical evidence is never silently rewritten.
 
 | Entity | Role / important fields |
 |---|---|
@@ -3653,12 +3739,13 @@ Root schema `oneOf` covers store files. WrapperRequest and WrapperControl are `$
 3. Manifest network `none/cache_only` must be enforced by compatible tool configuration/isolation. A label is not a network firewall; reject unsafe capability if enforcement unavailable.
 4. Exit code is evidence, not verdict. `transport_status=completed` means invocation ended, not checks passed. Native output/exit parser must agree; findings may coexist with later failure/incomplete coverage.
 5. Control-channel IDs resolve to core-owned bounded streams/artifacts, not arbitrary filesystem paths. Retain only sanitised durable material. Sensitive temporary output is separately controlled, not falsely described as securely erased.
-6. WrapperRequest has no key/command-string/catch-all field. Do not inherit model secrets into child environment or persist credentials elsewhere to bypass the schema.
+6. WrapperRequest has no key/command-string/catch-all field. `category` must be one the adapter's manifest supports; every entry of `required_capabilities` must be covered by a valid grant in `approval_ids` (empty capabilities means no network). `termination_policy` is declarative; the supervisor enforces timeout/cancel/process-tree kill out-of-band and reports the observed `WrapperControl.termination`.
+6a. Pilot semantic validation rejects `ScanSettings.secret_scope="history"` (SCAN-09 deferred) and capabilities `non_mutating_verification`, `documentation_fetch` and `embedding_transmission` (deferred), with an explicit deferred reason rather than a silent drop. Do not inherit model secrets into child environment or persist credentials elsewhere to bypass the schema.
 7. File/context boundaries, one-based locations, source/generated artifact identity and working-tree digests remain enforced. Non-YAML context is disclosed, not silently a new selected file.
 8. Secret evidence/fingerprints never include raw secret values. Redaction version and source provenance are retained; redaction is not a universal confidentiality guarantee.
 9. Session-only mode uses null credential reference; OS mode requires supported secure storage. If unavailable, offer session-only or disabled assistant, never plaintext fallback.
 10. Model-transmission grants require matching inference scope; all other grants use null inference scope. Relevant model/provider/privacy/context changes cannot reuse mismatched approvals.
-11. Initial privacy policy denies collection, requires ZDR and disables fallback. Empty provider allowlist means omit `only` in the provider API; no eligible endpoint fails closed. No silent policy/model change.
+11. Initial privacy policy denies collection, requires ZDR and disables fallback; all three are schema constants (`allow_fallbacks` `const false` since CA-01) and are also enforced when the request is built. Empty provider allowlist means omit `only` in the provider API; no eligible endpoint fails closed. No silent policy/model change.
 12. AI non-completion has empty narrative and explicit status/reason. Completed narrative cites eligible source IDs. Actual provider/model may remain null if not returned; never infer them.
 13. AI narrative is not an engine-confirmed finding. Evidence, summary and coverage cannot be silently rewritten by a model. New narration creates a versioned/new report.
 14. `pdf_written=true` requires verified nonempty output, valid path/digest and no unresolved conversion error; no remote assets/active code/unrestricted local file reads during conversion. JSON/MD remain available on PDF error.
@@ -3697,11 +3784,34 @@ This table defines the planned identifiers and wrappers, not installed versions.
 | checkov | Checkov | `scan_misconfig.sh` | Security policies for supported configuration frameworks | Pilot baseline |
 | actionlint | actionlint | `scan_actions.sh` | GitHub Actions structure/expressions; controlled embedded-script analysis | Pilot framework adapter |
 | kubeconform | kubeconform | `scan_kubernetes.sh` | Versioned Kubernetes schema checks, approved CRD schemas | Pilot framework adapter |
-| zizmor | zizmor | `scan_actions_security.sh` | GitHub Actions security-specific analysis, no fixes | Recommended next / owner-selected pilot extension |
+| zizmor | zizmor | `scan_actions_security.sh` | GitHub Actions security-specific analysis, no fixes | Conditional extension X1 (owner D-04) |
 | docker-compose | Docker Compose CLI | `validate_compose.sh` | Explicit Compose model validation, not security certification | Conditional on Compose scope |
 | helm | Helm | `scan_helm.sh` | Chart lint and controlled local template rendering | Conditional on Helm scope |
 | trivy | Trivy | `scan_referenced_images.sh` | Known vulnerabilities in approved referenced images | Conditional on image-vulnerability scope |
 | rust-schema | Chosen Rust schema validator | In-process adapter, not mandatory shell | Automatic bindings/local supplied schemas for supported dialects | Pilot baseline |
 
+Invocation (owner D-03, CA-01): the Linux pilot invokes every tool through an application-owned native Rust process adapter (Git directly). The named `.sh` wrappers are the optional parity extension X6, not a mandatory runtime layer; the tool-to-capability mapping above is retained. Exact versions, flags and supported-framework coverage are frozen only after the approved per-tool spikes; a baseline capability is never silently downgraded. The canonical pilot/conditional/deferred label register is PRD §16.
+
 
 `preflight.sh` checks dependencies; it is not a vulnerability scanner. ShellCheck/Bats verify application-owned wrappers during development. Cargo fmt/Clippy/test/build/audit verify the Rust product. Do not persist fabricated ready states, commands or tool versions from this roadmap.
+
+
+## 22. Pre-implementation contract amendment CA-01
+
+Date: 2026-10-23. Authority: owner decision D-08 in the documentation-only planning stage. Applied before any application code, test or persisted record existed (repository revision `805ced4`, no implementation).
+
+| Item | Change | Resolves |
+|---|---|---|
+| `ProviderPolicy.allow_fallbacks` | `{"type":"boolean"}` → `{"const": false}` | C2 |
+| `WrapperRequest` | Added required `category` (`Category`), `required_capabilities` (unique `Capability[]`) and `termination_policy` (`TerminationPolicy`) | C3 |
+| `TerminationPolicy` (new) | `control="supervisor_out_of_band"`, `grace_ms` ≥ 0, `kill_scope="process_tree"`; declarative only | C3 |
+| `WrapperControl` | Added required `termination` (`TerminationRecord`); `transport_status` gains `output_limit_exceeded` | C3 |
+| `TerminationRecord` (new) | `reason`, `method`, `process_tree_exited` (nullable) | C3 |
+| `Check.native_status` | Gains `output_limit_exceeded` | C3 consistency |
+| Command/event vocabulary | One canonical list in Architecture §6 with pilot/reserved status | C4, C5 |
+| UI schema version | `schema_version: "1.2"` → `ui_schema_version: "1.0"` | C6 |
+| Storage layout | Architecture §11 lists `tools.json` and reserved `suppressions.json` | C7 |
+
+Synchronisation: `schemas/workbench-store-v1.2.schema.json` is canonical. The §7 embedded copy and the `$defs` of `schemas/wrapper-request-v1.0.schema.json` and `schemas/wrapper-control-v1.0.schema.json` are byte-equivalent copies regenerated from it; each schema file carries a `$comment` naming CA-01. The §8–§10 examples were re-validated against the amended schema (planning evidence in `evidence/P00-planning/`).
+
+Version handling: identifiers `schema_version="1.2"` and `protocol_version="1.0"` are retained because no implementation, persisted store, report or wrapper existed under the pre-amendment text, so no reader or record can observe two meanings. This exception closes at the first implementation commit that reads or writes these contracts (planned P01/P02): after that any shape change requires a new version, migration notes (§19) and owner approval. Copies of the pre-amendment v1.2/v1.0 files distributed outside this repository (for example the original specification ZIP) are superseded and must not be used to produce records. If the owner prefers explicit new identifiers (for example store 1.3 / protocol 1.1), that is a mechanical follow-up before P01.

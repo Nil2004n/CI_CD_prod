@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Pre-implementation contract amendment CA-01 (2026-10-23, owner decision D-08): applied before any implementation or persisted record existed; version identifiers retained. See 05_Database_Data_Schema.md section 22.",
   "title": "PWT WrapperRequest v1.0",
   "$ref": "#/$defs/WrapperRequest",
   "$defs": {
@@ -1125,7 +1126,8 @@
             "exited",
             "timed_out",
             "cancelled",
-            "launch_failed"
+            "launch_failed",
+            "output_limit_exceeded"
           ]
         },
         "approval_ids": {
@@ -2472,7 +2474,7 @@
           "const": true
         },
         "allow_fallbacks": {
-          "type": "boolean"
+          "const": false
         },
         "only": {
           "type": "array",
@@ -3128,6 +3130,16 @@
         "adapter_id": {
           "type": "string"
         },
+        "category": {
+          "$ref": "#/$defs/Category"
+        },
+        "required_capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Capability"
+          }
+        },
         "manifest_digest": {
           "$ref": "#/$defs/Digest"
         },
@@ -3175,6 +3187,9 @@
         "max_output_bytes": {
           "type": "integer",
           "minimum": 1
+        },
+        "termination_policy": {
+          "$ref": "#/$defs/TerminationPolicy"
         }
       },
       "required": [
@@ -3184,6 +3199,8 @@
         "run_id",
         "repo_id",
         "adapter_id",
+        "category",
+        "required_capabilities",
         "manifest_digest",
         "checkout_root",
         "selected_files",
@@ -3192,7 +3209,8 @@
         "network_resources",
         "config_digest",
         "timeout_seconds",
-        "max_output_bytes"
+        "max_output_bytes",
+        "termination_policy"
       ]
     },
     "WrapperControl": {
@@ -3228,7 +3246,8 @@
             "launch_failed",
             "timed_out",
             "cancelled",
-            "invalid_output"
+            "invalid_output",
+            "output_limit_exceeded"
           ]
         },
         "tool_exit_code": {
@@ -3240,6 +3259,9 @@
               "type": "null"
             }
           ]
+        },
+        "termination": {
+          "$ref": "#/$defs/TerminationRecord"
         },
         "native_format": {
           "type": "string"
@@ -3273,10 +3295,74 @@
         "tool_version",
         "transport_status",
         "tool_exit_code",
+        "termination",
         "native_format",
         "output_channel_id",
         "diagnostics_redacted",
         "elapsed_ms"
+      ]
+    },
+    "TerminationPolicy": {
+      "$comment": "Declarative only. Timeout and cancellation are enforced out-of-band by the core process supervisor; this record does not itself stop a running process.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "control": {
+          "const": "supervisor_out_of_band"
+        },
+        "grace_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kill_scope": {
+          "const": "process_tree"
+        }
+      },
+      "required": [
+        "control",
+        "grace_ms",
+        "kill_scope"
+      ]
+    },
+    "TerminationRecord": {
+      "$comment": "Observed supervisor outcome; process_tree_exited is null when the supervisor could not determine it.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": [
+            "none",
+            "timeout",
+            "cancel_requested",
+            "output_limit",
+            "supervisor_shutdown"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "graceful",
+            "forced",
+            "failed"
+          ]
+        },
+        "process_tree_exited": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "reason",
+        "method",
+        "process_tree_exited"
       ]
     }
   }

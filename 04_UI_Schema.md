@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3 | Date: 2026-10-23 | Status: Proposed UI design
+Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed UI design
 Foundation: dashboard-first terminal with mouse-responsive panels and expandable chat. UI team supplies Figma designs; developer implements the demo/final terminal UI. Exact visual design remains subject to review.
 
 ## 1. Experience principles
@@ -33,7 +33,7 @@ ApplicationShell
 │   ├── WorkspacePane
 │   │   ├── ScanView: Progress | Findings | Coverage | Activity
 │   │   ├── WorkflowView: List | Editor | ApprovalScope
-│   │   ├── HistoryView: Runs | ReportDetails | Compare
+│   │   ├── HistoryView: Runs | ReportDetails | Compare [deferred]
 │   │   └── DetailPane: Finding | Check | File | Report
 │   └── ChatPane [collapsible / expandable]
 │       ├── ContextChips
@@ -85,14 +85,14 @@ Proposed initial breakpoints; validate with terminal/font testing:
 
 Dimensions use character cells, not pixels. Minima override ratios. If a splitter would make content unusable, clamp it or collapse the pane. Preserve focus, selected IDs and scroll anchors across resize; clipping must not change the actual selected file scope.
 
-Draggable splits are proposed; always offer keyboard/configuration alternatives. Hover/mouse tracking depends on terminal capability; lack of hover must not disable clicks or keyboard actions.
+Draggable splits are deferred for the pilot; always offer keyboard/configuration alternatives. Hover/mouse tracking depends on terminal capability; lack of hover must not disable clicks or keyboard actions.
 
 ## 5. Declarative UI schema
 
-The following YAML is a proposed implementation configuration/contract, not repository content to execute or a Ratatui-native format.
+The following YAML is a proposed implementation configuration/contract, not repository content to execute or a Ratatui-native format. Its version line is `ui_schema_version` (1.0), independent of the store contract (`schema_version` 1.2), wrapper protocol 1.0 and app command/event contract 1.0 (CA-01, resolves C6).
 
 ```yaml
-schema_version: "1.2"
+ui_schema_version: "1.0"
 ui:
   id: pwt-workbench
   initial_view: scan
@@ -212,7 +212,7 @@ Columns: severity, category, repository, relative path, line/document if availab
 
 ### Finding detail
 
-Show rule/tool version, commit, location, redacted evidence, impact, explanation, remediation text, coverage limitations, related findings and source references. Actions: ask assistant, copy redacted suggestion, inspect source, add justified suppression if enabled. No execute/apply action.
+Show rule/tool version, commit, location, redacted evidence, impact, explanation, remediation text, coverage limitations, related findings and source references. Actions: ask assistant, copy redacted suggestion, inspect source. Justified suppression is deferred (RES-06) and not shown in the pilot. No execute/apply action.
 
 ### Coverage panel
 
@@ -224,7 +224,7 @@ Fields: name, repositories/refs, explicit vs all-YAML vs pattern selection, cate
 
 ### History
 
-Group by run and repository. Show timestamp, workflow revision, commit, execution, assessment, coverage and report-export status. A comparison warns when target scope, engine/rules or commit context differs. Opening historical evidence never silently replaces current selection.
+Group by run and repository. Show timestamp, workflow revision, commit, execution, assessment, coverage and report-export status. Run comparison is deferred (reserved `CompareRuns`); when implemented, a comparison warns when target scope, engine/rules or commit context differs. Opening historical evidence never silently replaces current selection.
 
 ## 8. Chat workspace
 
@@ -237,7 +237,7 @@ Group by run and repository. Show timestamp, workflow revision, commit, executio
 - Stale context displays a warning and offers an explicit refresh; never swap provenance mid-answer.
 - Permission denial or provider failure yields a local notice, not a failed scan.
 - Expanded mode reuses the conversation and context, preserving dashboard state.
-- Chat history persistence is opt-in; only sanitised eligible content may be saved.
+- Chat history persistence is deferred for the pilot; when added it is opt-in and only sanitised eligible content may be saved.
 
 ## 9. Keyboard map proposal
 
@@ -302,11 +302,13 @@ This UI is a scanner workbench, not a single opaque “security scan” button. 
 | checkov | Checkov | `scan_misconfig.sh` | Security policies for supported configuration frameworks | Pilot baseline |
 | actionlint | actionlint | `scan_actions.sh` | GitHub Actions structure/expressions; controlled embedded-script analysis | Pilot framework adapter |
 | kubeconform | kubeconform | `scan_kubernetes.sh` | Versioned Kubernetes schema checks, approved CRD schemas | Pilot framework adapter |
-| zizmor | zizmor | `scan_actions_security.sh` | GitHub Actions security-specific analysis, no fixes | Recommended next / owner-selected pilot extension |
+| zizmor | zizmor | `scan_actions_security.sh` | GitHub Actions security-specific analysis, no fixes | Conditional extension X1 (owner D-04) |
 | docker-compose | Docker Compose CLI | `validate_compose.sh` | Explicit Compose model validation, not security certification | Conditional on Compose scope |
 | helm | Helm | `scan_helm.sh` | Chart lint and controlled local template rendering | Conditional on Helm scope |
 | trivy | Trivy | `scan_referenced_images.sh` | Known vulnerabilities in approved referenced images | Conditional on image-vulnerability scope |
 | rust-schema | Chosen Rust schema validator | In-process adapter, not mandatory shell | Automatic bindings/local supplied schemas for supported dialects | Pilot baseline |
+
+Invocation (owner D-03, CA-01): the Linux pilot invokes every tool through an application-owned native Rust process adapter (Git directly). The named `.sh` wrappers are the optional parity extension X6, not a mandatory runtime layer; the tool-to-capability mapping above is retained. Exact versions, flags and supported-framework coverage are frozen only after the approved per-tool spikes; a baseline capability is never silently downgraded. The canonical pilot/conditional/deferred label register is PRD §16.
 
 
 ### Dependency diagnostics
@@ -353,9 +355,7 @@ Developer implements a minimal functional demo now against stable typed mocks an
 
 When design arrives: record revision -> map terminal-cell layout/tokens -> identify deviations -> request approval for contract changes -> update presentation -> run snapshot/input/resize tests -> perform manual terminal checks. Preserve selection, scan state, approvals and conversation provenance. Delayed design does not block scanner integration; retaining demo styling for pilot requires owner approval.
 
-Command vocabulary: AddRepository, RefreshRepository, DiscoverFiles, UpdateSelection, ReviewScanPlan, StartScan, CancelRun, SaveWorkflow, RunWorkflow, ResolveApproval, ConfigureCredential, SendChatMessage, ExportReport, InspectDependencies.
-
-Events: RepositoryRegistered, RepositoryStatusChanged, InventoryUpdated, RunStarted, TaskProgress, FindingObserved, ApprovalRequested, RunFinished, ReportWritten, ChatResponseStarted, ChatResponseChunk, ChatResponseFinished, DependencyStatusChanged, OperationFailed.
+Commands and events: the single canonical vocabulary, with pilot versus reserved (deferred) status and delivery rules, is Architecture §6 "Canonical application command/event contract" (app contract v1.0). This document does not keep a separate list. Reserved commands are not rendered as available actions; designers may show them only as clearly labelled future/deferred states.
 
 Widgets do not invoke shell/Git/scanners/OpenRouter or write authoritative JSON. Extend DTOs only through reviewed contract changes.
 
