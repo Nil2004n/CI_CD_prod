@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed design for review
+Version: 0.3.2 (pre-implementation amendments CA-01, CA-02) | Date: 2026-10-23 | Status: Proposed design for review
 Related document: PRD v0.3. Requirement IDs refer to that PRD.
 
 ## 1. Technical decision
@@ -271,6 +271,10 @@ Proposed protocol v1.0 (with pre-implementation amendment CA-01), distinct from 
 Requested scope (CA-01, resolves C3): every request carries `category` (the single assessment `Category` the task is asked to produce, e.g. `secrets`) and `required_capabilities` (the permission `Capability` values the task may exercise; empty means local-only with no network). The core must hold a valid grant in `approval_ids` covering each listed capability before launch; the adapter rejects work outside `category`.
 
 Timeout and cancellation contract (CA-01): `timeout_seconds` and `termination_policy` (`control="supervisor_out_of_band"`, `grace_ms`, `kill_scope="process_tree"`) are declarations, not enforcement. The core process supervisor owns the timer and the cancellation token; on timeout, cancel or output-limit breach it requests graceful termination of the process tree, waits at most `grace_ms`, then forcibly kills the tree using platform-specific handling verified in the P00 process spike. `WrapperControl.termination` records the observed `reason`, `method` and whether the tree was confirmed exited (`null` when unknown); `transport_status` adds `output_limit_exceeded`. A JSON field alone never stops a running process.
+
+CA-02 (Data Schema §23): the direct child's exit code and terminating signal are recorded separately (`tool_exit_code`, `tool_term_signal`); cleanup of leftover process-group members is recorded in `termination.descendant_cleanup` without overwriting the primary `reason`; per-stream reader outcome is recorded in `output_streams` (`not_applicable` for spawn failures).
+
+Output-limit requirement (P06, from P00-T05 finding F-1): the supervisor enforces consumption and retention budgets **at the reader boundary**: a reader stops consuming at its budget and notifies the coordinator immediately (event, not periodic polling); the coordinator starts bounded termination/escalation; pipes are closed or drained within a bounded byte/time budget without deadlock; truncation and output-limit termination are recorded explicitly. Measured quantities are kept distinct: bytes consumed by readers, bytes retained in memory, bytes persisted in durable evidence (sanitised), and child-generated output (not knowable beyond what was consumed). The supervisor cannot guarantee that a child produces no bytes beyond the limit; the acceptance target is bounded and documented overshoot (proposed in `plan.md` §5.2, FR-01).
 
 - Core provides a validated request JSON via stdin or app-owned request file: request/task/run/repo IDs, checkout root, frozen file IDs/paths/digests, capability, approved context/network resources, config identity and resource limits. Never include the LLM key.
 - Wrapper/native adapter has a pinned executable and argument template; do not accept an arbitrary executable, shell string, plugin directory or repo-authored script.

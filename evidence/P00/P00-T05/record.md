@@ -56,3 +56,15 @@ Canary persistence check: `grep -rEo 'PWTFAKE_C10_[0-9a-f]{8,}' evidence/P00/P00
 
 ## Files
 `record.md` (this), `results.json` (per-case sanitised evidence), `run-1.log`, `env-check.log`, `build-1.log`, `artifact.sha256`, `lock-before-build.sha256`, `lock-after-build.sha256`.
+
+## Owner acceptance (2026-10-24) — appended; raw evidence above unchanged
+
+Accepted as a **completed feasibility spike with findings**, not as production-supervisor acceptance. Qualifications recorded by the owner:
+- The reported cases were exercised and their evidence reviewed.
+- Production output-limit enforcement is **not** verified.
+- Production descendant cleanup outside the PID-1 namespace harness is **not** verified.
+- General secret detection, arbitrary escaped descendants, ANSI handling and early stdout closure remain **unverified**.
+
+Follow-up traceability (`plan.md` §5.2): F-1 → FR-01 (P06 output-budget requirement + regression case RC-FLOOD); F-2/F-3 → contract amendment CA-02 (Data Schema §23); F-4 → FR-02 (P06 process-containment decisions); untested ANSI/early-close → FR-03 (P06 verification matrix).
+
+Execution-scope deviation (kept on record, not retrospectively authorised): during fixture authoring `sh dual_stream.sh` was run once outside the approved namespace setup. Future fixture execution follows the approved setup checks first.

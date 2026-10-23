@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed UI design
+Version: 0.3.2 (pre-implementation amendments CA-01, CA-02) | Date: 2026-10-23 | Status: Proposed UI design
 Foundation: dashboard-first terminal with mouse-responsive panels and expandable chat. UI team supplies Figma designs; developer implements the demo/final terminal UI. Exact visual design remains subject to review.
 
 ## 1. Experience principles
@@ -323,7 +323,7 @@ Show selected repo/ref/commit/files, tool-to-file routing, additional context/re
 
 Expose tool/task state, findings count, elapsed time and approval waits. Distinguish syntax errors, style warnings, schema failures, misconfigurations, suspected secrets and image vulnerabilities. Preserve source/rendered artifact distinction and resolved image identity. Show original engine/rule provenance even for deduplicated findings.
 
-Tool crash/timeout, missing CRD schema, stale advisory source, network denial and unsupported framework need concrete reasons. A completed process or zero displayed findings is not automatically a clean full assessment.
+Tool crash/timeout, truncated output (output budget reached), descendant cleanup performed, missing CRD schema, stale advisory source, network denial and unsupported framework need concrete reasons. A truncated or cleanup-affected task is never shown as a clean pass. A completed process or zero displayed findings is not automatically a clean full assessment.
 
 ## 15. BYOK setup and reporting states
 

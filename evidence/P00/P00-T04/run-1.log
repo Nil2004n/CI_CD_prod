@@ -1,0 +1,18 @@
+git: git version 2.53.0
+scratch: <SCR>
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m1/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m3a/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m3b/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m3c/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m3d/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/h4/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/h5/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m6/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 58: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m6/.git/hooks/post-merge: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 62: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m6/.git/hooks/post-merge: No such file or directory
+chmod: cannot access '/home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m6/.git/hooks/post-merge': No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/h7/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/h8/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/h9/.git/info/attributes: No such file or directory
+/home/kali/Desktop/CI_CD_prod/spikes/t04-git/run_t04.sh: line 37: /home/kali/.local/share/pwt-dev-tools/_spikes/t04-run1/m12/.git/info/attributes: No such file or directory
+SUMMARY rows=32 fail=4 inconclusive=1

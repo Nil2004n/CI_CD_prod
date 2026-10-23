@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed architecture
+Version: 0.3.2 (pre-implementation amendments CA-01, CA-02) | Date: 2026-10-23 | Status: Proposed architecture
 Scope: Single-user local application; Rust-oriented reference design, subject to language sign-off.
 
 ## 1. Architectural intent
@@ -323,6 +323,8 @@ Directory root is resolved by the platform application-data mechanism or explici
 | Git auth/update failure | Sanitised actionable message; skip repo; continue others |
 | Missing scanner | Unsupported capability, dependency guidance, no clean badge |
 | Scanner timeout/crash | Preserve earlier findings; failed/incomplete task |
+| Scanner output exceeds budget | Reader stops at budget, immediate termination; output marked truncated; check incomplete, never passed (CA-02) |
+| Leftover descendants after child exit | Group members cleaned up and recorded separately from the child's own status (CA-02); descendants outside the group remain a stated limitation |
 | Invalid schema/renderer missing inputs | Specific gap; other applicable checks continue |
 | Approval denied | Skip affected operation; qualified summary |
 | Terminal resize | Reflow layout; preserve app/run state |

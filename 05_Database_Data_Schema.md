@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed implementation contract
+Version: 0.3.2 (pre-implementation amendments CA-01, CA-02) | Date: 2026-10-23 | Status: Proposed implementation contract
 
 ## 1. Storage decision
 
@@ -110,7 +110,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Pre-implementation contract amendment CA-01 (2026-10-23, owner decision D-08): applied before any implementation or persisted record existed; version identifiers retained. See 05_Database_Data_Schema.md section 22.",
+  "$comment": "Pre-implementation contract amendment CA-01 (2026-10-23, owner decision D-08): applied before any implementation or persisted record existed; version identifiers retained. See 05_Database_Data_Schema.md section 22. Amendment CA-02 (2026-10-24, owner-approved F-2/F-3 from P00-T05): descendant cleanup, child signal status, stream reader state; see 05_Database_Data_Schema.md section 23. Version-identifier handling pending owner confirmation.",
   "title": "PWT Workbench Store Contract v1.2",
   "description": "Proposed shared contract; semantic and referential constraints are enforced by application code.",
   "oneOf": [
@@ -1261,6 +1261,17 @@ This single schema validates all proposed root store types via `oneOf` and `$def
             }
           ]
         },
+        "term_signal": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "native_status": {
           "type": "string",
           "enum": [
@@ -1296,6 +1307,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
         "config_digest",
         "manifest_digest",
         "exit_code",
+        "term_signal",
         "native_status",
         "approval_ids"
       ]
@@ -3402,8 +3414,35 @@ This single schema validates all proposed root store types via `oneOf` and `$def
             }
           ]
         },
+        "tool_term_signal": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "termination": {
           "$ref": "#/$defs/TerminationRecord"
+        },
+        "output_streams": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "stdout": {
+              "$ref": "#/$defs/StreamRecord"
+            },
+            "stderr": {
+              "$ref": "#/$defs/StreamRecord"
+            }
+          },
+          "required": [
+            "stdout",
+            "stderr"
+          ]
         },
         "native_format": {
           "type": "string"
@@ -3437,7 +3476,9 @@ This single schema validates all proposed root store types via `oneOf` and `$def
         "tool_version",
         "transport_status",
         "tool_exit_code",
+        "tool_term_signal",
         "termination",
+        "output_streams",
         "native_format",
         "output_channel_id",
         "diagnostics_redacted",
@@ -3467,7 +3508,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       ]
     },
     "TerminationRecord": {
-      "$comment": "Observed supervisor outcome; process_tree_exited is null when the supervisor could not determine it.",
+      "$comment": "reason is the primary supervisor trigger and is never overwritten by later descendant cleanup; descendant_cleanup records that action separately. 'descendant_cleanup' as reason means the child exited on its own and cleanup was the only supervisor action. process_tree_exited is null when undeterminable.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -3478,7 +3519,8 @@ This single schema validates all proposed root store types via `oneOf` and `$def
             "timeout",
             "cancel_requested",
             "output_limit",
-            "supervisor_shutdown"
+            "supervisor_shutdown",
+            "descendant_cleanup"
           ]
         },
         "method": {
@@ -3499,12 +3541,94 @@ This single schema validates all proposed root store types via `oneOf` and `$def
               "type": "null"
             }
           ]
+        },
+        "descendant_cleanup": {
+          "$ref": "#/$defs/DescendantCleanup"
         }
       },
       "required": [
         "reason",
         "method",
-        "process_tree_exited"
+        "process_tree_exited",
+        "descendant_cleanup"
+      ]
+    },
+    "DescendantCleanup": {
+      "$comment": "Supervisor action against members of the tool's process group that remained after the direct child exited or was terminated. Does not cover descendants that left the group/session.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "performed": {
+          "type": "boolean"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "graceful",
+            "forced",
+            "failed"
+          ]
+        },
+        "leftover_live_count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "performed",
+        "method",
+        "leftover_live_count"
+      ]
+    },
+    "StreamRecord": {
+      "$comment": "Per-stream reader outcome. bytes_consumed = bytes read by the supervisor; bytes_retained = bytes kept in memory for parsing/evidence. Child-generated bytes beyond what was consumed are unknown. not_applicable = no reader existed (e.g. spawn failure); counts are then null.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "not_applicable",
+            "complete",
+            "truncated",
+            "reader_timeout"
+          ]
+        },
+        "bytes_consumed": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bytes_retained": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "state",
+        "bytes_consumed",
+        "bytes_retained"
       ]
     }
   }
@@ -3815,3 +3939,68 @@ Date: 2026-10-23. Authority: owner decision D-08 in the documentation-only plann
 Synchronisation: `schemas/workbench-store-v1.2.schema.json` is canonical. The §7 embedded copy and the `$defs` of `schemas/wrapper-request-v1.0.schema.json` and `schemas/wrapper-control-v1.0.schema.json` are byte-equivalent copies regenerated from it; each schema file carries a `$comment` naming CA-01. The §8–§10 examples were re-validated against the amended schema (planning evidence in `evidence/P00-planning/`).
 
 Version handling: identifiers `schema_version="1.2"` and `protocol_version="1.0"` are retained because no implementation, persisted store, report or wrapper existed under the pre-amendment text, so no reader or record can observe two meanings. This exception closes at the first implementation commit that reads or writes these contracts (planned P01/P02): after that any shape change requires a new version, migration notes (§19) and owner approval. Copies of the pre-amendment v1.2/v1.0 files distributed outside this repository (for example the original specification ZIP) are superseded and must not be used to produce records. If the owner prefers explicit new identifiers (for example store 1.3 / protocol 1.1), that is a mechanical follow-up before P01.
+
+## 23. Contract amendment CA-02 (descendant cleanup, child signal, stream state)
+
+Date: 2026-10-24. Authority: owner approval of findings F-2/F-3 from the P00-T05 feasibility spike (`evidence/P00/P00-T05/record.md`). CA-01 (§22) is unchanged; CA-02 is an additional amendment.
+
+| Item | Change | Finding |
+|---|---|---|
+| `TerminationRecord.reason` | adds `descendant_cleanup` | F-2 |
+| `TerminationRecord.descendant_cleanup` (new, required) | `DescendantCleanup`: `performed`, `method` (`not_required`/`graceful`/`forced`/`failed`), `leftover_live_count` (nullable) | F-2 |
+| `WrapperControl.tool_term_signal` (new, required, nullable) | signal that ended the direct child, separate from `tool_exit_code` | F-2 (preserve child status) |
+| `WrapperControl.output_streams` (new, required) | `stdout`/`stderr` `StreamRecord`: `state` (`not_applicable`/`complete`/`truncated`/`reader_timeout`), `bytes_consumed`, `bytes_retained` (nullable) | F-3, F-1 recording |
+| `Check.term_signal` (new, required, nullable) | child signal status in report checks | F-2 |
+
+Semantic rules (added to §18 by reference):
+1. `reason` is the **primary** supervisor trigger (timeout, cancel_requested, output_limit, supervisor_shutdown). Later descendant cleanup never overwrites it; it is recorded in `descendant_cleanup`.
+2. `reason = descendant_cleanup` only when the direct child exited on its own and cleaning up remaining group members was the only supervisor action.
+3. `tool_exit_code` / `tool_term_signal` (and `Check.exit_code` / `term_signal`) describe the direct child as observed by `waitpid`, never the result of cleanup of other processes. At most one of exit code and signal is non-null.
+4. Spawn failure (`transport_status = launch_failed`): both streams `state = not_applicable`, counts null; `descendant_cleanup.performed = false`.
+5. `state = truncated` whenever consumption stopped at the budget; `transport_status = output_limit_exceeded` and `reason = output_limit` when that triggered termination. Bytes generated by the child beyond `bytes_consumed` are unknown and are not claimed.
+6. `descendant_cleanup` covers only process-group members. Descendants that changed group/session are outside this record's guarantee.
+
+Synchronisation: canonical `schemas/workbench-store-v1.2.schema.json`; the §7 embedded copy and both wrapper schema `$defs` regenerated from it (`evidence/P00/CA-02/apply_ca02.py`); verification in `evidence/P00/CA-02/check.md`. The CA-01 planning check (`evidence/P00-planning/`) is historical and is not re-run against the amended schema.
+
+Version handling — **pending owner confirmation.** Under §22 the pre-implementation exception closes at the first implementation commit that reads or writes these contracts. No application code exists; the only code (P00 spikes) does not read or write these schemas, so the exception is believed still open and identifiers `schema_version = "1.2"` / `protocol_version = "1.0"` are retained. Open question Q-03 (retain vs bump to 1.3/1.1) is unresolved, so this handling is provisional; a bump would be a mechanical rename of identifiers and schema file names before P01.
+
+Example `WrapperControl` after an output-limit termination with descendant cleanup (synthetic; validated against the amended schema):
+
+```json
+{
+  "protocol_version": "1.0",
+  "request_id": "0b6f6c2e-3f1a-4c8e-9a51-6f0d2b7c1a10",
+  "task_id": "5d2c9e41-7a0b-4b6e-8f3d-2e9a1c4b7d22",
+  "adapter_id": "gitleaks",
+  "tool_version": "8.30.1",
+  "transport_status": "output_limit_exceeded",
+  "tool_exit_code": null,
+  "tool_term_signal": 15,
+  "termination": {
+    "reason": "output_limit",
+    "method": "graceful",
+    "process_tree_exited": true,
+    "descendant_cleanup": {
+      "performed": true,
+      "method": "graceful",
+      "leftover_live_count": 1
+    }
+  },
+  "output_streams": {
+    "stdout": {
+      "state": "truncated",
+      "bytes_consumed": 1048576,
+      "bytes_retained": 1048576
+    },
+    "stderr": {
+      "state": "complete",
+      "bytes_consumed": 212,
+      "bytes_retained": 212
+    }
+  },
+  "native_format": "json",
+  "output_channel_id": null,
+  "diagnostics_redacted": [],
+  "elapsed_ms": 418
+}
+```
