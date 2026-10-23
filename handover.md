@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, D3-1 libc-only build done (not executed) and committed on `phase/P00-decisions-spikes` (local only). Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, P00-T05 spike executed (15/15) and committed on `phase/P00-decisions-spikes` (local only), awaiting owner review. Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the D3-1 commit on top of `ccb0471`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the P00-T05 commit on top of `646b112`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
@@ -24,5 +24,7 @@ Checkpoint: 2026-10-24, D3-1 libc-only build done (not executed) and committed o
 
 - D3-1: `spikes/rust/` workspace (`t05-process`, `libc =0.2.191`, committed `Cargo.lock`). Cargo always via toolchain binaries with `env -i`, isolated `CARGO_HOME`/`CARGO_TARGET_DIR` under `~/.local/share/pwt-dev-tools/`, builds inside `unshare -rn`. Built binary at `_cargo-target/debug/t05-process` never executed. Record `evidence/P00/P00-T05-D3-1/record.md`.
 
+- P00-T05: harness `spikes/rust/t05-process/src/main.rs`, fixtures `spikes/rust/t05-process/fixtures/`. Run only via `timeout -s KILL 300 unshare -rn --pid --fork --mount-proc --kill-child env -i …` (harness refuses unless PID 1). Findings F-1–F-4 in `evidence/P00/P00-T05/record.md`.
+
 ## Next
-Await approval of the next task (proposed: P00-T05 spike implementation + execution). Do not start P00-T04/T05/T09 or other crate fetches without approval.
+Await owner review of P00-T05 and F-1/F-2 decisions. Proposed next: P00-T04 (Git safety, local only). Do not start other tasks without approval.

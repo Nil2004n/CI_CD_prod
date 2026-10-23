@@ -134,7 +134,8 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T02 | Request accepted; approved installs (Request A, B1) done and accepted with limitations; PyPI provenance exception; cargo-audit deferred to P01 | `spikes/P00-T02-installation-request.md`, `evidence/P00/P00-T02/` |
 | P00-T03 | Rev 1 committed (`f1bd80d`); rev 2 research-backed request complete, awaiting D3-1–D3-3 | `spikes/P00-T03-crate-request.md`, `evidence/P00/P00-T03/` |
 | D3-1 (T05 dependency) | libc 0.2.191 resolved, fetched, built offline in network namespace; not executed | `spikes/rust/`, `evidence/P00/P00-T05-D3-1/` |
-| P00-T04 – T11 | Not approved, not started | — |
+| P00-T05 | Executed, 15/15, awaiting review; findings F-1 (output-limit overshoot), F-2 (CA-01 reason gap) | `evidence/P00/P00-T05/` |
+| P00-T04, T06 – T11 | Not approved, not started | — |
 
 ### 5.1 Per-tool spike protocol (C1/C11 are hypotheses per tool)
 For each pinned tool record: (a) every repository config/ignore/allowlist/plugin/custom-check file it auto-discovers, and whether an explicit app-owned config fully neutralises each; (b) explicit-file input honoured vs directory walk — if walking, a staged selected-file copy strategy and its effect on line mapping; (c) output format(s), where raw secret material can appear (stdout, stderr, report file) and the effect of tool redaction options; (d) exit codes for clean, findings, parse error, crash, bad flag; (e) network attempts in default mode and whether they can be disabled verifiably; (f) behaviour on malformed YAML with a seeded fake secret (SCAN-08); (g) version string and binary checksum. Results feed a contract sheet: adapter ID, version, invocation template, config policy, scope strategy, parser ID, exit mapping, network policy, limitations.

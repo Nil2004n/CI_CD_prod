@@ -1,0 +1,10 @@
+outer: orchestrator shell pid=131501 pgid=131501 sid=131501
+inner: sh pid=1
+inner: visible pids: 1 2 3 4 5 
+lo               DOWN           00:00:00:00:00:00 <LOOPBACK> 
+routes=0
+curl exit=7
+env check exit=0
+--- watchdog test: namespace init SIGKILLed by timeout must take its descendants with it
+watchdog run exit=137 (137 = killed by timeout)
+leftover sleep 1001/1002 on host: 0
