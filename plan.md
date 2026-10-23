@@ -135,9 +135,10 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T03 | Rev 1 committed (`f1bd80d`); rev 2 research-backed request complete, awaiting D3-1–D3-3 | `spikes/P00-T03-crate-request.md`, `evidence/P00/P00-T03/` |
 | D3-1 (T05 dependency) | libc 0.2.191 resolved, fetched, built offline in network namespace; not executed | `spikes/rust/`, `evidence/P00/P00-T05-D3-1/` |
 | P00-T05 | **Accepted 2026-10-24 as a feasibility spike with findings** (not production-supervisor acceptance); F-1 → FR-01, F-2/F-3 → CA-02, F-4 → FR-02, untested cases → FR-03 | `evidence/P00/P00-T05/` |
-| P00-T04 | Run 1 failed; debug cycle D01 completed, re-run 36 pass / 0 fail / 0 inconclusive (+1 observation); awaiting review | `evidence/P00/P00-T04/` |
-| CA-02 | Applied and versioned: store 1.3, wrapper protocol 1.1 (Q-03) | Data Schema §23, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/` |
-| P00-T06 – T11 | Not approved, not started | — |
+| P00-T04 | **Accepted 2026-10-24 (qualified: tested procedure, Git 2.53.0, this host/fixtures only)**; run 1 failed, D01 re-run 36/0/0 (+1 observation) | `evidence/P00/P00-T04/` |
+| CA-02 | Applied, versioned and confirmed by owner: store 1.3, wrapper protocol 1.1, specs v0.3.3 | Data Schema §23, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/` |
+| P00-T06 | Request + test design prepared (documentation only); dependency/build/run awaiting approval | `spikes/P00-T06-request-and-fixtures.md` |
+| P00-T07 – T11 | Not approved, not started | — |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
 
@@ -218,4 +219,4 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 
 | Cycle | Defect | State |
 |---|---|---|
-| P00-T04-D01 | D-1 fail-open attributes setup (no `.git/info/` with empty template); D-2 inert G06 hook fixture; cleanup listing artefact | Approved and completed 2026-10-24; re-run passed; awaiting review |
+| P00-T04-D01 | D-1 fail-open attributes setup (no `.git/info/` with empty template); D-2 inert G06 hook fixture; cleanup listing artefact | Completed 2026-10-24; re-run passed; P00-T04 accepted (qualified) |

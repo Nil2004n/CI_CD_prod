@@ -107,3 +107,7 @@ The `mkdir: … File exists` line in `run-2.log` is the deliberate G15 `attr_dir
 
 ### Remaining untested / limitations
 Unchanged from run 1 (real HTTPS/SSH, network credential-helper invocation, `core.sshCommand`/`GIT_SSH`, proxy commands, `include`/`includeIf`, system config, diff/textconv drivers, other submodule entry points, one Git version/host, no filesystem sandbox). Additionally: attribute macros and `filter` set via other attribute files outside `$GIT_DIR/info/attributes` precedence were not separately exercised; the override relies on documented `info/attributes` precedence, which run 2 observed for `.gitattributes` in the cloned tree only.
+
+## Owner acceptance (2026-10-24) — appended; runs 1 and 2 above unchanged
+
+P00-T04 accepted on the basis of D01's local verification. Acceptance is limited to the tested procedure, Git 2.53.0, this host and this fixture set. It does **not** establish real HTTPS/SSH authentication behaviour, all configuration-inheritance paths, arbitrary attribute macros, other submodule entry points, or complete Git security. Run 1 (its failures, the inert G06 fixture and the `tr` observation later explained) is preserved as recorded.

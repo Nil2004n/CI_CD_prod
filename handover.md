@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, P00-T04-D01 re-run passed and committed on `phase/P00-decisions-spikes` (local only), awaiting owner review; CA-02 versioned to store 1.3 / protocol 1.1. Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, P00-T04 accepted (qualified), CA-02 confirmed (store 1.3 / protocol 1.1, specs v0.3.3); P00-T06 request/test design committed (documentation only) on `phase/P00-decisions-spikes` (local only). Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the D01/versioning commit on top of `c417b36`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the T06-request commit on top of `bce65be`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
@@ -29,5 +29,7 @@ Checkpoint: 2026-10-24, P00-T04-D01 re-run passed and committed on `phase/P00-de
 - P00-T04: harness `spikes/t04-git/run_t04.sh` (D01 version); run only via the verified namespace setup (env check first). Run 1 failed, D01 re-run passed; both in `evidence/P00/P00-T04/record.md`.
 - CA-02: Data Schema §23, versioned store 1.3 / protocol 1.1; canonical `schemas/workbench-store-v1.3.schema.json`; follow-ups FR-01–FR-04 in `plan.md` §5.2.
 
+- P00-T06: `spikes/P00-T06-request-and-fixtures.md` — layers (parser vs spike composer vs projection vs validator), limits, cases Y01–Y21 / J01–J16, request §5, failure criteria §6, open questions §7. Nothing resolved/fetched/built yet.
+
 ## Next
-Await owner review of P00-T04 D01 and CA-02 versioning. No D02 or other task without approval.
+Await approval of the T06 dependency/build/run request. Do not resolve, fetch, build or run without it.
