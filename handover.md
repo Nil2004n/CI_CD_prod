@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, P00-T06-D01 re-run passed (121/0/7, J16 35/35), committed locally on `phase/P00-decisions-spikes` (not pushed); T06 awaiting owner review. Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, P00-T06-D01 re-run passed (121/0/7, J16 35/35); committed and pushed to `origin/phase/P00-decisions-spikes`; T06 awaiting owner review (not accepted). Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`, `git status -sb`. Expect branch `phase/P00-decisions-spikes` one commit ahead of `origin/phase/P00-decisions-spikes` (`8c10585`), clean tree; `main` = `origin/main` = `008e80c`.
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`, `git status -sb`. Expect branch `phase/P00-decisions-spikes` equal to `origin/phase/P00-decisions-spikes`, clean tree; `main` = `origin/main` = `008e80c` (not merged).
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
