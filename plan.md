@@ -66,7 +66,7 @@ Opus prepares a sanitised evidence packet → Haiku drafts `status.md`/`handover
 A failing check authorises nothing. Opus reports confirmed bugs vs hypotheses, severity, evidence and a bounded fix. An owner-approved debug cycle `Pxx-Dnn` covers named fixes plus listed retests, then the same report/document/stop loop. Two unsuccessful cycles on one defect → revised diagnosis and owner decision. Cycles are logged in §9.
 
 ### 3.6 Branches and commits (D-14)
-Proposed: one branch per phase, `phase/Pxx-<slug>`, created from the approved base at phase start. Commits only with explicit approval (typically at phase acceptance); no merges or pushes without approval. `status.md` records actual HEAD and dirty state; no clean checkpoint is claimed that Git does not show. The current planning changes are uncommitted on `main`.
+Proposed: one branch per phase, `phase/Pxx-<slug>`, created from the approved base at phase start. Commits only with explicit approval (typically at phase acceptance); no merges or pushes without approval. `status.md` records actual HEAD and dirty state; no clean checkpoint is claimed that Git does not show. Policy retained by owner on 2026-10-24. Historical exceptions (explicitly owner-authorised at the time, not a policy change): `1e4a5b3`, `db402ca`, `4c659eb`, `008e80c` were committed/pushed directly on `main`. The conflict with this policy was reported only after the `008e80c` push. Published history is not rewritten. From 2026-10-24 P00 work continues on `phase/P00-decisions-spikes` (created from `008e80c`); merges to `main` and pushes need their own approval.
 
 ### 3.7 Evidence layout
 `evidence/<phase-or-cycle>/` holds logs and check records (see `evidence/README.md`). Root continuity files stay compact and link to evidence.
