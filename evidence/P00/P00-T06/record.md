@@ -116,3 +116,7 @@ End spans not reported; display-width columns not computed; repeated or internal
 
 ### Housekeeping (optional, later)
 `j16-cases.json` embeds the full store schema per contract case (large diff). Deduplicating schemas or packaging fixtures reproducibly is optional later housekeeping; not done in this cycle.
+
+## Owner acceptance (2026-10-24) — appended; runs and D01 above unchanged
+
+P00-T06 accepted on the basis of D01, subject to the documented suitability conditions and remaining limitations: byte positions, BOM handling and parser flow-depth classification are handled in the spike composer (saphyr-parser documents `index` as bytes but returns character offsets; the depth mapping is coupled to the exact 0.2.2 message); end spans, display-width columns, repeated/internal U+FEFF, merge keys, non-string keys, non-core tags and YAML 1.1 behaviour remain unsupported; JSON-Schema-Test-Suite conformance, production limits (P05) and transitive/build-time code beyond pattern review remain unverified; no filesystem sandbox. The selections (saphyr-parser 0.2.2, jsonschema 0.60.1 with defaults off, serde_json 1.0.154) are spike-validated candidates, not accepted application dependencies.

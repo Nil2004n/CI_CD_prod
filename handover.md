@@ -1,6 +1,6 @@
 # Handover
 
-Checkpoint: 2026-10-24, P00-T06-D01 re-run passed (121/0/7, J16 35/35); committed and pushed to `origin/phase/P00-decisions-spikes`; T06 awaiting owner review (not accepted). Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, P00-T06 accepted (based on D01, with conditions); P00-T01–T06 accepted; work paused by owner; resume at P00-T07. Branch pushed to `origin/phase/P00-decisions-spikes`, not merged. Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
 1. `git status --short`, `git branch --show-current`, `git log --oneline -3`, `git status -sb`. Expect branch `phase/P00-decisions-spikes` equal to `origin/phase/P00-decisions-spikes`, clean tree; `main` = `origin/main` = `008e80c` (not merged).
@@ -31,7 +31,7 @@ Checkpoint: 2026-10-24, P00-T06-D01 re-run passed (121/0/7, J16 35/35); committe
 
 - P00-T06: `spikes/P00-T06-request-and-fixtures.md` — layers (parser vs spike composer vs projection vs validator), limits, cases Y01–Y21 / J01–J16, request §5, failure criteria §6, open questions §7. Nothing resolved/fetched/built yet.
 
-- P00-T06: spike `spikes/rust/t06-yaml/` (composer, projection, harness, fixtures). Build/run only via the recorded namespace commands (env check first, `ulimit -v 1048576`). First run failed; D01 re-run passed (`evidence/P00/P00-T06/D01/`); details in `evidence/P00/P00-T06/record.md`.
+- P00-T06: accepted (based on D01, with conditions). Spike `spikes/rust/t06-yaml/`; build/run only via the recorded namespace commands (env check first, `ulimit -v 1048576`). Evidence `evidence/P00/P00-T06/` and `D01/`; acceptance conditions appended to its record.
 
 ## Next
-Await owner review of P00-T06 (D01). Do not mark accepted or start D02/other tasks without approval.
+Resume at **P00-T07** (Linux keyring spike). First step on resume: re-verify Git state and the isolated tool/cargo environment, then present the T07 request (dependency `keyring` 4.2.0 with default `v1` → `zbus-secret-service-keyring-store`; headless/locked/absent Secret Service behaviour; dummy credential only; no plaintext fallback) for approval. Nothing for T07 is resolved, fetched, built or run yet. Remaining after T07: T08 (PDF), T09 (per-tool scanners), T10 (Kubernetes schema cache plan), T11 (freeze + P00 report), then P00 acceptance, merge to `main` and push — each needs approval.

@@ -137,8 +137,8 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T05 | **Accepted 2026-10-24 as a feasibility spike with findings** (not production-supervisor acceptance); F-1 → FR-01, F-2/F-3 → CA-02, F-4 → FR-02, untested cases → FR-03 | `evidence/P00/P00-T05/` |
 | P00-T04 | **Accepted 2026-10-24 (qualified: tested procedure, Git 2.53.0, this host/fixtures only)**; run 1 failed, D01 re-run 36/0/0 (+1 observation) | `evidence/P00/P00-T04/` |
 | CA-02 | Applied, versioned and confirmed by owner: store 1.3, wrapper protocol 1.1, specs v0.3.3 | Data Schema §23, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/` |
-| P00-T06 | First run 96/5/6 (preserved); D01 re-run 121 pass / 0 fail / 7 obs, J16 35/35; pushed to phase branch; awaiting review (not accepted) | `spikes/P00-T06-request-and-fixtures.md`, `evidence/P00/P00-T06/` |
-| P00-T07 – T11 | Not approved, not started | — |
+| P00-T06 | **Accepted 2026-10-24 based on D01, with documented conditions/limitations**; first run 96/5/6 preserved; D01 121/0/7, J16 35/35 | `spikes/P00-T06-request-and-fixtures.md`, `evidence/P00/P00-T06/` |
+| P00-T07 – T11 | Not approved, not started; paused by owner — resume at **T07** | — |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
 
@@ -220,4 +220,4 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 | Cycle | Defect | State |
 |---|---|---|
 | P00-T04-D01 | D-1 fail-open attributes setup (no `.git/info/` with empty template); D-2 inert G06 hook fixture; cleanup listing artefact | Completed 2026-10-24; re-run passed; P00-T04 accepted (qualified) |
-| P00-T06-D01 | Parser char offsets vs bytes; BOM not stripped; parser recursion-limit classification; Y18 expected-name error | Approved and completed 2026-10-24; re-run passed; awaiting review |
+| P00-T06-D01 | Parser char offsets vs bytes; BOM not stripped; parser recursion-limit classification; Y18 expected-name error | Completed 2026-10-24; re-run passed; P00-T06 accepted |
