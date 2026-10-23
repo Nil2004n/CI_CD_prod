@@ -1,0 +1,11 @@
+PASS fixture catalogue defines IDs (98)
+PASS all 45 fixture references in protocols resolve
+PASS all fixture references inside catalogue resolve
+PASS every defined fixture falls under a coverage-map area
+PASS no PEM block in T01 documents
+PASS no GitHub-style token in T01 documents
+PASS no AWS key id in T01 documents
+PASS no Slack token in T01 documents
+PASS no long high-entropy run (letters+digits+uppercase) in T01 documents
+PASS no URL with credentials in T01 documents
+SUMMARY pass=10 fail=0 skip=0

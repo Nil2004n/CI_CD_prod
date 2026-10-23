@@ -1,18 +1,20 @@
 # Handover
 
-Checkpoint: 2026-10-23, end of documentation-only planning stage. Written by Opus directly (no Haiku agent yet).
+Checkpoint: 2026-10-24, P00-T01 accepted, committed and pushed. Written by Opus directly (no Haiku agent).
 
 ## Resume steps
-1. `git status --short`, `git log --oneline -3` — expect the planning-checkpoint commit on `main` (parent `805ced4`), pushed to `origin/main`, with a clean tree.
-2. Read `status.md`, then `plan.md` §1 (decisions, open questions Q-01–Q-06) and §5 (P00).
-3. Load spec sections only as needed; PRD §16 for labels, Architecture §6 for commands/events, Data Schema §22 for CA-01.
+1. `git status --short`, `git log --oneline -3`. Expect the P00-T01 commit on `main` (parent `1e4a5b3`), equal to `origin/main`, clean tree.
+2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
+3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
 ## Facts
-- No application code, tests, Cargo workspace, scripts or CI exist.
-- Schemas amended under CA-01; `schemas/workbench-store-v1.2.schema.json` is canonical; copies regenerated from it (embedded §7 block, both wrapper schemas). Verification record: `evidence/P00-planning/contract-check.md`.
-- Last real owner approvals: documentation-only planning stage; commit and push of the planning checkpoint to `main` (2026-10-23). No P00 approval.
-- Not approved: installs, crate downloads, schema/binary downloads, network lookups, real API calls, cloning, further commits/pushes.
-- Worker models (Sonnet/Haiku) unverified; agent definitions only proposed (`proposals/`).
+- No application code, tests, fixtures, generators, Cargo workspace or CI exist.
+- P00-T01 deliverables are documentation. Tool flags, file names and exit codes in them are unverified candidates for the spikes to confirm.
+- Main design point from T01: inline suppression directives (H-INL) and repository-loaded custom checks (H-EXE) are repository-controlled channels in addition to config files. Fake secrets are generated at build time and never committed (to keep them out of Git history and avoid host push-protection blocks).
+- Evidence: `evidence/P00/P00-T01/check.md` (10/0/0; one checker pattern narrowed after a confirmed prose false positive, disclosed there).
+- Owner approvals: planning stage and checkpoint commit/push (2026-10-23); P00-T01, its acceptance and commit/push (2026-10-24).
+- Not approved: P00-T02+, installs, crates, downloads, network lookups, real API, cloning, further commits/pushes.
+- Worker models unverified; agent definitions are only proposals.
 
 ## Next
-Await owner review of planning documents, answers to Q-01–Q-06, and approval (or not) of P00-T01.
+Await approval of P00-T02 and Q-06 (read-only lookups of official pages).
