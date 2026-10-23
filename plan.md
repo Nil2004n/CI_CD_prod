@@ -133,6 +133,7 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T01 | Accepted | `spikes/P00-T01-*.md`, `evidence/P00/P00-T01/` |
 | P00-T02 | Request accepted; approved installs (Request A, B1) done and accepted with limitations; PyPI provenance exception; cargo-audit deferred to P01 | `spikes/P00-T02-installation-request.md`, `evidence/P00/P00-T02/` |
 | P00-T03 | Rev 1 committed (`f1bd80d`); rev 2 research-backed request complete, awaiting D3-1–D3-3 | `spikes/P00-T03-crate-request.md`, `evidence/P00/P00-T03/` |
+| D3-1 (T05 dependency) | libc 0.2.191 resolved, fetched, built offline in network namespace; not executed | `spikes/rust/`, `evidence/P00/P00-T05-D3-1/` |
 | P00-T04 – T11 | Not approved, not started | — |
 
 ### 5.1 Per-tool spike protocol (C1/C11 are hypotheses per tool)

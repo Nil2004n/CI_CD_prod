@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, on `phase/P00-decisions-spikes`; P00-T03 rev 2 research-backed crate request committed (local only), awaiting D3-1–D3-3. Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, D3-1 libc-only build done (not executed) and committed on `phase/P00-decisions-spikes` (local only). Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the rev 2 commit on top of `f1bd80d`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the D3-1 commit on top of `ccb0471`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
@@ -22,5 +22,7 @@ Checkpoint: 2026-10-24, on `phase/P00-decisions-spikes`; P00-T03 rev 2 research-
 - P00-T03: `spikes/P00-T03-crate-request.md` rev 2 (selections §2, build exposure §3, first libc-only request §4, unknowns needing build tests §6); evidence `evidence/P00/P00-T03/research.md`. Only direct candidates were RustSec-screened; no transitive review; nothing resolved/fetched/built. Branch policy: phase branches; merges/pushes need approval.
 - Conventions: capture exit codes without pipes (`evidence/README.md`); re-hash protected inputs against `install-record.md` "Trusted hashes" before execution (not complete tamper protection). PyPI provenance exception accepted for development only.
 
+- D3-1: `spikes/rust/` workspace (`t05-process`, `libc =0.2.191`, committed `Cargo.lock`). Cargo always via toolchain binaries with `env -i`, isolated `CARGO_HOME`/`CARGO_TARGET_DIR` under `~/.local/share/pwt-dev-tools/`, builds inside `unshare -rn`. Built binary at `_cargo-target/debug/t05-process` never executed. Record `evidence/P00/P00-T05-D3-1/record.md`.
+
 ## Next
-Await D3-1–D3-3. Do not start P00-T04/T05/T09, resolution, fetch or builds.
+Await approval of the next task (proposed: P00-T05 spike implementation + execution). Do not start P00-T04/T05/T09 or other crate fetches without approval.
