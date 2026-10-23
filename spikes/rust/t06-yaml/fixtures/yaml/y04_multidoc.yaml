@@ -1,0 +1,9 @@
+---
+name: a
+replicas: 1
+---
+name: b
+replicas: not-a-number
+---
+name: c
+replicas: 2

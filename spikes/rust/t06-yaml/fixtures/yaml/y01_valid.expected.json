@@ -1,0 +1,1 @@
+{"name":"svc","replicas":3,"enabled":true,"ports":[80,443],"meta":{"owner":"team-a"}}

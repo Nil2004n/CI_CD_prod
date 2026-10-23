@@ -39,3 +39,51 @@ The approved request anticipated build-code exposure as "likely at least libc an
 
 ## Not done
 Spike composer/projection/harness, fixtures, build, run, J16 comparison.
+
+## Resumed after owner risk acceptance (2026-10-24) — implementation, build, run
+
+Owner accepted the disclosed build-time exposure (16 build scripts, 4 proc-macro crates incl. transitive `serde_derive`) for this exact locked graph only; no filesystem sandbox; pattern review is not an audit; advisory screening covers published advisories only.
+
+**Result: formal verification FAILED — 101 rows: 96 pass, 5 fail, 6 observations (harness exit 1). J16: 35 agree / 0 disagree. P00-T06 is not complete; no repair applied.**
+
+### Integrity before build
+`Cargo.lock` SHA-256 equals the recorded post-fetch value; manifests/lockfile unchanged since `2931774`; 69 fetched `.crate` files re-verified (0 mismatches). No re-resolution or re-fetch.
+
+### Spike code (`spikes/rust/t06-yaml/src/`)
+- `compose.rs`: consumes saphyr-parser events; limits per **input** (1 MiB input, 100 documents, depth 64, 1,000 alias events, 100,000 expanded nodes, 64 KiB scalar) so multiple documents cannot bypass them; expanded-node budget is checked on each alias/node attach using the anchored subtree's precomputed size, **before** any expansion is materialised; alias cycles (alias to a still-open anchor) rejected; duplicate keys detected on the lossless entry list (resolved type + value) before any map exists; YAML **1.2 core schema** scalar resolution for untagged plain scalars (quoted/block → string; `yes/no/on/off`, `1_000`, date-like → string; `True/TRUE` → bool; `~/null/empty` → null; `0o`/`0x`/decimal ints; core floats incl. `.inf/.nan`; finite literals overflowing f64 kept as text); core tags `!!str/int/float/bool/null/seq/map` applied (value mismatch rejected); any other tag recorded, never instantiated.
+- `project.rs`: lossless projection to `serde_json::Value` (no `arbitrary_precision`); unsupported with precise reasons: `non_finite_float(inf|nan)`, `integer_outside_lossless_range(i64/u64)`, `float_literal_overflows_f64`, `non_string_key`, `complex_key`, `merge_key(<<)`, `tag:<name>`, `key_collision_after_projection`.
+- `main.rs`: harness (refuses unless PID 1), Y/J cases with expected outcomes, instrumented `Retrieve` implementation recording requested URIs, J16 export, scratch cleanup and `/proc` check.
+- Fixtures: 36 text files under `t06-yaml/fixtures/` (YAML + schemas); bombs, size/depth/document/alias-budget inputs, invalid UTF-8, NUL, BOM/CRLF and the `file:` canary schema are generated at run time in the scratch directory and removed.
+- Design correction disclosed: the T06 design expected Y07 (`1:` and `"1":`) to end as `key_collision_after_projection`, which contradicts the approved Y19 policy (non-string keys unsupported). Implemented per Y19: the composer does **not** treat `1` and `"1"` as duplicates; projection reports `non_string_key`.
+
+### Build (C)
+`unshare -rn env -i … cargo build --frozen -p t06-yaml`: attempt 1 exit 101 (one borrow error in spike code, `C-build-attempt-1.log`; all dependency build scripts and proc-macros ran during this attempt, inside the network namespace); fixed; attempt 2 exit 0, no warnings (`C-build.log`). `Cargo.lock` unchanged. Artifact `~/.local/share/pwt-dev-tools/_cargo-target/debug/t06-yaml`, SHA-256 `163bbee141506449f67b8ae36f259a7cbb6d0ee0c886935ebd006e148727e33e` (not committed).
+
+### Run (D)
+Setup check (`D-env-check.log`): inner shell PID 1; `ulimit -v` 1,048,576 KiB also in the exec'd child (still PID 1); only own PIDs; `lo` DOWN, 0 routes, `curl` exit 7; watchdog exit 137, 0 host leftovers; J16 interpreter `/usr/bin/python3` 3.14.7, jsonschema 4.26.0, rfc3339-validator 0.1.4.
+Command: `timeout -s KILL 120 unshare -rn --pid --fork --mount-proc --kill-child env -i PATH=/usr/bin:/bin LANG=C.UTF-8 bash -c 'ulimit -v 1048576 && exec "$0" "$@"' <artifact> <fixtures> <repo> <scratch> results.json j16-cases.json` → exit 1 (`D-run.log`, `results.json`). Scratch removed; no other processes in the namespace at the end.
+
+### Failures (confirmed vs expectation errors)
+| Case | Observed | Diagnosis |
+|---|---|---|
+| Y16a unicode (LF) | target reported at `index 35, line 4, col 7`; UTF-8 byte offset is 58 | **Confirmed parser behaviour:** saphyr-parser 0.2.2 `Marker::index()` is a **character** offset (35 = character count), contradicting its doc comment "index (in bytes)"; `col` is a **0-based character** column; `line` 1-based. Positions are sufficient (convertible), so the parser failure criterion is not met; the composer must convert |
+| Y16b unicode (BOM + CRLF) | same units; first key `\u{feff}名前` | **Confirmed:** a leading UTF-8 BOM is **not** stripped by `Parser::new_from_str`; it becomes part of the first key. CRLF line counting correct |
+| Y14b depth 10,000 | `syntax_error: recursion limit exceeded` at character 258 | **Confirmed:** saphyr-parser has its own nesting limit and its scanner runs ahead of emitted events, so it fails before the composer sees the 65th collection start. Input rejected boundedly (no stack overflow), but classified as a syntax error rather than a limit. Y14a (depth 65) hit the composer limit as designed |
+| Y18c/Y18d tag names | `tag:tag:yaml.org,2002:python/object:os.system`, `…:binary` | **Expectation error (mine):** the parser expands `!!` to `tag:yaml.org,2002:`; both tags were correctly unsupported and not instantiated |
+
+### Other evidence
+- Duplicate keys (Y06a–c) rejected with both positions; `"a"` and `a` treated as the same key; `1` vs `"1"` not a YAML duplicate (Y07).
+- Alias budget: Y11 bomb stopped at `expanded_nodes > 100000` after 38 alias events, before materialisation, 0 ms; Y15d (25 alias events × 50 documents) stopped at the per-input alias limit.
+- Cycles (Y12a/b) → `policy_rejected:alias_cycle` (composer); undefined alias (Y13) → parser `syntax_error: found unknown anchor`; NUL (Y17b) → parser `found unprintable character`; invalid UTF-8 → input gate.
+- Syntax error positions (Y03a–c) on the declared lines.
+- Format assertion: `date-time`/`uuid` invalid values rejected with assertion on and accepted with it off (J04/J05).
+- References: with the default retriever, both `https:` and `file:` refs fail with the compiled-in "`resolve-http`/`resolve-file` feature or a custom resolver is required" messages (disabled path, not a network failure); with the instrumented retriever the requested URI is recorded and refused; canary file content absent from all output (J08/J09). Valid YAML + unavailable schema → `schema_unavailable` (J15).
+- Draft handling (J10, observation): with `with_draft(Draft202012)`, a draft-07 schema using array-form `items` fails to build; a 2019-09 schema is applied as 2020-12.
+- J16 (`j16_compare.py`, `J16-compare.log`, run in the same namespace setup): 35/35 agree on J01–J07, J11–J13 (Python `Draft202012Validator`, `FormatChecker` when formats on, empty `Registry`). Agreement is not a conformance proof.
+
+### Proposed bounded debug cycle P00-T06-D01 (not started)
+1. Composer: convert parser character offsets to UTF-8 byte offsets from the source text; report byte offset, 1-based line, 1-based character column; record the saphyr-parser doc/behaviour discrepancy.
+2. Input gate: strip one leading UTF-8 BOM before parsing (recorded), positions reported relative to the original bytes.
+3. Classify the parser's "recursion limit exceeded" error as `limit_exceeded:depth(parser)`; keep the composer limit of 64; record that the effective first limit for deeply nested flow input is the parser's (matching on error text is fragile and noted).
+4. Correct the Y18c/d expected names to the expanded form `tag:yaml.org,2002:…` (expectation correction, not a behaviour change).
+5. Retest: full harness and J16 under the same verified setup; no dependency or limit changes.

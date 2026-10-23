@@ -1,0 +1,98 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling autocfg v1.5.1
+   Compiling serde_core v1.0.229
+   Compiling memchr v2.8.3
+   Compiling serde v1.0.229
+   Compiling num-traits v0.2.19
+   Compiling cfg-if v1.0.5
+   Compiling zerocopy v0.8.63
+   Compiling zmij v1.0.23
+   Compiling syn v3.0.9
+   Compiling version_check v0.9.5
+   Compiling getrandom v0.3.4
+   Compiling num-integer v0.1.47
+   Compiling ahash v0.8.12
+   Compiling parking_lot_core v0.9.12
+   Compiling regex-syntax v0.8.11
+   Compiling num-bigint v0.4.8
+   Compiling serde_json v1.0.154
+   Compiling ref-cast v1.0.27
+   Compiling num-iter v0.1.46
+   Compiling num-rational v0.4.2
+   Compiling num-complex v0.4.6
+   Compiling serde_derive v1.0.229
+   Compiling ref-cast-impl v1.0.27
+   Compiling aho-corasick v1.1.5
+   Compiling smallvec v1.16.4
+   Compiling once_cell v1.21.4
+   Compiling itoa v1.0.18
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling regex-automata v0.4.18
+   Compiling num v0.4.3
+   Compiling syn v2.0.119
+   Compiling unicode-general-category v1.1.0
+   Compiling jsonschema-value v0.60.1
+   Compiling bit-vec v0.8.0
+   Compiling equivalent v1.0.3
+   Compiling foldhash v0.2.0
+   Compiling heck v0.5.0
+   Compiling allocator-api2 v0.2.21
+   Compiling thiserror v2.0.21
+   Compiling borrow-or-share v0.2.4
+   Compiling hashbrown v0.17.1
+   Compiling fluent-uri v0.4.1
+   Compiling bit-set v0.8.0
+   Compiling fraction v0.17.0
+   Compiling parking_lot v0.12.5
+   Compiling thiserror-impl v2.0.21
+   Compiling micromap v0.3.0
+   Compiling vsimd v0.8.0
+   Compiling strum_macros v0.28.0
+   Compiling outref v0.5.2
+   Compiling bytecount v0.6.9
+   Compiling num-cmp v0.1.0
+   Compiling percent-encoding v2.3.2
+   Compiling referencing v0.60.1
+   Compiling uuid-simd v0.8.0
+   Compiling fancy-regex v0.19.2
+   Compiling regex v1.13.1
+   Compiling email_address v0.2.9
+   Compiling jsonschema-regex v0.60.1
+   Compiling arraydeque v0.5.1
+   Compiling strum v0.28.0
+   Compiling data-encoding v2.11.1
+   Compiling saphyr-parser v0.2.2
+   Compiling jsonschema v0.60.1
+   Compiling t06-yaml v0.0.0 (/home/kali/Desktop/CI_CD_prod/spikes/rust/t06-yaml)
+warning: unused import: `Path`
+  --> t06-yaml/src/main.rs:11:17
+   |
+11 | use std::path::{Path, PathBuf};
+   |                 ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0382]: use of partially moved value: `event`
+   --> t06-yaml/src/compose.rs:278:39
+    |
+211 |         let (event, span) = match ev {
+    |              ----- this reinitialization might get skipped
+...
+267 |             Event::SequenceStart(anchor, tag) | Event::MappingStart(anchor, tag) => {
+    |                                                                             --- value partially moved here
+...
+278 |                 let is_seq = matches!(event, Event::SequenceStart(..));
+    |                                       ^^^^^ value used here after partial move
+    |
+    = note: partial move occurs because value has type `Option<Cow<'_, Tag>>`, which does not implement the `Copy` trait
+help: borrow this binding in the pattern to avoid moving the value
+    |
+267 |             Event::SequenceStart(anchor, tag) | Event::MappingStart(anchor, ref tag) => {
+    |                                                                             +++
+
+For more information about this error, try `rustc --explain E0382`.
+warning: `t06-yaml` (bin "t06-yaml") generated 1 warning
+error: could not compile `t06-yaml` (bin "t06-yaml") due to 1 previous error; 1 warning emitted

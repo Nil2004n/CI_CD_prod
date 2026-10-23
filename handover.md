@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, P00-T06 paused before build (exposure larger than requested); resolution/advisory/fetch/inspection evidence committed on `phase/P00-decisions-spikes` (local only). Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, P00-T06 spike built and run on `phase/P00-decisions-spikes` (local only): formal run failed (5/101), D01 proposed. Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the T06-paused commit on top of `f0d9361`, clean tree, not pushed; `main` = `origin/main` = `008e80c`. Fetched crates live in `~/.local/share/pwt-dev-tools/_cargo-home/` (not built).
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the T06 failed-run commit on top of `2931774`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
@@ -31,7 +31,7 @@ Checkpoint: 2026-10-24, P00-T06 paused before build (exposure larger than reques
 
 - P00-T06: `spikes/P00-T06-request-and-fixtures.md` — layers (parser vs spike composer vs projection vs validator), limits, cases Y01–Y21 / J01–J16, request §5, failure criteria §6, open questions §7. Nothing resolved/fetched/built yet.
 
-- P00-T06 paused: `evidence/P00/P00-T06/record.md` (A-review, A2 advisories, checksums, host graph/features, build exposure, pattern review, API notes). `t06-yaml/src/main.rs` is still a placeholder.
+- P00-T06: spike `spikes/rust/t06-yaml/` (composer, projection, harness, fixtures). Build/run only via the recorded namespace commands (env check first, `ulimit -v 1048576`). Failed run and proposed D01 in `evidence/P00/P00-T06/record.md`. Do not fix without approval.
 
 ## Next
-Await owner decision on T06 build-code exposure before C (build) and D (run).
+Await approval of debug cycle P00-T06-D01. No repair, dependency or limit change without it.

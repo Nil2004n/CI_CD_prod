@@ -1,0 +1,13 @@
+outer orchestrator shell pid=164870
+scratch exists before run: no
+inner bash pid=1
+ulimit -v (KiB): 1048576
+exec child pid=1 limit=1048576
+1 4 5 6 
+lo               DOWN           00:00:00:00:00:00 <LOOPBACK> 
+routes=0
+curl exit=7
+env check exit=0
+watchdog run exit=137 (137 expected)
+host leftovers (read-only count): 0
+J16 python: /usr/bin/python3 3.14.7 jsonschema 4.26.0 rfc3339-validator 0.1.4
