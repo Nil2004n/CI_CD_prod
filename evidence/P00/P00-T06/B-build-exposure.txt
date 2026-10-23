@@ -1,0 +1,29 @@
+host-graph crates inspected: 69
+build scripts (16):
+   ahash v0.8.12 (build.rs, 22 lines)
+   getrandom v0.3.4 (build.rs, 57 lines)
+   jsonschema-value v0.60.1 (build.rs, 4 lines)
+   libc v0.2.191 (build.rs, 630 lines)
+   num-traits v0.2.19 (build.rs, 7 lines)
+   parking_lot_core v0.9.12 (build.rs, 11 lines)
+   proc-macro2 v1.0.107 (build.rs, 267 lines)
+   quote v1.0.47 (build.rs, 32 lines)
+   ref-cast v1.0.27 (build.rs, 50 lines)
+   serde_core v1.0.229 (build.rs, 113 lines)
+   serde_json v1.0.154 (build.rs, 30 lines)
+   serde v1.0.229 (build.rs, 69 lines)
+   thiserror v2.0.21 (build.rs, 195 lines)
+   unicode-general-category v1.1.0 (build.rs, 201 lines)
+   zerocopy v0.8.63 (build.rs, 267 lines)
+   zmij v1.0.23 (build.rs, 45 lines)
+proc-macro crates (4):
+   ref-cast-impl v1.0.27
+   serde_derive v1.0.229
+   strum_macros v0.28.0
+   thiserror-impl v2.0.21
+native links (0): none
+referencing features: {'default': [], 'retrieve-async': ['dep:async-trait', 'dep:futures']}
+jsonschema features: {'arbitrary-precision': ['serde_json/arbitrary_precision', 'dep:num-bigint', 'jsonschema-macros?/arbitrary-precision', 'jsonschema-value/arbitrary-precision'], 'conformance': ['jsonschema-value/conformance'], 'default': ['resolve-http', 'resolve-file', 'tls-aws-lc-rs', 'idna'], 'idna': ['dep:idna'], 'jsonb': ['jsonschema-value/jsonb'], 'macros': ['dep:jsonschema-macros', 'jsonschema-macros/float-roundtrip', 'jsonschema-value/macros'], 'magnus': ['jsonschema-value/magnus', 'dep:magnus'], 'pyo3': ['jsonschema-value/pyo3', 'dep:pyo3'], 'resolve-async': ['referencing/retrieve-async', 'reqwest', 'dep:async-trait', 'dep:tokio'], 'resolve-file': [], 'resolve-http': ['reqwest', 'dep:rustls'], 'tls-aws-lc-rs': ['rustls/aws-lc-rs'], 'tls-ring': ['rustls/ring']}
+serde/derive requested by: bit-set v0.8.0
+serde/derive requested by: bit-vec v0.8.0
+serde/derive requested by: jsonschema v0.60.1

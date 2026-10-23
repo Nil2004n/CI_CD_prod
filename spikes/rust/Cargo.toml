@@ -1,4 +1,4 @@
 # P00 spike workspace. Development-only; not part of the product build.
 [workspace]
 resolver = "2"
-members = ["t05-process"]
+members = ["t05-process", "t06-yaml"]

@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, P00-T04 accepted (qualified), CA-02 confirmed (store 1.3 / protocol 1.1, specs v0.3.3); P00-T06 request/test design committed (documentation only) on `phase/P00-decisions-spikes` (local only). Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, P00-T06 paused before build (exposure larger than requested); resolution/advisory/fetch/inspection evidence committed on `phase/P00-decisions-spikes` (local only). Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the T06-request commit on top of `bce65be`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the T06-paused commit on top of `f0d9361`, clean tree, not pushed; `main` = `origin/main` = `008e80c`. Fetched crates live in `~/.local/share/pwt-dev-tools/_cargo-home/` (not built).
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
@@ -31,5 +31,7 @@ Checkpoint: 2026-10-24, P00-T04 accepted (qualified), CA-02 confirmed (store 1.3
 
 - P00-T06: `spikes/P00-T06-request-and-fixtures.md` — layers (parser vs spike composer vs projection vs validator), limits, cases Y01–Y21 / J01–J16, request §5, failure criteria §6, open questions §7. Nothing resolved/fetched/built yet.
 
+- P00-T06 paused: `evidence/P00/P00-T06/record.md` (A-review, A2 advisories, checksums, host graph/features, build exposure, pattern review, API notes). `t06-yaml/src/main.rs` is still a placeholder.
+
 ## Next
-Await approval of the T06 dependency/build/run request. Do not resolve, fetch, build or run without it.
+Await owner decision on T06 build-code exposure before C (build) and D (run).

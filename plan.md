@@ -137,7 +137,7 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T05 | **Accepted 2026-10-24 as a feasibility spike with findings** (not production-supervisor acceptance); F-1 → FR-01, F-2/F-3 → CA-02, F-4 → FR-02, untested cases → FR-03 | `evidence/P00/P00-T05/` |
 | P00-T04 | **Accepted 2026-10-24 (qualified: tested procedure, Git 2.53.0, this host/fixtures only)**; run 1 failed, D01 re-run 36/0/0 (+1 observation) | `evidence/P00/P00-T04/` |
 | CA-02 | Applied, versioned and confirmed by owner: store 1.3, wrapper protocol 1.1, specs v0.3.3 | Data Schema §23, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/` |
-| P00-T06 | Request + test design prepared (documentation only); dependency/build/run awaiting approval | `spikes/P00-T06-request-and-fixtures.md` |
+| P00-T06 | Request approved; A/A2/B/inspection done; paused before build (exposure: 16 build scripts, 4 proc-macro crates) | `spikes/P00-T06-request-and-fixtures.md`, `evidence/P00/P00-T06/` |
 | P00-T07 – T11 | Not approved, not started | — |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
