@@ -1,9 +1,9 @@
 # Handover
 
-Checkpoint: 2026-10-24, P00-T04 formal run failed (fixture/procedure defects D-1, D-2), committed as a failed checkpoint on `phase/P00-decisions-spikes` (local only); CA-02 applied (version provisional); P00-T05 accepted with qualifications. Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-24, P00-T04-D01 re-run passed and committed on `phase/P00-decisions-spikes` (local only), awaiting owner review; CA-02 versioned to store 1.3 / protocol 1.1. Written by Opus directly; no Haiku documentation agent is configured, none ran.
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the CA-02/T04 commit on top of `2649849`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
+1. `git status --short`, `git branch --show-current`, `git log --oneline -3`. Expect branch `phase/P00-decisions-spikes` with the D01/versioning commit on top of `c417b36`, clean tree, not pushed; `main` = `origin/main` = `008e80c`.
 2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
 3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
 
@@ -26,8 +26,8 @@ Checkpoint: 2026-10-24, P00-T04 formal run failed (fixture/procedure defects D-1
 
 - P00-T05: harness `spikes/rust/t05-process/src/main.rs`, fixtures `spikes/rust/t05-process/fixtures/`. Run only via `timeout -s KILL 300 unshare -rn --pid --fork --mount-proc --kill-child env -i …` (harness refuses unless PID 1). Findings F-1–F-4 in `evidence/P00/P00-T05/record.md`.
 
-- P00-T04: harness `spikes/t04-git/run_t04.sh`; run only via the verified namespace setup (env check first). Failed checkpoint and proposed D01 fix in `evidence/P00/P00-T04/record.md`. Do not fix without approval.
-- CA-02: Data Schema §23; follow-ups FR-01–FR-04 in `plan.md` §5.2.
+- P00-T04: harness `spikes/t04-git/run_t04.sh` (D01 version); run only via the verified namespace setup (env check first). Run 1 failed, D01 re-run passed; both in `evidence/P00/P00-T04/record.md`.
+- CA-02: Data Schema §23, versioned store 1.3 / protocol 1.1; canonical `schemas/workbench-store-v1.3.schema.json`; follow-ups FR-01–FR-04 in `plan.md` §5.2.
 
 ## Next
-Await approval of debug cycle P00-T04-D01 and the Q-03 answer. Do not start other tasks.
+Await owner review of P00-T04 D01 and CA-02 versioning. No D02 or other task without approval.

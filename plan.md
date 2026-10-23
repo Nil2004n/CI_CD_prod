@@ -35,7 +35,7 @@ Pre-implementation contract amendment **CA-01** (store schema, wrapper protocol,
 |---|---|---|
 | Q-01 | Sessions per week (cadence) for the four-week cap | Schedule fit only |
 | Q-02 | Confirm AI report narration (RES-07 optional part) is deferred, as labelled | P11/P17 scope |
-| Q-03 | Keep version identifiers under CA-01/CA-02, or bump store 1.3 / protocol 1.1 before P01 | P01; CA-02 version handling provisional until answered |
+| Q-03 | Keep version identifiers under CA-01/CA-02, or bump store 1.3 / protocol 1.1 before P01 | **Answered 2026-10-24:** CA-02 versioned — store 1.3, wrapper protocol 1.1 |
 | Q-04 | Production OpenRouter model ID (owner-supplied) | Real-API acceptance only; mocks need none |
 | Q-05 | Which scope exchanges (§7.4), if any, to accept | Pilot cut |
 | Q-06 | Approve read-only web lookup of official release/licence pages for P00-T02/T03/T10 | **Answered 2026-10-24** for P00-T02 (Q-06) and P00-T03 (C-1, crates.io/RustSec/docs.rs). P00-T10 lookups still need approval |
@@ -84,7 +84,7 @@ P15a (demo TUI on mocks) may start after P01; P18 (Figma) after P15a + Figma del
 |---|---|---|---|---|
 | P00 | pilot | Decisions frozen, spike protocols, install/crate requests, spikes, tool/crate freeze (detail §5) | Spike records per protocol | Phase approval; T02 needs Q-06; spikes need D-10/crate approvals |
 | P01 | pilot | Cargo workspace (crates per Tech §4), pinned toolchain, typed IDs/states, canonical command/event DTOs (Arch §6), `RedactedText`/`SanitisedText` newtypes so unsanitised text cannot reach persistence types | fmt, clippy `-D warnings`, test, build verified; DTO round-trip tests; cargo-audit if installed | Crate download approval |
-| P02 | pilot | JSON store v1.2: typed models, schema + semantic validation (Data §11, §18), single writer, lock, temp+replace, recovery, export manifests | Schema conformance of all roots; interruption/malformed/full-disk fixtures; same-day naming | P01 |
+| P02 | pilot | JSON store v1.3: typed models, schema + semantic validation (Data §11, §18), single writer, lock, temp+replace, recovery, export manifests | Schema conformance of all roots; interruption/malformed/full-disk fixtures; same-day naming | P01 |
 | P03 | pilot | Permission evaluator (scope/revision/fingerprint), child-env sanitiser (strip model key/unrelated secrets), credential abstraction (session-only; keyring behind spike result) | Scope-match tables; env-strip tests; no key in any serialised output | P01, P02 |
 | P04 | pilot | URL validation (HTTPS/SSH only), clone/fast-forward update, unsafe-state detection, per-repo locks, provenance, Git safety controls from P00-T04 | Local fixture repos (dirty, diverged, hooks, filters, submodules); no source mutation | P00-T04, P02 |
 | P05 | pilot | Inventory, exclusions/symlinks/limits, classifier (generic/Actions/Kubernetes; Compose/Helm reported conditional), tristate selection + selectors, reference detection recorded as gaps (SCAN-05) | Hostile filenames, symlink escape, limits, selector semantics | P04 |
@@ -135,8 +135,8 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T03 | Rev 1 committed (`f1bd80d`); rev 2 research-backed request complete, awaiting D3-1–D3-3 | `spikes/P00-T03-crate-request.md`, `evidence/P00/P00-T03/` |
 | D3-1 (T05 dependency) | libc 0.2.191 resolved, fetched, built offline in network namespace; not executed | `spikes/rust/`, `evidence/P00/P00-T05-D3-1/` |
 | P00-T05 | **Accepted 2026-10-24 as a feasibility spike with findings** (not production-supervisor acceptance); F-1 → FR-01, F-2/F-3 → CA-02, F-4 → FR-02, untested cases → FR-03 | `evidence/P00/P00-T05/` |
-| P00-T04 | Formal run failed (D-1 fail-open attributes setup, D-2 inert G06 fixture); debug cycle D01 proposed | `evidence/P00/P00-T04/` |
-| CA-02 | Applied (descendant cleanup, child signal, stream state); version handling pending Q-03 | Data Schema §23, `evidence/P00/CA-02/` |
+| P00-T04 | Run 1 failed; debug cycle D01 completed, re-run 36 pass / 0 fail / 0 inconclusive (+1 observation); awaiting review | `evidence/P00/P00-T04/` |
+| CA-02 | Applied and versioned: store 1.3, wrapper protocol 1.1 (Q-03) | Data Schema §23, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/` |
 | P00-T06 – T11 | Not approved, not started | — |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
@@ -146,7 +146,7 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | FR-01 | P00-T05 F-1 | P06 (mandatory) | Output budgets enforced at the reader boundary: reader stops consuming at the per-stream budget and notifies the coordinator immediately (event/channel, no periodic polling); coordinator starts bounded SIGTERM → grace → SIGKILL; pipes closed or drained within a bounded budget without deadlock; `output_streams` `truncated` + `transport_status = output_limit_exceeded` recorded (CA-02). Distinguish bytes consumed, retained in memory, persisted (sanitised) and child-generated (unknowable beyond consumption). **Proposed measurable target** (owner to confirm at P06 approval): bytes consumed ≤ budget + one read buffer (≤ 64 KiB) per stream; bytes retained ≤ budget; termination initiated ≤ 50 ms after budget exhaustion; group gone ≤ grace + cleanup bound. No claim that the child writes nothing beyond the limit (kernel pipe buffering). Regression RC-FLOOD: re-run FX-PROC-FLOOD-OUT/-ERR; spike baseline (52 MB / 78 MB consumed past a 1 MiB limit, `evidence/P00/P00-T05/results.json`) must not recur |
 | FR-02 | P00-T05 F-4 | P06 (decision) | The spike's adoption/reaping relied on being PID 1 of a PID namespace; this does **not** carry over to the ordinary application. P06 must decide and verify: how tool processes get a dedicated process group/session; how orphaned descendants are discovered and reaped (e.g. `PR_SET_CHILD_SUBREAPER`, PID namespace, cgroup); whether such containment is required; and which descendants remain outside process-group guarantees (group/session changers, daemonisers) |
 | FR-03 | P00-T05 untested | P06 verification matrix | Add ANSI/control-sequence output (FX-PROC-ANSI) and early stdout closure while the child keeps running (FX-PROC-CLOSE-EARLY); early EOF is not proof of child exit |
-| FR-04 | P00-T05 F-2/F-3 | CA-02 (done, version handling pending Q-03) | Descendant cleanup recorded separately from the primary termination reason and from the child's own exit/signal; `not_applicable` stream state for spawn failures |
+| FR-04 | P00-T05 F-2/F-3 | CA-02 (done; versioned store 1.3 / protocol 1.1) | Descendant cleanup recorded separately from the primary termination reason and from the child's own exit/signal; `not_applicable` stream state for spawn failures |
 
 ### 5.1 Per-tool spike protocol (C1/C11 are hypotheses per tool)
 For each pinned tool record: (a) every repository config/ignore/allowlist/plugin/custom-check file it auto-discovers, and whether an explicit app-owned config fully neutralises each; (b) explicit-file input honoured vs directory walk — if walking, a staged selected-file copy strategy and its effect on line mapping; (c) output format(s), where raw secret material can appear (stdout, stderr, report file) and the effect of tool redaction options; (d) exit codes for clean, findings, parse error, crash, bad flag; (e) network attempts in default mode and whether they can be disabled verifiably; (f) behaviour on malformed YAML with a seeded fake secret (SCAN-08); (g) version string and binary checksum. Results feed a contract sheet: adapter ID, version, invocation template, config policy, scope strategy, parser ID, exit mapping, network policy, limitations.
@@ -218,4 +218,4 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 
 | Cycle | Defect | State |
 |---|---|---|
-| P00-T04-D01 | D-1 fail-open attributes setup (no `.git/info/` with empty template); D-2 inert G06 hook fixture; cleanup listing artefact | Proposed 2026-10-24, awaiting approval |
+| P00-T04-D01 | D-1 fail-open attributes setup (no `.git/info/` with empty template); D-2 inert G06 hook fixture; cleanup listing artefact | Approved and completed 2026-10-24; re-run passed; awaiting review |

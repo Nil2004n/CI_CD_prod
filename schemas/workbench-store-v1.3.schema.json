@@ -1,8 +1,40 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Pre-implementation contract amendment CA-01 (2026-10-23, owner decision D-08): applied before any implementation or persisted record existed; version identifiers retained. See 05_Database_Data_Schema.md section 22. Amendment CA-02 (2026-10-24, owner-approved F-2/F-3 from P00-T05): descendant cleanup, child signal status, stream reader state; see 05_Database_Data_Schema.md section 23. Version-identifier handling pending owner confirmation.",
-  "title": "PWT WrapperRequest v1.0",
-  "$ref": "#/$defs/WrapperRequest",
+  "$comment": "Store contract 1.3 / wrapper protocol 1.1 = store 1.2 / protocol 1.0 plus pre-implementation amendment CA-01 (2026-10-23, identifiers retained) plus amendment CA-02 (2026-10-24, versioned by owner decision Q-03). See 05_Database_Data_Schema.md sections 22-23 and 19 (records under 1.2/1.0 are not valid 1.3/1.1 records).",
+  "title": "PWT Workbench Store Contract v1.3",
+  "description": "Proposed shared contract; semantic and referential constraints are enforced by application code.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ConfigFile"
+    },
+    {
+      "$ref": "#/$defs/RepositoryFile"
+    },
+    {
+      "$ref": "#/$defs/WorkflowFile"
+    },
+    {
+      "$ref": "#/$defs/ApprovalFile"
+    },
+    {
+      "$ref": "#/$defs/LogFile"
+    },
+    {
+      "$ref": "#/$defs/SuppressionFile"
+    },
+    {
+      "$ref": "#/$defs/RagIndexFile"
+    },
+    {
+      "$ref": "#/$defs/ConversationFile"
+    },
+    {
+      "$ref": "#/$defs/ReportFile"
+    },
+    {
+      "$ref": "#/$defs/ToolManifestFile"
+    }
+  ],
   "$defs": {
     "Id": {
       "type": "string",
@@ -2150,7 +2182,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "config"
@@ -2174,7 +2206,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "repositories"
@@ -2201,7 +2233,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "workflows"
@@ -2228,7 +2260,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "approvals"
@@ -2255,7 +2287,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "log"
@@ -2296,7 +2328,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "suppressions"
@@ -2323,7 +2355,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "rag_index"
@@ -2350,7 +2382,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "conversations"
@@ -2377,7 +2409,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "report"
@@ -3098,7 +3130,7 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.2"
+          "const": "1.3"
         },
         "store_type": {
           "const": "tool_manifest"
@@ -3125,7 +3157,7 @@
       "additionalProperties": false,
       "properties": {
         "protocol_version": {
-          "const": "1.0"
+          "const": "1.1"
         },
         "request_id": {
           "$ref": "#/$defs/Id"
@@ -3230,7 +3262,7 @@
       "additionalProperties": false,
       "properties": {
         "protocol_version": {
-          "const": "1.0"
+          "const": "1.1"
         },
         "request_id": {
           "$ref": "#/$defs/Id"

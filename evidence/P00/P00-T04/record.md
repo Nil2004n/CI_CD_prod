@@ -59,3 +59,51 @@ Hypotheses (not yet verified):
 - `submodule.recurse` was checked for clone and update only; other recursion entry points were not.
 - One Git version, one host, local `file://` transport only.
 - No filesystem sandbox: Git and helpers ran with the user's file permissions.
+
+## Debug cycle P00-T04-D01 (owner-approved 2026-10-24) — appended; run-1 evidence above unchanged
+
+**Result: formal re-run PASSED — 37 rows: 36 pass, 0 fail, 0 inconclusive, 1 observation (G13b). Harness exit 0.** Evidence: `run-2.log`, `results-2.tsv`, `harness-2.sha256`, `env-check-2.log`, `tr-investigation.log`.
+
+### Root cause (confirmed) and changes
+- D-1: `clone --template=<empty dir>` creates neither `.git/info/` nor `.git/hooks/`; the run-1 procedure wrote the attributes override without creating the directory or checking the write, then checked out anyway (fail-open).
+- Changes to `spikes/t04-git/run_t04.sh`:
+  - `attr_setup`: `mkdir -p .git/info` with explicit success and directory check; write `* -filter`; read back and require exact content. Any failure sets a reason and aborts **before** checkout.
+  - `attr_verify`: list every path of the **target commit** with `ls-tree -r -z --name-only <commit>` (NUL-separated, safe for spaces/newlines), then `check-attr -z --source=<commit> --stdin filter`; require exactly 3 fields per path, path order matching, attribute `filter`, value `unset` for every path. `unspecified`, `set`, any driver name, malformed or short output, or zero paths → abort. This checks the target tree, not the empty pre-checkout worktree.
+  - `hard_clone`: clone `--no-checkout` → resolve target commit → setup → verify → `checkout -f` → require HEAD = verified commit. `hard_update`: in-progress / dirty refusal → fetch → resolve target → require exact override content → verify against the fetched target → `merge --ff-only <verified oid>` → require HEAD = target.
+  - Dependent clones go through `need_clone`, which records a failing setup row instead of continuing, and hardened clone/checkout must succeed for a "not fired" result to count.
+  - G07 fixture adds file names with a space and with an embedded newline.
+- D-2: G06 now creates `.git/hooks`, plants `post-merge`, and confirms the file exists and is executable; a missing or non-firing control is recorded as inconclusive, never pass.
+- Process observation: replaced with a builtin-only `/proc` scan (glob + `read`, no child processes) that records pid/ppid/pgid/comm and classifies PID 1 as the harness and anything else as unexpected (fails the cleanup row). The watchdog (`timeout`, `unshare`) runs outside the PID namespace and is not visible inside it.
+
+### `tr` investigation (`tr-investigation.log`)
+In a fresh namespace with no fixtures: (A) the run-1 pipeline verbatim still reported `tr`; (B) an unfiltered listing showed only pid 1 (`bash`), pid 15 (`bash`, the pipeline's `while` subshell, ppid 1) and pid 16 (`tr`, ppid 1); (C) the builtin-only scan saw only pid 1. Conclusion supported by observation: the run-1 `tr` was the observation pipeline's own final stage, not a fixture leftover. The run-1 row is kept as recorded.
+
+### Run-2 results
+
+| Case | Positive control | Hardened / behaviour | Status |
+|---|---|---|---|
+| G01–G03d clone, ff update, dirty, untracked, in-progress merge, diverged | — | as run 1 | pass ×6 |
+| G04 template hook | fired (1) | not fired, hook not copied | pass |
+| G05 global hooksPath | fired (1) | not fired | pass |
+| G06 post-merge hook in managed checkout | hook installed+executable, fired (1) | not fired, updated | pass |
+| G07 smudge filter (5 paths incl. space/newline names) | fired (3) | not fired, all content raw, 5 paths verified `unset` | pass |
+| G07u same on update | — | not fired, updated, new file raw | pass |
+| G08 LFS-like required process filter | fired (1) | clone rc 0, not fired, content raw | pass |
+| G15 positive control (G15 smudge helper) | fired (4) | — | pass |
+| G15-clone-attr_dir_blocked (file placed where `.git/info` must be) | — | aborted `ATTR_DIR_FAILED`, nothing checked out, not fired | pass |
+| G15-clone-weak_override (`*.txt -filter` written after setup) | — | aborted `ATTR_NOT_UNSET(unspecified)`, nothing checked out, not fired | pass |
+| G15-update-attr_removed (override deleted after fetch) | — | `REFUSED_ATTR_SETUP`, worktree/HEAD digest unchanged, not fired | pass |
+| G15-update-weak_override | — | `REFUSED_ATTR_VERIFY:ATTR_NOT_UNSET(unspecified)`, unchanged, not fired | pass |
+| G09 / G09u submodules | materialised | not recursed (clone and update) | pass |
+| G10 `ext::` | fired (1) | refused | pass |
+| G11 / G11b file transport without exception | — | refused | pass |
+| G12 global fsmonitor | fired (2) | not fired | pass |
+| G13 env-injected fsmonitor | fired (2) | not fired (env stripped) | pass |
+| G13b injection kept + `-c core.fsmonitor=false` | — | not fired | observation |
+| G14 credential helper | fired (1) | preserved under hardened options | pass |
+| CLEANUP | — | logs 3,270 B (max 192 B); scratch removed; builtin scan: only pid 1 (`bash`, harness) | pass |
+
+The `mkdir: … File exists` line in `run-2.log` is the deliberate G15 `attr_dir_blocked` fault.
+
+### Remaining untested / limitations
+Unchanged from run 1 (real HTTPS/SSH, network credential-helper invocation, `core.sshCommand`/`GIT_SSH`, proxy commands, `include`/`includeIf`, system config, diff/textconv drivers, other submodule entry points, one Git version/host, no filesystem sandbox). Additionally: attribute macros and `filter` set via other attribute files outside `$GIT_DIR/info/attributes` precedence were not separately exercised; the override relies on documented `info/attributes` precedence, which run 2 observed for `.gitattributes` in the cloned tree only.
