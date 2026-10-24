@@ -39,7 +39,7 @@ Pre-implementation contract amendment **CA-01** (store schema, wrapper protocol,
 | Q-03 | Keep version identifiers under CA-01/CA-02, or bump store 1.3 / protocol 1.1 before P01 | **Answered 2026-10-24:** CA-02 versioned — store 1.3, wrapper protocol 1.1 |
 | Q-04 | Production OpenRouter model ID (owner-supplied) | Real-API acceptance only; mocks need none |
 | Q-05 | Which scope exchanges (§7.4), if any, to accept | Pilot cut |
-| Q-06 | Approve read-only web lookup of official release/licence pages for P00-T02/T03/T10 | **Answered 2026-10-24** for P00-T02 (Q-06) and P00-T03 (C-1, crates.io/RustSec/docs.rs). P00-T10 lookups still need approval |
+| Q-06 | Approve read-only web lookup of official release/licence pages for P00-T02/T03/T10 | **Answered 2026-10-24** for P00-T02 (Q-06) and P00-T03 (C-1, crates.io/RustSec/docs.rs). P00-T10 lookups approved by the owner 2026-10-24 (T10 approval; lookups L1–L11, `evidence/P00/P00-T10/lookups.md`) |
 
 ## 2. Capability labels
 
@@ -129,11 +129,13 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 
 ### 5.0 P00 progress (2026-10-24)
 
+**P00 accepted by the owner 2026-10-24 with qualifications** (closure pass; `evidence/P00/P00-report.md` §11). All limitations and FR-01–FR-30 remain binding on their phases. **P01 is ready for planning, not executing**; P01 execution, merge to `main` and push to `main` need separate approval.
+
 | Task | State | Evidence |
 |---|---|---|
 | P00-T01 | Accepted | `spikes/P00-T01-*.md`, `evidence/P00/P00-T01/` |
 | P00-T02 | Request accepted; approved installs (Request A, B1) done and accepted with limitations; PyPI provenance exception; cargo-audit deferred to P01 | `spikes/P00-T02-installation-request.md`, `evidence/P00/P00-T02/` |
-| P00-T03 | Rev 1 committed (`f1bd80d`); rev 2 research-backed request complete; D3-1–D3-3 decided 2026-10-24 (D3-1 executed; D3-2/D3-3 provisional); no separate explicit acceptance record | `spikes/P00-T03-crate-request.md`, `evidence/P00/P00-T03/` |
+| P00-T03 | Rev 1 committed (`f1bd80d`); rev 2 research-backed request complete; D3-1–D3-3 decided 2026-10-24 (D3-1 executed; D3-2/D3-3 provisional); no separate historical acceptance record. **Closure decision (owner, 2026-10-24): research/design selections ratified as provisional where not exercised** (not proof those crates were tested) | `spikes/P00-T03-crate-request.md`, `evidence/P00/P00-T03/` |
 | D3-1 (T05 dependency) | libc 0.2.191 resolved, fetched, built offline in network namespace; not executed | `spikes/rust/`, `evidence/P00/P00-T05-D3-1/` |
 | P00-T05 | **Accepted 2026-10-24 as a feasibility spike with findings** (not production-supervisor acceptance); F-1 → FR-01, F-2/F-3 → CA-02, F-4 → FR-02, untested cases → FR-03 | `evidence/P00/P00-T05/` |
 | P00-T04 | **Accepted 2026-10-24 (qualified: tested procedure, Git 2.53.0, this host/fixtures only)**; run 1 failed, D01 re-run 36/0/0 (+1 observation) | `evidence/P00/P00-T04/` |
@@ -143,7 +145,7 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T08 | **Accepted 2026-10-24 with qualifications** (P1 pulldown-cmark + printpdf, featureless; tested cases only; whole-font embedding; no shaping/RTL; empty `/Annots` permitted; Korean out of scope D-15; visual correctness unverified; WeasyPrint suspended); run1 failed, D01 9/10 written, verdicts unchanged | `spikes/P00-T08-request.md`, `evidence/P00/P00-T08/`, `evidence/debug/P00-T08-D01/` |
 | P00-T09 | **Accepted 2026-10-24 with qualifications** (run1 contracts for yamllint/gitleaks/kubeconform/actionlint; Checkov revision 2 only, Kubernetes selected-file workflow; FR-25–FR-29; limits in `status.md`). Formal run1 done (checkov R1 stop condition fired, preserved); debug cycle P00-T09-D01 (Checkov contract revision 2, provisionally accepted as candidate) done with its own formal run; P00-T09-D02 (H-3 fix, attribution) done; carry-forward FR-25–FR-29 — see `status.md` and the records | `spikes/P00-T09-request.md`, `spikes/t09-tools/`, `evidence/P00/P00-T09/` |
 | P00-T10 | **Accepted 2026-10-24** as a completed schema-cache planning and offline reference-prototype task (not a production cache, schema coverage or collision-safe resolution); R-1 → FR-30 (P13 mandatory); O-1–O-6 open | `spikes/P00-T10-*.md`, `spikes/t10-cache/`, `evidence/P00/P00-T10/` |
-| P00-T11 | Not approved, not started | — |
+| P00-T11 | **Accepted 2026-10-24** as the freeze/report preparation task, with qualifications (checker 139/139 after closure revision) | `spikes/P00-T11-request.md`, `spikes/p00-freeze/`, `evidence/P00/P00-report.md`, `evidence/P00/P00-T11/` |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
 
@@ -249,12 +251,12 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 | ID | Item | Status |
 |---|---|---|
 | B-01 | No tool installs approved (D-10): blocks P00-T08/T09, P08, P09, P13 | **Resolved for P00-T09 tools** (Request A + B1 installed 2026-10-24); open for T08 renderer candidates and conditional tools; cargo-audit pending P01 (R-4) |
-| B-02 | No crate download approval: blocks P00-T06/T07, P01 | Open — research done (P00-T03 rev 2); first libc-only resolve/fetch/build request D3-1 awaiting approval |
+| B-02 | No crate download approval: blocks P00-T06/T07, P01 | **Resolved for P00** (D3-1 executed; T06–T08 crate fetches separately approved and accepted); open for P01 workspace crates (approved dependency requests) |
 | B-03 | No network approval for official-page lookup (Q-06): blocks P00-T02/T03/T10 | Resolved for T02/T03 and T10 (owner approval 2026-10-24) |
 | B-04 | Worker models unverified | Open — first Sonnet workers delegated in P00-T08-D01 and P00-T09 (configured `claude-sonnet-5-5`; self-reports unverified); Haiku/Sonnet agent definitions still proposals; Opus documentation fallback disclosed in `status.md` |
 | B-05 | Trivy on host reports `Version: dev` — not pinnable | X4 only |
-| B-06 | Linux Secret Service may be unavailable (headless) | P00-T07 |
-| B-07 | Some tools may not neutralise repo config or honour explicit files | P00-T09; capability disabled if uncontrollable |
+| B-06 | Linux Secret Service may be unavailable (headless) | **Resolved for P00** by P00-T07 (qualified); OS-store mode decision stays with P03 (FR-18–FR-24) |
+| B-07 | Some tools may not neutralise repo config or honour explicit files | **Resolved for P00** by P00-T09 (qualified): repo-config channels recorded per tool; Checkov revision 2 only; FR-25–FR-28 |
 | B-08 | Schedule does not fit four weeks at 5 sessions/week | Owner decision (Q-01, Q-05) |
 | B-09 | Python 3.14 compatibility with Checkov/yamllint unknown | **Resolved** by B1: standalone CPython 3.12.15 in isolated venvs (system Python untouched) |
 

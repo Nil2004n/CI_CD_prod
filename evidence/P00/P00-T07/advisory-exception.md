@@ -36,3 +36,11 @@ Security fixes are no longer expected for these crates as separate releases. A f
 2. **Before any release:** re-screen again; an unmaintained-crate exception cannot carry into a release without a fresh owner decision.
 
 Persistent OS credential storage is **not accepted** for the pilot or product by this exception. Session-only mode remains required and must not depend on a working desktop/keyring service. K-D (dropping OS-store mode) has not been chosen; the requirement stays on the roadmap pending a later explicit product decision.
+
+## Status at P00 closure (owner decision, 2026-10-24)
+**Historical / inactive.**
+- It remains valid only for the completed, authorised P00-T07 experiment, with its original lockfile (`eeca61f5…`) and scope as recorded above.
+- It does **not** apply to the current frozen lockfile (`a81eec56…`, changed by the lock-preserving T08 resolution).
+- No additional keyring build or production adoption is authorised. A future build or adoption requires a new explicit owner decision and an advisory re-screen (FR-24).
+- The exception is not extended, its original scope is unchanged, and the advisories are not suppressed globally.
+- The frozen dependency inventory (`spikes/p00-freeze/crates.json`) is distinct from permission to build or adopt.
