@@ -137,7 +137,7 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T05 | **Accepted 2026-10-24 as a feasibility spike with findings** (not production-supervisor acceptance); F-1 → FR-01, F-2/F-3 → CA-02, F-4 → FR-02, untested cases → FR-03 | `evidence/P00/P00-T05/` |
 | P00-T04 | **Accepted 2026-10-24 (qualified: tested procedure, Git 2.53.0, this host/fixtures only)**; run 1 failed, D01 re-run 36/0/0 (+1 observation) | `evidence/P00/P00-T04/` |
 | CA-02 | Applied, versioned and confirmed by owner: store 1.3, wrapper protocol 1.1, specs v0.3.3 | Data Schema §23, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/` |
-| P00-T06 | **Accepted 2026-10-24 based on D01, with documented conditions/limitations**; first run 96/5/6 preserved; D01 121/0/7, J16 35/35 | `spikes/P00-T06-request-and-fixtures.md`, `evidence/P00/P00-T06/` |
+| P00-T06 | **Accepted 2026-10-24 based on D01, with documented conditions/limitations** (dependency/pipeline suitability for the tested cases; no fallback required); first run 96/5/6 preserved; D01 121/0/7, J16 35/35; carry-forward FR-05–FR-17 (§5.2) | `spikes/P00-T06-request-and-fixtures.md`, `evidence/P00/P00-T06/` |
 | P00-T07 – T11 | Not approved, not started; paused by owner — resume at **T07** | — |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
@@ -148,6 +148,24 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | FR-02 | P00-T05 F-4 | P06 (decision) | The spike's adoption/reaping relied on being PID 1 of a PID namespace; this does **not** carry over to the ordinary application. P06 must decide and verify: how tool processes get a dedicated process group/session; how orphaned descendants are discovered and reaped (e.g. `PR_SET_CHILD_SUBREAPER`, PID namespace, cgroup); whether such containment is required; and which descendants remain outside process-group guarantees (group/session changers, daemonisers) |
 | FR-03 | P00-T05 untested | P06 verification matrix | Add ANSI/control-sequence output (FX-PROC-ANSI) and early stdout closure while the child keeps running (FX-PROC-CLOSE-EARLY); early EOF is not proof of child exit |
 | FR-04 | P00-T05 F-2/F-3 | CA-02 (done; versioned store 1.3 / protocol 1.1) | Descendant cleanup recorded separately from the primary termination reason and from the child's own exit/signal; `not_applicable` stream state for spawn failures |
+
+FR-05–FR-17 come from the P00-T06 acceptance (owner, 2026-10-24) and are mandatory production implementation/regression requirements. The spike passing them (`evidence/P00/P00-T06/D01/`) is not evidence that the production implementation does; each must be implemented and re-verified in its phase. Case IDs refer to `spikes/P00-T06-request-and-fixtures.md` and the D01 record. Phase assignment is Opus's proposal from §4 scopes (P07 = first production YAML parse, P08 = rust-schema adapter, P02 = store schema validation); the owner may reassign.
+
+| ID | Source | Assigned | Requirement |
+|---|---|---|---|
+| FR-05 | P00-T06 D01 | P07; regress in P08 | Original-input position mapping built in O(n) per input (no rescanning per lookup) |
+| FR-06 | P00-T06 D01 | P07; P08, P10 (finding locations) | Position convention: zero-based byte offset into the original input bytes (a stripped BOM counts); one-based line; one-based Unicode-scalar column. Regression Y16-P1–P7, E1, E2 |
+| FR-07 | P00-T06 D01 | P07 | At most one leading UTF-8 BOM removed before parsing, recorded (`bom_stripped`), original-byte provenance preserved. Regression Y16-P3/P5/P7, E2, B1 |
+| FR-08 | P00-T06 limitation | P07; P10/P11 reports, P15 UI | No invented end spans; no display-width column claims |
+| FR-09 | P00-T06 Y06/Y07 | P07 | Duplicate keys detected before any lossy map conversion; distinct YAML keys (`1` vs `"1"`) not treated as duplicates. Regression Y06, Y07 |
+| FR-10 | P00-T06 Y07–Y09, Y18–Y20 | P07; P08 | Explicit `unsupported_for_validation` projection policies (non-JSON numbers, non-string/complex keys, merge keys, non-core tags never instantiated); nothing silently coerced |
+| FR-11 | P00-T06 Y11/Y15 | Limits designed P05, enforced P07 | Per-input resource budgets (input bytes, documents, scalar length, projected nodes/alias events, depth). **Production default values remain a later explicit owner decision**; spike values are not adopted by default |
+| FR-12 | P00-T06 D01 Y14 | P07 | Composer enforces its depth limit for both block and flow nesting (parser guard covers flow only). Regression Y14 flow 64/65/201, block 64/65/300 |
+| FR-13 | P00-T06 D01 Y14 | P07 | Parser-imposed and composer-imposed limits classified separately (`depth(parser)` vs `depth(composer)`); unrelated syntax errors stay `syntax_error` |
+| FR-14 | P00-T06 D01 Y14 | P07; any parser version change | Recursion-error mapping is pinned to the exact parser version's diagnostic (saphyr-parser 0.2.2 `recursion limit exceeded`); a dedicated regression (Y14 flow 10,001) must fail visibly if wording changes. Dependency upgrades need approval and re-verification |
+| FR-15 | P00-T06 J04/J05/J08/J09/J15 | P02 (store validation); P08 | `format` assertions explicitly enabled; external `$ref` retrieval (HTTP and file) disabled/compiled out; unavailable schema → `schema_unavailable`, never valid |
+| FR-16 | P00-T06 J01–J16 | P02 (J11–J13, J16); P08 (J01–J07, J14, J15) | Current-contract fixtures (store 1.3 / protocol 1.1 examples and version-const negatives) and the differential comparison carried into the production test suites |
+| FR-17 | P00-T06 D01 B2/B3 | P07 | Repeated or internal U+FEFF remains content and is recorded; no blanket normalisation without a justified, owner-approved policy |
 
 ### 5.1 Per-tool spike protocol (C1/C11 are hypotheses per tool)
 For each pinned tool record: (a) every repository config/ignore/allowlist/plugin/custom-check file it auto-discovers, and whether an explicit app-owned config fully neutralises each; (b) explicit-file input honoured vs directory walk — if walking, a staged selected-file copy strategy and its effect on line mapping; (c) output format(s), where raw secret material can appear (stdout, stderr, report file) and the effect of tool redaction options; (d) exit codes for clean, findings, parse error, crash, bad flag; (e) network attempts in default mode and whether they can be disabled verifiably; (f) behaviour on malformed YAML with a seeded fake secret (SCAN-08); (g) version string and binary checksum. Results feed a contract sheet: adapter ID, version, invocation template, config policy, scope strategy, parser ID, exit mapping, network policy, limitations.
