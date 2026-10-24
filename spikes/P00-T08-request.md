@@ -17,6 +17,14 @@ Goal: select the pilot renderer for RES-08, meaning deterministic Markdown → r
 
 **Not proposed:** Typst, genpdf, comrak, or any HTML/browser engine. Each would need a separate request.
 
+**W caveat (owner, 2026-10-24; amendment, documentation only).** The installed comparator **WeasyPrint 67.0 is within the affected range of a reported `url_fetcher`-bypass advisory**, involving its `xmp_metadata` and stylesheets paths.
+- Source: the owner's report. I did not look it up; no lookup was authorised. Its identifier, affected range and fixed version are not recorded here because I have not verified them.
+- **W must not be used in any conversion run** unless a separately reviewed plan either:
+  - demonstrates that the vulnerable `xmp_metadata`/stylesheets paths cannot be invoked, or
+  - proposes a reviewed fixed version, which would be a new install request.
+- Spike-generated escaped HTML plus the network namespace plus a deny-all `url_fetcher` is **not by itself proof** that those paths are unreachable.
+- Until then, the D-stage W cases in §4/§8 are suspended, and P1 is evaluated alone.
+
 Decision after D (owner):
 - P1 alone, with documented limitations;
 - P1 plus W as an optional prerequisite fallback for scripts P1 cannot shape;
@@ -101,7 +109,7 @@ On any failure: remove the temp file, set `pdf_written=false` and record a typed
 | A2 | RustSec screen of new crate/versions (advisory-db listing + advisory files) | api.github.com, raw.githubusercontent.com (advisory-db only) | `curl`, `python3 -I` (read-only parsing) |
 | B | `cargo fetch --locked --target x86_64-unknown-linux-gnu`; SHA-256 vs lock; lock stability; host `cargo tree` for `t08-pdf`; T06/T07 unification delta; build-script/proc-macro inventory; source review (font loading, file/network APIs, annotation/action emitters) | static.crates.io | as above |
 | C | Harness (std + the two crates only) and `unshare -rn … cargo build --frozen --offline -p t08-pdf` | none | isolated Cargo |
-| D | Run P1 on all §4 cases and W on U1, U2, T1, R1, L1, A1, G1, under `timeout -s KILL 900 unshare -r -n --pid --fork --mount-proc --kill-child env -i …` with `ulimit -v`. Private spike root under `~/.local/share/pwt-dev-tools/_spikes/t08.*` (0700), removed after | none | `t08-pdf` artifact; `/usr/bin/python3 -I` with the installed `weasyprint` module and a spike-owned script (deny-all `url_fetcher`); `/usr/bin/mutool` (`info`, `draw -F txt`, `clean -d`); `sha256sum`; `timeout`; `unshare` |
+| D | Run P1 on all §4 cases. W on U1, U2, T1, R1, L1, A1, G1 is **suspended by the WeasyPrint caveat (§1)** until a separately reviewed plan exists. Run P1 under `timeout -s KILL 900 unshare -r -n --pid --fork --mount-proc --kill-child env -i …` with `ulimit -v`. Private spike root under `~/.local/share/pwt-dev-tools/_spikes/t08.*` (0700), removed after | none | `t08-pdf` artifact; `/usr/bin/python3 -I` with the installed `weasyprint` module and a spike-owned script (deny-all `url_fetcher`); `/usr/bin/mutool` (`info`, `draw -F txt`, `clean -d`); `sha256sum`; `timeout`; `unshare` |
 
 **Helper tools and operations enumerated, per the T07 lesson:** `curl`, `python3 -I`, `mutool`, `sha256sum`, `unshare`, `timeout`. No other tool is used without a new request.
 

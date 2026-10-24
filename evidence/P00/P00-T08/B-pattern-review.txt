@@ -1,0 +1,78 @@
+# grep-based pattern review of NEW T08 build scripts and proc-macro crates (not an audit)
+== build script crc32fast-1.5.3/build.rs (35 lines)
+1:use std::{env, process::Command};
+6:        // https://doc.rust-lang.org/nightly/core/arch/aarch64/fn.__crc32d.html
+14:        // https://doc.rust-lang.org/core/arch/x86_64/fn._mm256_clmulepi64_epi128.html
+23:    Command::new(env::var_os("RUSTC")?)
+== build script encoding_rs-0.8.42/build.rs (6 lines)
+== build script pathfinder_simd-0.5.6/build.rs (26 lines)
+6:// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+7:// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+== build script proc-macro2-diagnostics-0.10.1/build.rs (7 lines)
+== build script pulldown-cmark-0.13.5/build.rs (276 lines)
+23:    use std::fs::{self, File};
+40:    let mut spec_files = fs::read_dir("./specs")
+54:        File::open(&file_path)
+63:            File::create(&rs_test_file).expect(&format!("Could not create {:?}", rs_test_file));
+118:        File::create(&suite_mod_file).expect(&format!("Could not create {:?}", &suite_mod_file));
+== build script rustversion-1.0.23/build/build.rs (119 lines)
+13:use std::fs;
+16:use std::process::{self, Command};
+21:    let rustc = env::var_os("RUSTC").unwrap_or_else(|| OsString::from("rustc"));
+22:    let rustc_wrapper = env::var_os("RUSTC_WRAPPER").filter(|wrapper| !wrapper.is_empty());
+30:            command = Command::new(&rustc);
+33:            command = Command::new(wrapped_rustc.next().unwrap());
+43:        // version format. https://github.com/dtolnay/rustversion/issues/67
+51:                process::exit(1);
+63:                process::exit(1);
+82:                    Please file an issue in https://github.com/dtolnay/rustversion",
+85:                process::exit(1);
+101:    let out_dir = env::var_os("OUT_DIR").expect("OUT_DIR not set");
+103:    fs::write(out_file, version).expect("failed to write version.expr");
+105:    let host = env::var_os("HOST").expect("HOST not set");
+== build script unicode-canonical-combining-class-1.0.0/build.rs (202 lines)
+7:use std::fs::File;
+18:        PathBuf::from(env::var("OUT_DIR").unwrap()).join("canonical_combining_class.rs");
+77:        File::create(&path).expect(&format!("unable to open {}", path.to_string_lossy()));
+== build script unicode-joining-type-1.0.0/build.rs (316 lines)
+9:use std::fs::File;
+18:    let output_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("joining_type.rs");
+22:    let output_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("joining_group.rs");
+85:        File::create(&path).expect(&format!("unable to open {}", path.to_string_lossy()));
+154:        File::create(&path).expect(&format!("unable to open {}", path.to_string_lossy()));
+build.rs
+rustc.rs
+== proc-macro multiversion_no_op-1.0.0/src
+multiversion_no_op-1.0.0/src/lib.rs:8://    https://www.apache.org/licenses/LICENSE-2.0
+multiversion_no_op-1.0.0/src/lib.rs:9://    https://opensource.org/licenses/MIT
+multiversion_no_op-1.0.0/src/lib.rs:25://! [`multiversion`](https://crates.io/crates/multiversion) crate, and targets that do
+multiversion_no_op-1.0.0/src/lib.rs:36://! See [`encoding_rs`](https://github.com/hsivonen/encoding_rs/) crate for a usage example.
+== proc-macro ouroboros_macro-0.18.5/src
+ouroboros_macro-0.18.5/src/parse.rs:154:                let mut remove_attrs = Vec::new();
+ouroboros_macro-0.18.5/src/parse.rs:169:                        remove_attrs.push(index);
+ouroboros_macro-0.18.5/src/parse.rs:176:                        remove_attrs.push(index);
+ouroboros_macro-0.18.5/src/parse.rs:183:                        remove_attrs.push(index);
+ouroboros_macro-0.18.5/src/generate/with_each.rs:26:                    "`{0}` is a [tail field](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions).
+ouroboros_macro-0.18.5/src/generate/with_each.rs:67:                    "`{0}` is a [tail field](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions).
+ouroboros_macro-0.18.5/src/generate/with_mut.rs:72:            "[tail fields](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions) in an instance of "
+ouroboros_macro-0.18.5/src/generate/with_mut.rs:105:        "[tail fields](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions).",
+ouroboros_macro-0.18.5/src/generate/with.rs:48:            "[tail and immutably borrowed fields](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions) 
+ouroboros_macro-0.18.5/src/generate/with.rs:76:        "[tail and immutably borrowed fields](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions).",
+ouroboros_macro-0.18.5/src/generate/into_heads.rs:43:            "[head fields](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions) of [`{0}`]({0})."
+ouroboros_macro-0.18.5/src/generate/into_heads.rs:57:        "[head fields](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions) of this struct."
+ouroboros_macro-0.18.5/src/generate/try_constructor.rs:42:            "builders for [self-referencing fields](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#
+ouroboros_macro-0.18.5/src/generate/try_constructor.rs:53:            "[head fields](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html#definitions) ",
+== proc-macro rustversion-1.0.23/src
+rustversion-1.0.23/src/time.rs:25:    if let Some(pkg_name) = env::var_os("CARGO_PKG_NAME") {
+rustversion-1.0.23/src/lib.rs:1://! [![github]](https://github.com/dtolnay/rustversion)&ensp;[![crates-io]](https://crates.io/crates/rustversion)&ensp;[![docs-rs]](https://docs.rs/
+rustversion-1.0.23/src/lib.rs:3://! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
+rustversion-1.0.23/src/lib.rs:4://! [crates-io]: https://img.shields.io/badge/crates.io-fc8d62?style=for-the-badge&labelColor=555555&logo=rust
+rustversion-1.0.23/src/lib.rs:5://! [docs-rs]: https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs
+rustversion-1.0.23/src/lib.rs:13://! [cfg]: https://doc.rust-lang.org/reference/conditional-compilation.html#the-cfg-attribute
+rustversion-1.0.23/src/lib.rs:14://! [cfg_attr]: https://doc.rust-lang.org/reference/conditional-compilation.html#the-cfg_attr-attribute
+rustversion-1.0.23/src/lib.rs:111://! [pin]: https://blog.rust-lang.org/2019/02/28/Rust-1.33.0.html#pinning
+rustversion-1.0.23/src/lib.rs:128://! [packed]: https://github.com/rust-lang/rust/blob/master/RELEASES.md#version-1330-2019-02-28
+rustversion-1.0.23/src/lib.rs:178:#![doc(html_root_url = "https://docs.rs/rustversion/1.0.23")]
+rustversion-1.0.23/src/lib.rs:185:    // https://github.com/rust-lang/rust-clippy/issues/8539
+rustversion-1.0.23/src/lib.rs:216:const RUSTVERSION: Version = include!(concat!(env!("OUT_DIR"), "/version.expr"));
+rustversion-1.0.23/src/lib.rs:219:const RUSTVERSION: Version = include!(concat!(env!("OUT_DIR"), "\\version.expr"));

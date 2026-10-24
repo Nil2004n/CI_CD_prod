@@ -1,0 +1,28 @@
+T08 host packages (excl. root): 95; new vs T05-T07 host graphs: 53
+build scripts (18):
+   crc32fast 1.5.3 (NEW in T08) [build.rs]
+   encoding_rs 0.8.42 (NEW in T08) [build.rs]
+   getrandom 0.4.3 [build.rs]
+   libc 0.2.191 [build.rs]
+   pathfinder_simd 0.5.6 (NEW in T08) [build.rs]
+   proc-macro2 1.0.107 [build.rs]
+   proc-macro2-diagnostics 0.10.1 (NEW in T08) [build.rs]
+   pulldown-cmark 0.13.5 (NEW in T08) [build.rs]
+   quote 1.0.47 [build.rs]
+   rustversion 1.0.23 (NEW in T08) [build/build.rs]
+   serde 1.0.229 [build.rs]
+   serde_core 1.0.229 [build.rs]
+   serde_json 1.0.154 [build.rs]
+   thiserror 2.0.21 [build.rs]
+   unicode-canonical-combining-class 1.0.0 (NEW in T08) [build.rs]
+   unicode-general-category 1.1.0 [build.rs]
+   unicode-joining-type 1.0.0 (NEW in T08) [build.rs]
+   zmij 1.0.23 [build.rs]
+proc-macro crates (6):
+   enumflags2_derive 0.7.12 (355 lines)
+   multiversion_no_op 1.0.0 (NEW in T08) (43 lines)
+   ouroboros_macro 0.18.5 (NEW in T08) (2339 lines)
+   rustversion 1.0.23 (NEW in T08) (1029 lines)
+   serde_derive 1.0.229 (8975 lines)
+   thiserror-impl 2.0.21 (2468 lines)
+native links: []
