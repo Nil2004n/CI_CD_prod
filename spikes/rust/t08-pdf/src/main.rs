@@ -138,7 +138,7 @@ fn die(msg: &str) -> ! {
 
 fn is_rtl(c: char) -> bool {
     matches!(c as u32, 0x0590..=0x05FF | 0x0600..=0x06FF | 0x0700..=0x074F | 0x0750..=0x077F
-        | 0x08A0..=0x08FF | 0xFB1D..=0xFDFF | 0xFE70..=0xFEFF)
+        | 0x08A0..=0x08FF | 0xFB1D..=0xFDFF | 0xFE70..=0xFEFC)
 }
 
 fn is_combining(c: char) -> bool {
@@ -220,7 +220,20 @@ struct Stats {
     links_as_text: u64,
     lines: u64,
     max_right_overflow: f32,
+    max_visible_right_overflow: f32,
+    overflow_samples: Vec<OverflowSample>,
     min_baseline_margin: f32,
+}
+
+/// O-1 diagnosis: one line whose total advance (including trailing whitespace) passes the margin.
+#[derive(Clone)]
+struct OverflowSample {
+    page: usize,
+    x0: f32,
+    total_end: f32,
+    visible_end: f32,
+    limit: f32,
+    trailing_ws_width: f32,
 }
 
 /// A glyph-resolved piece of text in one font.
@@ -352,6 +365,30 @@ impl<'a> Layout<'a> {
         let overflow = x - Self::right();
         if overflow > self.st.max_right_overflow {
             self.st.max_right_overflow = overflow;
+        }
+        // O-1: visible right edge = x after the last non-whitespace glyph.
+        let mut gx = x0;
+        let mut visible_end = x0;
+        for &(c, _, w) in glyphs {
+            gx += w;
+            if !c.is_whitespace() {
+                visible_end = gx;
+            }
+        }
+        let visible_end = visible_end.min(x);
+        let visible_overflow = visible_end - Self::right();
+        if visible_overflow > self.st.max_visible_right_overflow {
+            self.st.max_visible_right_overflow = visible_overflow;
+        }
+        if overflow > 0.01 && self.st.overflow_samples.len() < 5 {
+            self.st.overflow_samples.push(OverflowSample {
+                page: self.pages.len() - 1,
+                x0,
+                total_end: x,
+                visible_end,
+                limit: Self::right(),
+                trailing_ws_width: x - visible_end,
+            });
         }
         let m = self.y - Self::bottom();
         if m < self.st.min_baseline_margin {
@@ -929,6 +966,15 @@ fn render(input: &Path, tmp_out: &Path, fault: &str) -> J {
         ("images_omitted", J::N(st.images_omitted as i64)),
         ("links_as_text", J::N(st.links_as_text as i64)),
         ("model_max_right_overflow_pt", J::F(st.max_right_overflow as f64)),
+        ("model_max_visible_right_overflow_pt", J::F(st.max_visible_right_overflow as f64)),
+        ("overflow_samples", J::A(st.overflow_samples.iter().map(|o| obj(vec![
+            ("page_index", J::N(o.page as i64)),
+            ("x0", J::F(o.x0 as f64)),
+            ("total_end", J::F(o.total_end as f64)),
+            ("visible_end", J::F(o.visible_end as f64)),
+            ("limit", J::F(o.limit as f64)),
+            ("trailing_ws_width", J::F(o.trailing_ws_width as f64)),
+        ])).collect())),
         ("model_min_baseline_above_bottom_pt", J::F(if st.min_baseline_margin == f32::MAX { 0.0 } else { st.min_baseline_margin as f64 })),
     ]);
     let font_list: Vec<J> = used.iter().map(|f| J::s(FONTS[*f].0)).collect();
@@ -1070,9 +1116,96 @@ fn pdf_names(data: &[u8]) -> BTreeMap<String, u64> {
 
 const FORBIDDEN_NAMES: &[&str] = &[
     "JavaScript", "JS", "OpenAction", "AA", "Launch", "URI", "SubmitForm", "AcroForm", "XFA",
-    "EmbeddedFile", "EmbeddedFiles", "RichMedia", "Annots", "Encrypt", "Metadata", "GoTo", "GoToR",
-    "ImportData", "Sound", "Movie",
+    "EmbeddedFile", "EmbeddedFiles", "RichMedia", "Annot", "Link", "Encrypt", "Metadata", "GoTo",
+    "GoToR", "ImportData", "Sound", "Movie",
 ];
+
+/// Skip PDF whitespace (including NUL) and comments starting at `j`.
+fn skip_pdf_ws(data: &[u8], mut j: usize) -> usize {
+    while j < data.len() {
+        let b = data[j];
+        if b == 0 || b.is_ascii_whitespace() {
+            j += 1;
+        } else if b == b'%' {
+            while j < data.len() && data[j] != b'\n' && data[j] != b'\r' {
+                j += 1;
+            }
+        } else {
+            break;
+        }
+    }
+    j
+}
+
+/// Classify every `/Annots` key (lexed as in `pdf_names`: comments, literal strings, hex strings
+/// and stream bodies skipped). Returns (inline empty arrays `[ ]`, any other value).
+fn annots_values(data: &[u8]) -> (u64, u64) {
+    let (mut empty, mut other) = (0u64, 0u64);
+    let mut i = 0;
+    let delim = |b: u8| b.is_ascii_whitespace() || b"()<>[]{}/%".contains(&b);
+    while i < data.len() {
+        let b = data[i];
+        match b {
+            b'%' => {
+                while i < data.len() && data[i] != b'\n' && data[i] != b'\r' {
+                    i += 1;
+                }
+            }
+            b'(' => {
+                let mut level = 1;
+                i += 1;
+                while i < data.len() && level > 0 {
+                    match data[i] {
+                        b'\\' => i += 1,
+                        b'(' => level += 1,
+                        b')' => level -= 1,
+                        _ => {}
+                    }
+                    i += 1;
+                }
+                continue;
+            }
+            b'<' if data.get(i + 1) != Some(&b'<') => {
+                while i < data.len() && data[i] != b'>' {
+                    i += 1;
+                }
+            }
+            b'<' => i += 1,
+            b'/' => {
+                let start = i + 1;
+                i += 1;
+                while i < data.len() && !delim(data[i]) {
+                    i += 1;
+                }
+                if &data[start..i] == b"Annots" {
+                    let j = skip_pdf_ws(data, i);
+                    if data.get(j) == Some(&b'[') {
+                        let k = skip_pdf_ws(data, j + 1);
+                        if data.get(k) == Some(&b']') {
+                            empty += 1;
+                        } else {
+                            other += 1;
+                        }
+                    } else {
+                        other += 1;
+                    }
+                }
+                continue;
+            }
+            b's' if data[i..].starts_with(b"stream") && (i == 0 || delim(data[i - 1])) => {
+                let rest = &data[i + 6..];
+                match rest.windows(9).position(|w| w == b"endstream") {
+                    Some(p) => i += 6 + p + 9,
+                    None => break,
+                }
+                continue;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    (empty, other)
+}
 
 fn normalise_extracted(s: &str) -> String {
     s.chars().filter(|c| !c.is_whitespace() && *c != '\u{21AA}').collect()
@@ -1314,13 +1447,50 @@ fn verify(root: &Path, case_dir: &Path, tmp: &Path, fxt: &Fixture, canary: &str)
     let objstm = names_orig.contains_key("ObjStm");
     let font_files = names_norm.get("FontFile2").copied().unwrap_or(0) + names_norm.get("FontFile3").copied().unwrap_or(0);
     let clean_repair = clean_e.to_ascii_lowercase().contains("repair") || clean_e.to_ascii_lowercase().contains("error");
-    step(5, "forbidden_object_scan", code == Some(0) && !killed && hits.is_empty() && images == 0 && !clean_repair && !nd.is_empty(),
+    let (annots_empty_norm, annots_other_norm) = annots_values(&nd);
+    let (annots_empty_orig, annots_other_orig) = annots_values(&data);
+    step(5, "forbidden_object_scan", code == Some(0) && !killed && hits.is_empty() && images == 0
+            && annots_other_norm == 0 && annots_other_orig == 0 && !clean_repair && !nd.is_empty(),
         obj(vec![("exit", code.map(|c| J::N(c as i64)).unwrap_or(J::Null)), ("ms", J::N(ms as i64)), ("forbidden_name_hits", J::A(hits)),
-            ("image_name_count", J::N(images as i64)), ("embedded_font_programs", J::N(font_files as i64)),
+            ("image_name_count", J::N(images as i64)),
+            ("annots_empty_inline_normalised", J::N(annots_empty_norm as i64)), ("annots_empty_inline_original", J::N(annots_empty_orig as i64)),
+            ("annots_other_normalised", J::N(annots_other_norm as i64)), ("annots_other_original", J::N(annots_other_orig as i64)),
+            ("embedded_font_programs", J::N(font_files as i64)),
             ("original_uses_object_streams", J::B(objstm)), ("stderr_repair_or_error", J::B(clean_repair)),
             ("stderr_excerpt", J::s(clean_e.chars().take(400).collect::<String>()))]));
-    let _ = fs::remove_file(&norm_pdf);
+    // normalised.pdf is kept: the caller deletes it after a pdf_written verdict or quarantines it.
     (all, J::A(steps))
+}
+
+/// Move a not-written temp PDF (and its normalised copy) to <root>/quarantine/<id>/ instead of
+/// deleting it. C1 (canary) artefacts are always deleted. Returns true if the temp PDF was moved.
+fn quarantine(root: &Path, id: &str, tmp: &Path, norm: &Path, is_c1: bool) -> bool {
+    if is_c1 {
+        let _ = fs::remove_file(tmp);
+        let _ = fs::remove_file(norm);
+        return false;
+    }
+    let dir = root.join("quarantine").join(id);
+    if fs::create_dir_all(&dir).is_err() {
+        return false;
+    }
+    let _ = fs::set_permissions(&dir, fs::Permissions::from_mode(0o700));
+    let mv = |from: &Path, to: &Path| -> bool {
+        if !from.exists() {
+            return false;
+        }
+        if fs::rename(from, to).is_ok() {
+            return true;
+        }
+        if fs::copy(from, to).is_ok() {
+            let _ = fs::remove_file(from);
+            return true;
+        }
+        false
+    };
+    let moved = mv(tmp, &dir.join(format!("{id}.NOT-WRITTEN.pdf")));
+    let _ = mv(norm, &dir.join(format!("{id}.normalised.NOT-WRITTEN.pdf")));
+    moved
 }
 
 fn orchestrate(root: &Path, out: &Path) {
@@ -1334,7 +1504,7 @@ fn orchestrate(root: &Path, out: &Path) {
         }
         return;
     }
-    for d in ["home", "cases", "pdf", "fixtures-json-md"] {
+    for d in ["home", "cases", "pdf", "quarantine", "fixtures-json-md"] {
         fs::create_dir_all(root.join(d)).unwrap();
         fs::set_permissions(root.join(d), fs::Permissions::from_mode(0o700)).unwrap();
     }
@@ -1370,6 +1540,9 @@ fn orchestrate(root: &Path, out: &Path) {
             ("conversion_wall_ms", J::N(ms as i64)), ("render_result_raw_json", J::s(rj.replace(&canary, "<canary>"))),
         ];
         let verdict;
+        let mut quarantined = false;
+        let is_c1 = f.id == "C1";
+        let norm_pdf = cd.join("normalised.pdf");
         if f.expect_ok {
             if ok_flag && !killed {
                 let (vok, steps) = verify(root, &cd, &tmp, &f, &canary);
@@ -1379,13 +1552,18 @@ fn orchestrate(root: &Path, out: &Path) {
                     let h = sha256(&final_pdf);
                     rec.push(("step6_renamed", J::B(renamed)));
                     rec.push(("pdf_sha256", h.map(J::S).unwrap_or(J::Null)));
+                    if renamed {
+                        let _ = fs::remove_file(&norm_pdf);
+                    } else {
+                        quarantined = quarantine(root, &f.id, &tmp, &norm_pdf, is_c1);
+                    }
                     verdict = if renamed { "pdf_written" } else { "verification_failed:rename" };
                 } else {
-                    let _ = fs::remove_file(&tmp);
+                    quarantined = quarantine(root, &f.id, &tmp, &norm_pdf, is_c1);
                     verdict = "verification_failed";
                 }
             } else {
-                let _ = fs::remove_file(&tmp);
+                quarantined = quarantine(root, &f.id, &tmp, &norm_pdf, is_c1);
                 verdict = if killed { "render_error:timeout" } else { "render_error" };
             }
         } else {
@@ -1396,12 +1574,15 @@ fn orchestrate(root: &Path, out: &Path) {
             verdict = if typed && no_pdf && !ok_flag && !killed { "expected_typed_failure" } else { "unexpected_outcome" };
             let _ = fs::remove_file(&tmp);
         }
+        rec.push(("quarantined", J::B(quarantined)));
         rec.push(("pdf_written", J::B(verdict == "pdf_written")));
         rec.push(("verdict", J::s(verdict)));
         rec.push(("visual_correctness", J::s("unverified (page rendering/inspection not in the approved tool list)")));
-        if f.id == "C1" {
-            // Do not retain canary-bearing artefacts.
+        if is_c1 {
+            // Do not retain canary-bearing artefacts (never quarantined).
             let _ = fs::remove_file(&final_pdf);
+            let _ = fs::remove_file(&tmp);
+            let _ = fs::remove_file(&norm_pdf);
             let _ = fs::remove_file(cd.join("extracted.txt"));
             let _ = fs::remove_file(&input);
             rec.push(("canary_artifacts_removed", J::B(!final_pdf.exists() && !cd.join("extracted.txt").exists())));

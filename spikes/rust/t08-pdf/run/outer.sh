@@ -51,6 +51,21 @@ if [ -d "$root/pdf" ] && ls "$root"/pdf/*.pdf >/dev/null 2>&1; then
   mkdir -p "$art"; mv "$root"/pdf/*.pdf "$art"/; (cd "$art" && sha256sum *.pdf) > "$ev/artifact-pdfs.sha256"
 fi
 
+# Quarantined (NOT-WRITTEN) PDFs: kept outside source control, hashes only in evidence.
+if [ -d "$root/quarantine" ] && [ -n "$(ls -A "$root/quarantine" 2>/dev/null)" ]; then
+  : > "$ev/quarantine-pdfs.sha256"
+  mkdir -p "$art/quarantine"; chmod 0700 "$art/quarantine"
+  for d in "$root"/quarantine/*/; do
+    [ -d "$d" ] || continue
+    id=$(basename "$d"); mkdir -p "$art/quarantine/$id"
+    for f in "$d"*; do
+      [ -f "$f" ] || continue
+      n=$(basename "$f")
+      mv -f -- "$f" "$art/quarantine/$id/$n" && (cd "$art/quarantine" && sha256sum -- "$id/$n") >> "$ev/quarantine-pdfs.sha256"
+    done
+  done
+fi
+
 case "$root" in "$base"/t08.??????)
   if [ "$(stat -c %U "$root")" = kali ]; then rm -rf --one-file-system -- "$root"; fi;;
 esac

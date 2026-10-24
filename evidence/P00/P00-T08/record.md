@@ -291,3 +291,41 @@ Supported (Latin, Han/Kana) and intentionally unsupported (RTL, emoji, astral, c
 5. **O-1:** diagnose the 1.185 pt overflow by recording the offending line's measured widths. Fix only if a confirmed cause is found.
 6. **Visual check (optional, owner decision):** approve `mutool draw -F png` (or `-F pnm`) on spike-owned PDFs, with Opus inspecting the rendered pages, so that visual verdicts can move from "unverified".
 7. **Retest:** a full formal re-run of all eleven cases as `D/D01/`. run1 is preserved unchanged.
+
+## Debug cycle P00-T08-D01 (2026-10-24) — appended; run1 above unchanged
+Record: `evidence/debug/P00-T08-D01/record.md`.
+- Owner accepted D-A option (a): an inline empty `/Annots` array is permitted.
+- Fixed H-1 (BOM counted as RTL) and H-2 (failed PDFs are now quarantined, not deleted); O-1 diagnosed as trailing whitespace only.
+- Formal re-run: 9/10 PDF cases written. U1-latin-cjk still fails step 4 on Korean only (D-B undecided) and is quarantined. All 7 limit/failure cases behaved as expected.
+- Visual correctness is still unverified.
+
+## Owner decision D-15 (2026-10-24) — appended; runs above unchanged
+Korean (Hangul script) support is out of scope for the entire project (`plan.md` D-15, PRD §16). For T08 this resolves D-B:
+- U1-latin-cjk's only failure (sentinel `한국어` absent; Hangul rendered as visible `<U+XXXX>` labels) now concerns out-of-scope content.
+- The visible code-point labels match the required degradation behaviour (not dropped, no crash).
+- The recorded verdicts of run1 and D01 are **not** rewritten; they stay `verification_failed` against the criteria as declared at the time.
+- A formal re-run with the Korean line reclassified into the unsupported fixture would be needed for a clean formal result. That re-run is not approved and not done.
+
+## Owner acceptance (2026-10-24) — appended; run1, D01 and all evidence unchanged
+P00-T08 is **accepted with qualifications**, as a renderer-selection spike for P1 (pulldown-cmark 0.13.5 + printpdf 0.12.8, both featureless, plus the spike-owned layout).
+
+**Qualifications, as recorded:**
+- Applies only to the tested cases on this host (debug build).
+- Not production implementation acceptance; not a dependency or build-code safety audit.
+- The recorded verdicts are unchanged: run1 failed; D01 had 9/10 PDF cases written.
+- U1-latin-cjk failed only on Korean, which is out of scope under D-15. No reclassification re-run was done.
+- Whole-font embedding (no subsetting) is accepted for the experiment only.
+- No complex-script shaping, bidi or right-to-left layout. Combining-mark positioning is not claimed.
+- An empty inline `/Annots` array on every page is permitted (D-A).
+- **Visual correctness is unverified for every case**; no page was rendered or inspected.
+- The forbidden-name tokenizer does not decode `#xx` name escapes.
+- Font licensing and bundling are a P20 matter.
+- WeasyPrint stays suspended (owner-reported advisory).
+
+**Proposed P12 follow-ups** (for the plan when P12 is approved; not registered as FRs):
+- the six-step artifact verification, including the `/Annots`-empty rule;
+- quarantine of not-written PDFs;
+- visible code-point degradation;
+- visual inspection before release;
+- a subsetting and size decision;
+- a shaping/RTL decision.

@@ -24,6 +24,7 @@ Owner decisions received 2026-10-23 (planning-stage approval message). Recorded 
 | D-12 | Figma timing unconfirmed; demo UI + stable contracts proceed; Figma translation separately estimated and nonblocking; demo-styling ship approval at release cut | P15a, P18 |
 | D-13 | HTTPS and SSH; no unapproved submodule recursion, LFS/filter execution or hooks; credential mechanism preserved; limits documented after a spike | Tech §5, P00-T04 |
 | D-14 | Phase-branch policy; no commits/merges/pushes without explicit approval; record actual revisions and dirty state | §3.6 |
+| D-15 | (2026-10-24) Korean (Hangul script) support is **out of scope for the entire project**. Korean text in assessed files is still processed as data: never silently dropped and never a crash; where displayed or rendered it degrades visibly (e.g. `<U+XXXX>`). No Hangul font, IME or Korean-specific layout is a project target | PRD §16, P00-T08 |
 
 Planning corrections 1–6 from the same message are applied: capability labels (PRD §16, SCAN-05/SCAN-06/RAG sources kept), minimal AI kept, early slice carries redaction/coverage (P01/P06/P07), per-tool hypothesis spikes (P00-T09), narrow retrieval sources (P17), and the agent loop (§3).
 
@@ -139,7 +140,7 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | CA-02 | Applied, versioned and confirmed by owner: store 1.3, wrapper protocol 1.1, specs v0.3.3 | Data Schema §23, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/` |
 | P00-T06 | **Accepted 2026-10-24 based on D01, with documented conditions/limitations** (dependency/pipeline suitability for the tested cases; no fallback required); first run 96/5/6 preserved; D01 121/0/7, J16 35/35; carry-forward FR-05–FR-17 (§5.2) | `spikes/P00-T06-request-and-fixtures.md`, `evidence/P00/P00-T06/` |
 | P00-T07 | **Accepted 2026-10-24 as a completed feasibility spike with qualified findings** (tested isolated setup only; direct in-process keyring calls, persistent storage, native cancellation, real prompter and other implementations **not** accepted); spike-only advisory exception (RUSTSEC-2026-0370/-0371/-0372); run1 (omitted K04b) and run2 preserved; carry-forward FR-18–FR-24 (§5.2) | `spikes/P00-T07-request-and-isolation.md`, `evidence/P00/P00-T07/` |
-| P00-T08 | Documentation-only request prepared 2026-10-24 (P1 pulldown-cmark + printpdf, W existing WeasyPrint comparator subset); not approved for lookups/resolution/build/run | `spikes/P00-T08-request.md` |
+| P00-T08 | **Accepted 2026-10-24 with qualifications** (P1 pulldown-cmark + printpdf, featureless; tested cases only; whole-font embedding; no shaping/RTL; empty `/Annots` permitted; Korean out of scope D-15; visual correctness unverified; WeasyPrint suspended); run1 failed, D01 9/10 written, verdicts unchanged | `spikes/P00-T08-request.md`, `evidence/P00/P00-T08/`, `evidence/debug/P00-T08-D01/` |
 | P00-T09 – T11 | Not approved, not started | — |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
@@ -255,3 +256,4 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 |---|---|---|
 | P00-T04-D01 | D-1 fail-open attributes setup (no `.git/info/` with empty template); D-2 inert G06 hook fixture; cleanup listing artefact | Completed 2026-10-24; re-run passed; P00-T04 accepted (qualified) |
 | P00-T06-D01 | Parser char offsets vs bytes; BOM not stripped; parser recursion-limit classification; Y18 expected-name error | Completed 2026-10-24; re-run passed; P00-T06 accepted |
+| P00-T08-D01 | `/Annots` criterion vs printpdf (D-A accepted: empty inline array); H-1 BOM as RTL; H-2 failed PDFs deleted; O-1 overflow diagnosis | Completed 2026-10-24; 9/10 written, U1 Korean (out of scope, D-15); P00-T08 accepted with qualifications |

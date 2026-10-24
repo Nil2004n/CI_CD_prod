@@ -296,7 +296,7 @@ The four-week cap remains a pilot constraint, not the old five-person estimate a
 
 ## 16. Pilot capability release labels
 
-Owner decisions D-01 to D-14 (2026-10-23). This register is canonical; other documents and `plan.md` refer to it. Labels: **pilot** = in the Linux x86_64 pilot scope and acceptance; **conditional** = implemented only after a named owner decision, approval or spike result; **deferred** = retained target, not in the pilot, with any interface explicitly reserved. A label is a scope decision, not evidence of implementation.
+Owner decisions D-01 to D-14 (2026-10-23) and D-15 (2026-10-24). This register is canonical; other documents and `plan.md` refer to it. Labels: **pilot** = in the Linux x86_64 pilot scope and acceptance; **conditional** = implemented only after a named owner decision, approval or spike result; **deferred** = retained target, not in the pilot, with any interface explicitly reserved. **out of scope** = not a project target at any stage (owner decision). A label is a scope decision, not evidence of implementation.
 
 | Requirement / capability | Label | Pilot boundary |
 |---|---|---|
@@ -317,6 +317,7 @@ Owner decisions D-01 to D-14 (2026-10-23). This register is canonical; other doc
 | RAG-01 | pilot (narrowed) | Local lexical retrieval over selected findings, relevant redacted source excerpts, local approved rule descriptions and schema metadata. Logs/workflows as retrieval sources and remote documentation ingestion (`documentation_fetch`) are deferred separate capabilities |
 | RAG-02–RAG-07 | pilot | Redaction before indexing/transmission, context isolation, citation validation, no execution/write tools; historical chat is deferred |
 | Embedding retrieval, chat persistence | deferred | `embedding_key` stays null; `chat_persistence_enabled=false` |
+| Korean (Hangul script) support | out of scope (D-15) | Korean content is still assessed as data and is never dropped silently or allowed to crash; rendering/display degrades to visible code-point labels; no Hangul font coverage requirement |
 | KEY-01 | pilot (session-only) / conditional (OS credential store) | OS credential-store mode only if the Linux keyring spike verifies a supported backend; never plaintext fallback |
 | KEY-02, KEY-03 | pilot | Explicit owner-supplied model ID; mock HTTP is the automated baseline; real provider behaviour unverified until a separately approved real-API acceptance check |
 | UI-01–UI-03 | pilot | Demo TUI on labelled mocks, then real backend |
