@@ -17,6 +17,7 @@ Read status.md, handover.md and the active plan.md section; inspect actual Git/d
 - Opus owns shared contracts (`crates/domain` DTOs, schemas, `Cargo.lock`, specs, plan/status/handover, CLAUDE.md) and runs all verification itself; a worker's report is not evidence.
 - At first spawn record in status.md the configured `model:` value, any observable resolution or substitution, and that the worker's self-report is unverified.
 - `haiku-docs` remains a proposal (`proposals/agents/`); until installed, Opus writes status.md/handover.md and says so.
+- Also available: `implementer` (`model: sonnet`, preloads project-verification), read-only `reviewer` and `security-reviewer` (Read/Grep/Glob); skills `project-verification`, `project-debugging`, `project-security-review`, `phase-handoff` in `.claude/skills/`. Same packet, verification and approval rules apply.
 
 ## Phase loop
 An explicit approved feature phase includes scoped implementation AND its listed local functional/regression checks. Opus delegates, integrates, verifies, reports; Haiku updates continuity; Opus validates; STOP for human.
