@@ -1,0 +1,140 @@
+== keyring 4.2.0  links=None rust_version=1.88.0
+  default: ['v1']
+  feature cli = ['android-native-keyring-store', 'apple-native-keyring-store/keychain', 'apple-native-keyring-store/protected', 'db-keystore', 'dbus-secret-service-keyring-store', 'keyring-core/sample', 'linux-keyutils-keyring-store', 'windows-native-keyring-store', 'zbus-secret-service-keyring-store']
+  feature default = ['v1']
+  feature v1 = ['apple-native-keyring-store/keychain', 'windows-native-keyring-store', 'zbus-secret-service-keyring-store']
+  dep android-native-keyring-store ^1 kind=normal optional=True default_features=True features=[] target=cfg(target_os = "android")
+  dep apple-native-keyring-store ^1 kind=normal optional=True default_features=True features=[] target=cfg(any(target_os = "macos", target_os = "ios"))
+  dep db-keystore ^0.5 kind=normal optional=True default_features=False features=[] target=cfg(all(target_pointer_width = "64", not(any(target_os = "ios", target_os = "android"))))
+  dep dbus-secret-service-keyring-store ^1 kind=normal optional=True default_features=True features=['crypto-rust', 'vendored'] target=cfg(all(unix, not(any(target_os = "macos", target_os = "ios", target_os = "android"))))
+  dep keyring-core ^1.0.0 kind=normal optional=False default_features=True features=[] target=None
+  dep linux-keyutils-keyring-store ^1 kind=normal optional=True default_features=True features=[] target=cfg(target_os = "linux")
+  dep windows-native-keyring-store ^1 kind=normal optional=True default_features=True features=[] target=cfg(target_os = "windows")
+  dep zbus-secret-service-keyring-store ^1 kind=normal optional=True default_features=True features=['crypto-rust'] target=cfg(all(unix, not(any(target_os = "macos", target_os = "ios", target_os = "android"))))
+== keyring-core 1.0.1  links=None rust_version=1.85
+  default: None
+  feature sample = ['dep:dashmap', 'dep:ron', 'dep:chrono', 'dep:regex', 'dep:serde', 'dep:uuid']
+  dep chrono ^0.4 kind=normal optional=True default_features=True features=[] target=None
+  dep dashmap ^6.1 kind=normal optional=True default_features=True features=['serde'] target=None
+  dep log ^0.4 kind=normal optional=False default_features=True features=[] target=None
+  dep regex ^1 kind=normal optional=True default_features=True features=[] target=None
+  dep ron ^0.12 kind=normal optional=True default_features=True features=[] target=None
+  dep serde ^1 kind=normal optional=True default_features=True features=['derive'] target=None
+  dep uuid ^1 kind=normal optional=True default_features=True features=['v4'] target=None
+== zbus-secret-service-keyring-store 1.0.1  links=None rust_version=1.88
+  default: None
+  feature crypto-openssl = ['secret-service/crypto-openssl']
+  feature crypto-rust = ['secret-service/crypto-rust']
+  feature rt-async-io-crypto-openssl = ['secret-service/rt-async-io-crypto-openssl']
+  feature rt-async-io-crypto-rust = ['secret-service/rt-async-io-crypto-rust']
+  feature rt-tokio-crypto-openssl = ['secret-service/rt-tokio-crypto-openssl']
+  feature rt-tokio-crypto-rust = ['secret-service/rt-tokio-crypto-rust']
+  dep keyring-core ^1 kind=normal optional=False default_features=True features=[] target=None
+  dep secret-service ^5 kind=normal optional=False default_features=True features=[] target=None
+  dep zbus ^5 kind=normal optional=False default_features=True features=[] target=None
+== secret-service 5.2.0  links=None rust_version=1.87.0
+  default: None
+  feature crypto-openssl = ['dep:openssl']
+  feature crypto-rust = ['dep:aes', 'dep:cbc', 'dep:sha2', 'dep:hkdf']
+  feature rt-async-io = ['zbus/async-io']
+  feature rt-async-io-crypto-openssl = ['rt-async-io', 'crypto-openssl']
+  feature rt-async-io-crypto-rust = ['rt-async-io', 'crypto-rust']
+  feature rt-tokio = ['zbus/tokio']
+  feature rt-tokio-crypto-openssl = ['rt-tokio', 'crypto-openssl']
+  feature rt-tokio-crypto-rust = ['rt-tokio', 'crypto-rust']
+  dep aes ^0.9 kind=normal optional=True default_features=True features=[] target=None
+  dep cbc ^0.2 kind=normal optional=True default_features=True features=['block-padding', 'alloc'] target=None
+  dep futures-util ^0.3 kind=normal optional=False default_features=True features=[] target=None
+  dep getrandom ^0.4 kind=normal optional=False default_features=True features=[] target=None
+  dep hkdf ^0.13 kind=normal optional=True default_features=True features=[] target=None
+  dep hybrid-array ^0.4 kind=normal optional=False default_features=True features=[] target=None
+  dep num ^0.4 kind=normal optional=False default_features=True features=[] target=None
+  dep once_cell ^1 kind=normal optional=False default_features=True features=[] target=None
+  dep openssl ^0.10 kind=normal optional=True default_features=True features=[] target=None
+  dep serde ^1 kind=normal optional=False default_features=True features=['derive'] target=None
+  dep sha2 ^0.11.0 kind=normal optional=True default_features=True features=[] target=None
+  dep zbus ^5 kind=normal optional=False default_features=False features=['blocking-api'] target=None
+== zbus 5.19.0  links=None rust_version=1.87
+  default: ['async-io', 'blocking-api']
+  feature async-fs = []
+  feature async-io = ['dep:async-io', 'async-executor', 'async-fs', 'async-task', 'async-lock', 'async-process', 'blocking']
+  feature blocking-api = ['zbus_macros/blocking-api']
+  feature bus-impl = ['p2p']
+  feature camino = ['zvariant/camino']
+  feature chrono = ['zvariant/chrono']
+  feature default = ['async-io', 'blocking-api']
+  feature heapless = ['zvariant/heapless']
+  feature option-as-array = ['zvariant/option-as-array']
+  feature p2p = ['uuid/v4']
+  feature serde_bytes = ['zvariant/serde_bytes']
+  feature time = ['zvariant/time']
+  feature tokio = ['dep:tokio']
+  feature tokio-vsock = ['dep:tokio-vsock', 'tokio']
+  feature url = ['zvariant/url']
+  feature uuid = ['zvariant/uuid']
+  feature vsock = ['dep:vsock', 'async-io']
+  dep async-broadcast ^0.7.0 kind=normal optional=False default_features=True features=[] target=None
+  dep async-executor ^1.11.0 kind=normal optional=True default_features=True features=[] target=None
+  dep async-io ^2.3.2 kind=normal optional=True default_features=True features=[] target=None
+  dep async-lock ^3.3.0 kind=normal optional=True default_features=True features=[] target=None
+  dep async-process ^2.2.2 kind=normal optional=True default_features=True features=[] target=None
+  dep async-recursion ^1.1.1 kind=normal optional=False default_features=True features=[] target=cfg(unix)
+  dep async-recursion ^1.1.1 kind=normal optional=False default_features=True features=[] target=cfg(windows)
+  dep async-task ^4.7.1 kind=normal optional=True default_features=True features=[] target=None
+  dep async-trait ^0.1.80 kind=normal optional=False default_features=True features=[] target=None
+  dep blocking ^1.6.0 kind=normal optional=True default_features=True features=[] target=None
+  dep enumflags2 ^0.7.9 kind=normal optional=False default_features=True features=['serde'] target=None
+  dep event-listener ^5.3.0 kind=normal optional=False default_features=True features=[] target=None
+  dep futures-core ^0.3.30 kind=normal optional=False default_features=True features=[] target=None
+  dep futures-lite ^2.6.0 kind=normal optional=False default_features=False features=['std'] target=None
+  dep hex ^0.4.3 kind=normal optional=False default_features=True features=[] target=None
+  dep libc ^0.2 kind=normal optional=False default_features=False features=[] target=cfg(unix)
+  dep ordered-stream ^0.2 kind=normal optional=False default_features=True features=[] target=None
+  dep rustix ^1.1.2 kind=normal optional=False default_features=False features=['net', 'process', 'std'] target=cfg(unix)
+  dep serde ^1.0.200 kind=normal optional=False default_features=True features=['derive'] target=None
+  dep serde_repr ^0.1.19 kind=normal optional=False default_features=True features=[] target=None
+  dep tokio ^1.37.0 kind=normal optional=True default_features=True features=['rt', 'rt-multi-thread', 'net', 'time', 'fs', 'io-util', 'process', 'sync', 'tracing'] target=None
+  dep tokio-vsock ^0.7 kind=normal optional=True default_features=True features=[] target=cfg(target_os = "linux")
+  dep tracing ^0.1.40 kind=normal optional=False default_features=True features=[] target=None
+  dep uds_windows ^1.1.0 kind=normal optional=False default_features=True features=[] target=cfg(windows)
+  dep uuid ^1.8.0 kind=normal optional=False default_features=True features=['serde'] target=None
+  dep vsock ^0.5.0 kind=normal optional=True default_features=True features=[] target=cfg(target_os = "linux")
+  dep windows-sys ^0.61 kind=normal optional=False default_features=True features=['Win32_Foundation', 'Win32_Security_Authorization', 'Win32_System_Memory', 'Win32_System_WindowsProgramming', 'Win32_Networking', 'Win32_Networking_WinSock', 'Win32_NetworkManagement', 'Win32_NetworkManagement_IpHelper', 'Win32_System_IO', 'Win32_System_Threading'] target=cfg(windows)
+  dep winnow ^1.0 kind=normal optional=False default_features=True features=[] target=None
+  dep zbus_macros ^5.19.0 kind=normal optional=False default_features=True features=[] target=None
+  dep zbus_names ^4.3.4 kind=normal optional=False default_features=True features=[] target=None
+  dep zvariant ^5.14.0 kind=normal optional=False default_features=True features=['enumflags2'] target=None
+== zvariant 5.15.1  links=None rust_version=1.87
+  default: []
+  feature camino = ['dep:camino']
+  feature default = []
+  feature gvariant = ['zvariant_derive/gvariant', 'zvariant_utils/gvariant']
+  feature option-as-array = []
+  feature ostree-tests = ['gvariant']
+  dep arrayvec ^0.7.4 kind=normal optional=True default_features=True features=['serde'] target=None
+  dep camino ^1.1.9 kind=normal optional=True default_features=True features=[] target=None
+  dep chrono ^0.4.38 kind=normal optional=True default_features=False features=['serde'] target=None
+  dep endi ^1.1.0 kind=normal optional=False default_features=True features=[] target=None
+  dep enumflags2 ^0.7.9 kind=normal optional=True default_features=True features=['serde'] target=None
+  dep heapless ^0.9.0 kind=normal optional=True default_features=True features=['serde'] target=None
+  dep serde ^1.0.200 kind=normal optional=False default_features=True features=['derive'] target=None
+  dep serde_bytes ^0.11.14 kind=normal optional=True default_features=True features=[] target=None
+  dep time ^0.3.36 kind=normal optional=True default_features=True features=['serde'] target=None
+  dep url ^2.5.0 kind=normal optional=True default_features=True features=['serde'] target=None
+  dep uuid ^1.8.0 kind=normal optional=True default_features=True features=['serde'] target=None
+  dep winnow ^1.0 kind=normal optional=False default_features=True features=[] target=None
+  dep zcheapstr ^1.0.0 kind=normal optional=False default_features=True features=['serde'] target=None
+  dep zvariant_derive ^5.15.0 kind=normal optional=False default_features=True features=[] target=None
+  dep zvariant_utils ^4.2.0 kind=normal optional=False default_features=True features=[] target=None
+== zbus_macros 5.19.0  links=None rust_version=1.87
+  default: []
+  feature blocking-api = []
+  feature default = []
+  feature gvariant = ['zvariant/gvariant', 'zvariant_utils/gvariant']
+  dep proc-macro-crate ^3.2.0 kind=normal optional=False default_features=True features=[] target=None
+  dep proc-macro2 ^1.0.81 kind=normal optional=False default_features=True features=[] target=None
+  dep quote ^1.0.36 kind=normal optional=False default_features=True features=[] target=None
+  dep syn ^3.0 kind=normal optional=False default_features=True features=['extra-traits', 'full', 'extra-traits', 'fold', 'full'] target=None
+  dep zbus_names ^4.3.4 kind=normal optional=False default_features=True features=[] target=None
+  dep zvariant ^5.14.0 kind=normal optional=False default_features=True features=[] target=None
+  dep zvariant_utils ^4.0.0 kind=normal optional=False default_features=True features=[] target=None

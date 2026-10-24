@@ -1,0 +1,336 @@
+{
+  "freeze_version": "1",
+  "frozen_at": "2026-10-24",
+  "base_commit": "3decec1",
+  "tools": [
+    {
+      "id": "yamllint",
+      "role": "baseline",
+      "version": "1.38.0",
+      "path": "~/.local/share/pwt-dev-tools/yamllint/1.38.0/venv/bin/yamllint",
+      "sha256": null,
+      "hash_basis": "none",
+      "status": "accepted-qualified",
+      "contract": [
+        "evidence/P00/P00-T09/contract-yamllint.md"
+      ],
+      "invocation": "[\"<yamllint>\", \"-c\", \"<app-config-path>\", \"-f\", \"parsable\", \"--\", \"<file>...\"] (contract sheet \"Invocation template\"); scope strategy: explicit_files (never a directory argument); cwd outside the repository",
+      "rejected_invocations": [
+        "A directory argument (reads siblings and nested files; contract sheet H-SCOPE; scope strategy is explicit_files only)",
+        "Operands without the \"--\" end-of-options marker (option-like file names were treated as options in the control run; contract sheet H-ARG)",
+        "Running without an explicit app config (-c) or with cwd inside the repository (repository .yamllint* config auto-loaded by cwd and parents; contract sheet H-CFG; mitigation: always pass an explicit config and/or run with cwd outside the repository)"
+      ],
+      "coverage": "Spike evidence (T09 run1, 89 invocations) for the tested synthetic fixtures, this host and yamllint 1.38.0 only: YAML lint of explicitly named files with an app-owned config and parsable output. Not a secret scanner. Not production adapter acceptance.",
+      "limitations": [
+        "P00 closure clarification (2026-10-24): yamllint identity is incomplete: no trusted hash of the entry script or venv exists (sha256 null); identity rests on the install record's version check and install-time hash lock only. This is a recorded limitation, not a frozen identity. Gate: P08 adapter preflight (venv re-hash method still to be defined).",
+        "The venv entry script is not hash-pinned (sha256 null, hash_basis none). The venv contents (3 packages) were covered only by the install-time hash lock evidence/P00/P00-T02/locks/yamllint.lock.txt; a venv-level re-hash method was not defined or executed.",
+        "PyPI provenance exception (P00-T02): the yamllint wheel and its dependencies are not provenance-verified (TLS plus hash-locked integrity accepted for controlled development only; revisit before customer distribution or sensitive client use).",
+        "Inline directives (disable-line, disable-block, disable-file) suppress findings and cannot be switched off in the tool (contract sheet H-INL); results are repository-suppressible and must be reported as such.",
+        "Exit 1 is used both for findings and for the invalid-UTF-8 crash (Python traceback, no parsable lines); exit 1 with zero parsable lines or a traceback on stderr must be treated as a tool error (contract sheet H-EXIT).",
+        "Diagnostics echo YAML key text (a secret used as a duplicated key appeared in stdout) and hostile file names are echoed raw (ANSI escape, newline); the adapter must sanitise before persistence (contract sheet H-SEC, H-OUT). No redaction option exists.",
+        "Write tracking in T09 was tracking only, not filesystem confinement; process-group cleanup does not contain descendants that leave the group (FR-29).",
+        "Output guard coverage in the T09 harness is the registered synthetic fixtures only.",
+        "Production adapter not built."
+      ],
+      "requirements": [
+        "FR-29"
+      ],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "evidence/P00/P00-T02/locks/yamllint.lock.txt",
+        "evidence/P00/P00-T09/record.md",
+        "evidence/debug/P00-T09-D02/record.md"
+      ]
+    },
+    {
+      "id": "gitleaks",
+      "role": "baseline",
+      "version": "8.30.1",
+      "path": "~/.local/bin/gitleaks",
+      "sha256": "88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509",
+      "hash_basis": "install-record trusted hashes",
+      "status": "accepted-qualified",
+      "contract": [
+        "evidence/P00/P00-T09/contract-gitleaks.md"
+      ],
+      "invocation": "[\"<gitleaks>\", \"dir\", \"--no-banner\", \"--no-color\", \"-f\", \"json\", \"-r\", \"<app-owned report path>\", \"-c\", \"<app-config>\", \"--gitleaks-ignore-path\", \"<app-owned empty file>\", \"--ignore-gitleaks-allow\", \"--redact=100\", \"--exit-code\", \"7\", \"--\", \"<single file or staged dir>\"] (contract sheet \"Invocation template\"); scope strategy: explicit_files (single file path accepted); only one path operand per run; dir mode only (never git history mode)",
+      "rejected_invocations": [
+        "Scanning a repository directory directly (contract sheet H-OVR adapter consequence: never scan a repository directory directly; a repository .gitleaksignore is a suppression channel to report)",
+        "Omitting -c (repository .gitleaks.toml and GITLEAKS_CONFIG / GITLEAKS_CONFIG_TOML environment variables are auto-loaded; contract sheet H-CFG)",
+        "Omitting --ignore-gitleaks-allow (inline gitleaks:allow suppresses findings; contract sheet H-INL)",
+        "Omitting --exit-code (leaks then exit 1, the same class as other errors; contract sheet H-EXIT)",
+        "Verbose (-v) or debug logging (--log-level debug) and --redact=50 (canary material leaked to stdout, stderr or the report; contract sheet H-SEC)",
+        "Treating --gitleaks-ignore-path <app-owned empty file> as a remedy for a repository .gitleaksignore (it did not neutralise it; contract sheet H-OVR)",
+        "Operands without the \"--\" end-of-options marker (\"--config=evil.yaml\" acted as an option and hid findings; contract sheet H-ARG)"
+      ],
+      "coverage": "Spike evidence (T09 run1, 60 invocations; D02 fresh synthetic gitleaks run, 60 invocations) for the tested synthetic fixtures, this host and gitleaks 8.30.1 only: text-based secret detection in dir mode on a single file or staged copy, JSON report with redaction. Git history mode and unrecognised update checks were not exercised. Not production adapter acceptance.",
+      "limitations": [
+        "Location ~/.local/bin/gitleaks is a user-writable directory outside the tool prefix; origin was not established, content was proven byte-identical to the verified official release binary on 2026-10-24. Re-check the SHA-256 before every use.",
+        "No upstream signature or attestation exists; integrity rests on a same-origin release checksum only (install-record R-5).",
+        "A nonexistent target exits 0 (fail-open); the adapter must verify target existence and scanned-byte counts itself and must not rely on exit 0 alone (FR-25).",
+        "Repository-controlled suppression: a repository .gitleaksignore is still applied when -c is given and --gitleaks-ignore-path did not neutralise it; the single-file target with cwd outside the repository plus an app-owned empty ignore path restored the finding in the tested case, staged copies without .gitleaksignore are the general remedy and were not separately tested. Treat ignore files and gitleaks:allow as a coverage issue (FR-25).",
+        "--redact=100 does not make stderr safe to persist (debug logging wrote canary material to stderr); persist only approved normalised fields through the output guard (FR-25).",
+        "Only one path operand is accepted per run: a multi-file selection needs one run per file or a staged copy.",
+        "Report order varies between identical runs (same set, order differs).",
+        "RLIMIT_AS for gitleaks children was 16 GiB in T09 (other tools 4 GiB); this is a virtual-address-space bound, not a physical-memory cap.",
+        "Write tracking in T09 was tracking only, not filesystem confinement; process-group cleanup does not contain descendants that leave the group (FR-29).",
+        "Output guard coverage in the T09 harness is the registered synthetic fixtures only (H-3 fix in P00-T09-D02).",
+        "Production adapter not built."
+      ],
+      "requirements": [
+        "FR-25",
+        "FR-29"
+      ],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "evidence/P00/P00-T09/record.md",
+        "evidence/debug/P00-T09-D02/record.md"
+      ]
+    },
+    {
+      "id": "checkov",
+      "role": "baseline",
+      "version": "3.3.30",
+      "path": "~/.local/share/pwt-dev-tools/checkov/3.3.30/venv/bin/checkov",
+      "sha256": "f0683221fa1e6c3be2bd19921c0650e83bb1c833f78535af0b96e02487f639ec",
+      "hash_basis": "observed (not trusted)",
+      "status": "accepted-qualified",
+      "contract": [
+        "evidence/P00/P00-T09/contract-checkov-rev2.md",
+        "evidence/debug/P00-T09-D01/contract-checkov_r2.md"
+      ],
+      "invocation": "Revision 2 only (contract-checkov-rev2.md section 2). argv: checkov --config-file <APP_CONFIG> --framework kubernetes --skip-download --skip-results-upload -o json -f <STAGED_FILE_1> [-f <STAGED_FILE_2> ...] (<STAGED_FILE_n> are absolute paths of staged copies; -f may repeat). Working directory: a private, empty, app-owned directory (never the repository, never the staging directory). Environment exactly: PATH=/usr/bin:/bin, LANG=C.UTF-8, HOME=<private dir>, XDG_CONFIG_HOME=<private dir>, XDG_CACHE_HOME=<private dir>, TMPDIR=<private dir>, CKV_SKIP_PACKAGE_UPDATE_CHECK=True; no other variables. App config (outside all input), content exactly: \"framework:\\n  - kubernetes\\nskip-download: true\". Never: -d; --external-checks-dir, --external-checks-git or --external-checks-public-key as the boundary; --create-config / --baseline; verbose or debug options.",
+      "rejected_invocations": [
+        "R1a: -f k8s/insecure.yaml --framework kubernetes -o json, cwd = repository (T09 run1 CK-EXE-CFG-F-RUN: repository .checkov.yaml merged and external-checks-dir executed repository Python; failed application-invocation candidate)",
+        "R1b: --config-file <app config> -f k8s/insecure.yaml -o json, cwd = repository (T09 run1 CK-EXE-APPCFG-RUN: same; --config-file merges, it is not exclusive; failed application-invocation candidate)",
+        "Any -d on a repository or on an unfiltered copy (D01 CTRL-UNFILTERED-COPY-D executed repository code; an absolute -d through a dot-directory scanned nothing with exit 0)",
+        "HOME not owned by the app (D01 CTRL-HOME-CONFIG executed repository code)",
+        "External checks, repository policies and platform downloads (code execution and network)"
+      ],
+      "coverage": "Contract revision 2 only, for the tested Kubernetes selected-file workflow: Kubernetes framework on explicitly selected, app-staged copies of .yaml/.yml files. Not evaluated under revision 2: GitHub Actions, the secrets framework, kustomize/helm, cross-file context. Selected-file staging is not equivalent to a full repository scan. Spike evidence (D01 formal run, 16 invocations, plus T09 run1) for the tested synthetic fixtures, this host and Checkov 3.3.30 only; not production adapter acceptance.",
+      "limitations": [
+        "Entry point sha256 f0683221... was observed on 2026-10-24 (D02) and is not in the install record's trusted-hash list (hash_basis: observed (not trusted)). The venv (96 packages) is not hash-verified at run time; it was covered only by the install-time hash lock evidence/P00/P00-T02/locks/checkov.lock.txt. The interpreter's hash matches the install record.",
+        "PyPI provenance exception (P00-T02): the Checkov wheel and its dependency chain are not provenance-verified (accepted for controlled development only; revisit before customer distribution or sensitive client use).",
+        "Contract revision 1 (R1a/R1b) is rejected and superseded for invocation; the T09 run1 execution-marker stop condition fired for those runs and is preserved. The contract sheet contract-checkov.md must not be used as an invocation source.",
+        "Empty output, zero checks, malformed YAML (exit 0, no kubernetes report), a nonexistent path (exit 0) and YAML without resources all exit 0: a result counts as assessed only if stdout parses as JSON, a check_type kubernetes report exists, results.parsing_errors is empty, summary.resource_count >= the expected resource count of the staged input and every staged file with resources appears in the results; otherwise not assessed, never clean (contract revision 2 section 6; FR-27).",
+        "In-file checkov.io/skip* annotations still suppress checks; each skipped_checks entry is repository-controlled suppression and must be surfaced as suppression/coverage information, never as a passed check or clean verdict (contract revision 2 section 7; FR-27).",
+        "Untested production behaviour (P09 / FR-27): the production staging helper and adapter, check-to-copy races (TOCTOU) and concurrent repository changes, an existence and permission check of the app config before invocation, mapping persistence and line mapping in the product, other frameworks and cross-file context, behaviour on other hosts and versions. The spike kept the staging mapping in memory only.",
+        "No filesystem confinement (write tracking only); the signature gate is not relied on; network evidence is heuristic (private network namespace, --skip-download, --skip-results-upload, update check disabled), without syscall tracing.",
+        "Process-group cleanup does not contain descendants that leave the group (FR-29).",
+        "Output guard coverage in the T09 harness is the registered synthetic fixtures only; Checkov's own masked display leaves public-prefix fragments of at most 6 characters (T09 record sections 5 and 6)."
+      ],
+      "requirements": [
+        "FR-27",
+        "FR-29"
+      ],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "evidence/P00/P00-T02/locks/checkov.lock.txt",
+        "evidence/P00/P00-T09/record.md",
+        "evidence/debug/P00-T09-D01/record.md",
+        "evidence/debug/P00-T09-D02/record.md"
+      ]
+    },
+    {
+      "id": "actionlint",
+      "role": "framework",
+      "version": "1.7.12",
+      "path": "~/.local/share/pwt-dev-tools/actionlint/1.7.12/actionlint",
+      "sha256": "c872d6db8c6bf83a8eaa704fc93999f027d55dffbc63b8a6abdccb47df5f4cd4",
+      "hash_basis": "install-record trusted hashes",
+      "status": "accepted-qualified",
+      "contract": [
+        "evidence/P00/P00-T09/contract-actionlint.md"
+      ],
+      "invocation": null,
+      "rejected_invocations": [
+        "A directory argument (exit 3; contract sheet H-SCOPE)",
+        "No file arguments (auto-discovery walks .github/workflows of the nearest project and echoes sibling content; exit 3 without a project; contract sheet H-SCOPE); only explicit file arguments were established as scope",
+        "Dash-leading file names without the \"--\" end-of-options marker (exit 2, treated as flags; contract sheet H-ARG)",
+        "Relying on a repository .github/actionlint.yaml / .yml (auto-loaded, discovery requires a .git project root and is independent of cwd; it suppresses findings; contract sheet H-CFG); an explicit -config-file replaces it (H-OVR)"
+      ],
+      "coverage": "Spike evidence (T09 run1, 71 invocations) for the tested synthetic fixtures, this host and actionlint 1.7.12 only: GitHub Actions workflow linting of explicitly named files. ShellCheck and Pyflakes integration was not exercised (helpers absent). Not production adapter acceptance.",
+      "limitations": [
+        "P00 closure clarification (2026-10-24): invocation is null: NO actionlint invocation is frozen. The facts listed below are contract-sheet observations, not a template. Gate: P13 adapter contract (explicit files, app -config-file, JSON format, helpers disabled) to be defined and verified there.",
+        "The generated contract sheet records no invocation template or scope strategy (both null), so none is frozen here; no flags were reconstructed. Facts recorded in the sheet (not a template): explicit file arguments, -config-file <app config> replaces repository config, JSON output via -format '{{json .}}', helpers disabled explicitly with -shellcheck / -pyflakes set to an empty string, no soft-fail or strict flag, no redaction flag.",
+        "ShellCheck and Pyflakes are absent and untested: the helper-on text-analysis path and the helpers' inline directives (a repository-controlled suppression channel) are not exercised; the adapter must disable the helpers explicitly; do not install them or claim the capability was tested without a separate approval and verification (FR-28).",
+        "Exit codes: 0 clean, 1 findings and also syntax/parse problems (separable only via JSON kind), 2 usage error, 3 operational errors (missing file, directory argument, no project, bad config); a nonexistent file exits 3.",
+        "Raw source text is echoed by diagnostics (snippet and message fields); no redaction flag exists, so the product must redact before persistence (contract sheet H-SEC).",
+        "Default text output emits raw ESC and splits records on newline file names; JSON output escapes them (contract sheet H-OUT).",
+        "FX-GHA-REF exits 1 only because its local ./ reusable-workflow references do not resolve, not because of mutable remote refs; actionlint reported no unpinned/mutable-ref finding in the tested fixture.",
+        "SLSA provenance attestation for the release archive verified (V1); the GitHub release attestation was not verified; actionlint was extracted and run (version only) before the attestation lookup (disclosed sequencing, install record).",
+        "H-NET evidence is indirect (blocked connections would normally surface as errors); no syscall tracing.",
+        "Write tracking in T09 was tracking only, not filesystem confinement; process-group cleanup does not contain descendants that leave the group (FR-29).",
+        "Production adapter not built."
+      ],
+      "requirements": [
+        "FR-28",
+        "FR-29"
+      ],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "evidence/P00/P00-T09/record.md",
+        "evidence/debug/P00-T09-D02/record.md"
+      ]
+    },
+    {
+      "id": "kubeconform",
+      "role": "framework",
+      "version": "0.8.0",
+      "path": "~/.local/share/pwt-dev-tools/kubeconform/0.8.0/kubeconform",
+      "sha256": "457722b36e98d7bdbc91525e594951ef5d7ea3a29da2d13b9b28a2fb8a5097b7",
+      "hash_basis": "install-record trusted hashes",
+      "status": "accepted-qualified",
+      "contract": [
+        "evidence/P00/P00-T09/contract-kubeconform.md",
+        "spikes/P00-T10-schema-cache-plan.md"
+      ],
+      "invocation": "[\"<kubeconform>\", \"-kubernetes-version\", \"<pinned>\", \"-schema-location\", \"<local-template>\", \"-strict\", \"-output\", \"json\", \"-verbose\", \"-summary\", \"-n\", \"1\", \"--\", \"<file>...\"] (contract sheet \"Invocation template\"); scope strategy: explicit_files; never -ignore-missing-schemas / -skip; validate kind/apiVersion strings against a safe pattern before invoking. <pinned> (Kubernetes version) and <local-template> (a template into a verified local schema cache set) are placeholders: neither is decided or populated (see limitations).",
+      "rejected_invocations": [
+        "No -schema-location / kubeconform's default schema location (tries raw.githubusercontent.com; failed as statusError in the loopback-only namespace; contract sheet H-NET)",
+        "The literal schema location \"default\" (contract sheet H-NET; T10 plan section 7)",
+        "-ignore-missing-schemas and -skip (convert unsupported kinds into exit 0 / skipped; contract sheet notes crd_missing)",
+        "A directory operand (reads siblings and nested files, follows in-root and outside symlinks; contract sheet H-SCOPE)",
+        "Operands without the \"--\" end-of-options marker (option-like names treated as flags; contract sheet H-ARG)"
+      ],
+      "coverage": "Spike evidence (T09 run1, 65 invocations) for the tested synthetic fixtures, this host and kubeconform v0.8.0 only: schema validation of explicitly named Kubernetes manifest files against a local schema location. T09 used a stub local schema and a controlled loopback server; no real schema set exists. Not production adapter acceptance.",
+      "limitations": [
+        "The Kubernetes schema cache is NOT approved and NOT populated: P00-T10 was accepted as a schema-cache planning and offline reference-prototype task only (not a production cache, actual schema coverage or collision-safe resolution). Open owner decisions O-1 to O-6 (schema origin, target Kubernetes version(s), staleness threshold, CRD catalogue use, redistribution/bundling and NOTICE review, approval of the first schema_fetch and revision pin) remain open; no schema source, version policy or schema download is approved. The <pinned> Kubernetes version and <local-template> in the invocation therefore have no frozen value.",
+        "FR-30 (R-1, mandatory P13 acceptance requirement): the T10 frozen filename mapping (first DNS label of the group) lets other groups collide with core schemas (demonstrated on synthetic data: Deployment apps.example.com/v1 and Ingress networking.istio.io/v1 resolved to core schema files). Before production schema lookup is enabled, manifest entries must identify the complete API group, version and kind and lookup must match the complete identity; unknown or ambiguous identities are unsupported / not assessed. Until then resources of unknown or non-built-in API groups must not be routed through the T10 filename mapping. The T10 prototype in spikes/t10-cache/ does not fix R-1.",
+        "kind/apiVersion-derived schema paths are untrusted: a kind containing ../ escaped the schema root (exit 0, statusValid); the application must validate kind/apiVersion before invoking and must not rely on kubeconform for containment (FR-26).",
+        "Exit codes do not establish validation coverage: invalid resources, missing schemas, malformed input, nonexistent paths and bad flags all exit 1 (a bad flag also prints usage and no JSON); an explicit non-YAML operand yields 0 resources with exit 0 (zero coverage, not a pass). Classify from the parsed per-resource JSON status (statusValid, statusInvalid, statusError, statusSkipped), never the exit code alone (FR-26).",
+        "Output at default concurrency is not byte-identical across runs (same set after sorting); -n 1 is byte-identical; a malformed document yields an error entry with empty kind/name and no document index.",
+        "Resource names and kinds are echoed (secret in metadata.name or kind reached stdout); there is no redaction option and no report file; sanitise before persistence.",
+        "The kubeconform release has no upstream signature or attestation; integrity rests on a same-origin release checksum only (install-record R-5).",
+        "T10 limitations retained: lookups read through a summarising fetch tool, per-kind files in the candidate origin unconfirmed, no upstream schema signatures, prototype checks not atomic (TOCTOU), kubeconform not run in T10, kubeconform's own KindSuffix rule not re-checked.",
+        "Write tracking in T09 was tracking only, not filesystem confinement; process-group cleanup does not contain descendants that leave the group (FR-29).",
+        "Production adapter not built."
+      ],
+      "requirements": [
+        "FR-26",
+        "FR-29",
+        "FR-30"
+      ],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "evidence/P00/P00-T09/record.md",
+        "evidence/P00/P00-T10/record.md",
+        "evidence/debug/P00-T09-D02/record.md"
+      ]
+    },
+    {
+      "id": "python3.12",
+      "role": "interpreter",
+      "version": "3.12.15+20261021",
+      "path": "~/.local/share/pwt-dev-tools/python/3.12.15+20261021/python/bin/python3.12",
+      "sha256": "58fe899223901d346e9d3a0184bdd04d82a276ff1f99be0e68d5873ea71c1b68",
+      "hash_basis": "install-record trusted hashes",
+      "status": "accepted-limitations",
+      "contract": [],
+      "invocation": null,
+      "rejected_invocations": [],
+      "coverage": "CPython 3.12.15 from python-build-standalone release 20261021, extracted from a verified archive; the interpreter base of the yamllint and Checkov virtual environments (within Checkov's declared Python 3.9-3.12 range). It is not a scanner and has no contract sheet. The host system Python (/usr/bin/python3 -> python3.14) was left untouched.",
+      "limitations": [
+        "Accepted as part of the installation checkpoint with limitations; not acceptance of scanner behaviour or application functionality.",
+        "Archive digest matched the reviewed request and SLSA provenance attestation was verified (V1); the GitHub release attestation (signer dotcom.releases.github.com) was not verified; built from a refs/heads/main workflow, not a tag ref.",
+        "Offline identity check: sys.version 3.12.15, OpenSSL 3.5.9, exit 0.",
+        "Venv contents of yamllint and Checkov are not covered by this hash; see the yamllint and checkov entries."
+      ],
+      "requirements": [],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "spikes/P00-T02-installation-request.md"
+      ]
+    },
+    {
+      "id": "uv",
+      "role": "install-helper",
+      "version": "0.13.5",
+      "path": "~/.local/share/pwt-dev-tools/uv/0.13.5/uv-x86_64-unknown-linux-gnu/uv",
+      "sha256": "8a70db72685b7138121bfcda71fa1a00cb709ed9f1fdc4ecf1dd871e8e167e52",
+      "hash_basis": "install-record trusted hashes",
+      "status": "accepted-limitations",
+      "contract": [],
+      "invocation": "No contract sheet. Recorded install-time procedure only (install-record R-2): uv pip compile per tool (--python = the standalone interpreter, --python-platform x86_64-unknown-linux-gnu, --only-binary :all:, --generate-hashes, index https://pypi.org/simple); uv venv --python <standalone>; uv pip install --require-hashes --only-binary :all: --no-deps -r <lock>. All uv runs used env -i, UV_NO_CONFIG=1, UV_PYTHON_DOWNLOADS=never, cache ~/.local/share/pwt-dev-tools/_uv-cache, home ~/.local/share/pwt-dev-tools/_uv-home.",
+      "rejected_invocations": [
+        "--only-binary together with --no-build (rejected by uv as a usage error, exit 2; nothing installed; install record R-2 errors)"
+      ],
+      "coverage": "Install helper used once during the P00-T02 installation to resolve and install hash-locked wheels into the yamllint and Checkov virtual environments. Not a scanner; not used by any scan.",
+      "limitations": [
+        "Accepted as part of the installation checkpoint with limitations; no further uv use is approved by this freeze.",
+        "Archive digest and .sha256 file matched and the SLSA provenance attestation was verified (V1); the GitHub release attestation was not verified; built from a refs/heads/main workflow, not a tag ref.",
+        "Locks are fully ==-pinned with hashes; no source distributions were built. The compile step's printed exit codes were tail's (reporting correction RC-3); success was inferred from complete lock files (indirect evidence).",
+        "PyPI provenance for the resolved wheels was not verified (PyPI provenance exception).",
+        "Machine-local caches under ~/.local/share/pwt-dev-tools (_uv-cache, _uv-home, _staging, _cosign-home) are not part of the repository."
+      ],
+      "requirements": [],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "evidence/P00/P00-T02/locks/yamllint.in",
+        "evidence/P00/P00-T02/locks/checkov.in",
+        "evidence/P00/P00-T02/locks/yamllint.lock.txt",
+        "evidence/P00/P00-T02/locks/checkov.lock.txt",
+        "spikes/P00-T02-installation-request.md"
+      ]
+    },
+    {
+      "id": "cosign",
+      "role": "verification-helper",
+      "version": "3.1.2",
+      "path": "/usr/local/bin/cosign",
+      "sha256": "f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf",
+      "hash_basis": "install-record trusted hashes",
+      "status": "accepted-limitations",
+      "contract": [],
+      "invocation": "No contract sheet. Recorded V1 method only (install-record): cosign verify-blob-attestation --bundle <SLSA v1 bundle> --new-bundle-format --certificate-identity <exact workflow URI> --certificate-oidc-issuer https://token.actions.githubusercontent.com --type https://slsa.dev/provenance/v1 <artifact>, with HOME=~/.local/share/pwt-dev-tools/_cosign-home (Sigstore public-good trust root fetched over the network into that directory).",
+      "rejected_invocations": [],
+      "coverage": "Verification helper used once (V1, owner-approved 2026-10-24) to verify SLSA provenance attestations of the actionlint, uv and CPython release archives (three verifications exit 0; two negative controls exit 1). Not a scanner; not used by any scan.",
+      "limitations": [
+        "Accepted as part of the installation checkpoint with limitations.",
+        "/usr/local/bin/cosign is user-writable and its origin was not established by the host; it was shown byte-identical to the official sigstore/cosign v3.1.2 release asset cosign-linux-amd64 (GitHub release digest, read-only lookup, published 2026-07-17). Re-hash before any reuse.",
+        "Only SLSA provenance attestations were verified; GitHub release attestations (signer dotcom.releases.github.com, GitHub's own trust root) were not verified.",
+        "Attestations establish origin and build identity of an artifact, not that its code is safe.",
+        "PyPI provenance (PEP 740) for the yamllint and Checkov wheels and their dependency chain was not verified (V3 not performed; accepted exception for controlled development only).",
+        "Verification required network access to fetch the Sigstore trust root."
+      ],
+      "requirements": [],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "spikes/P00-T02-installation-request.md"
+      ]
+    },
+    {
+      "id": "cargo-audit",
+      "role": "deferred",
+      "version": "0.22.2",
+      "path": null,
+      "sha256": null,
+      "hash_basis": "none",
+      "status": "deferred",
+      "contract": [],
+      "invocation": null,
+      "rejected_invocations": [],
+      "coverage": "None. Not installed. A pending dependency for P01 checks, not a check that passed or ran.",
+      "limitations": [
+        "P00 closure clarification (2026-10-24): the version field 0.22.2 is the REQUESTED version (installation Request C); cargo-audit is not installed and not verified. Gate: P01 (R-4) install request and verification.",
+        "Deferred to P01 by owner decision R-4; nothing was downloaded or installed. The version 0.22.2 is the version named in installation Request C (crates.io, published 2026-06-05, requires Rust >= 1.88); it is a request value, not an installed or verified version.",
+        "The planned install procedure (cargo install ... --locked --root ~/.local/share/pwt-dev-tools/cargo-audit/0.22.2) builds from source and runs dependency build scripts on the host; when later run, cargo audit downloads the RustSec advisory database (network). Both need separate per-use owner approval.",
+        "Until installed and verified, no advisory scan result exists and none may be claimed."
+      ],
+      "requirements": [],
+      "evidence": [
+        "evidence/P00/P00-T02/install-record.md",
+        "spikes/P00-T02-installation-request.md"
+      ]
+    }
+  ],
+  "contract_sheets": [
+    {"tool": "yamllint", "path": "evidence/P00/P00-T09/contract-yamllint.md", "kind": "generated", "status": "current"},
+    {"tool": "gitleaks", "path": "evidence/P00/P00-T09/contract-gitleaks.md", "kind": "generated", "status": "current"},
+    {"tool": "checkov", "path": "evidence/P00/P00-T09/contract-checkov.md", "kind": "generated", "status": "superseded-for-invocation"},
+    {"tool": "checkov", "path": "evidence/P00/P00-T09/contract-checkov-rev2.md", "kind": "opus-authored", "status": "current"},
+    {"tool": "checkov", "path": "evidence/debug/P00-T09-D01/contract-checkov_r2.md", "kind": "generated", "status": "current"},
+    {"tool": "actionlint", "path": "evidence/P00/P00-T09/contract-actionlint.md", "kind": "generated", "status": "current"},
+    {"tool": "kubeconform", "path": "evidence/P00/P00-T09/contract-kubeconform.md", "kind": "generated", "status": "current"}
+  ]
+}

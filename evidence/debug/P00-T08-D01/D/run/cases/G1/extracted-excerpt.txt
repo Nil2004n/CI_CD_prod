@@ -1,0 +1,612 @@
+Large report
+
+F-00001 RULE-001 high
+
+File svc001/deploy.yaml line 1: configuration issue description for finding 1, with remediation text 
+kept short.
+
+F-00002 RULE-002 high
+
+File svc002/deploy.yaml line 2: configuration issue description for finding 2, with remediation text 
+kept short.
+
+F-00003 RULE-003 high
+
+File svc003/deploy.yaml line 3: configuration issue description for finding 3, with remediation text 
+kept short.
+
+F-00004 RULE-004 high
+
+File svc004/deploy.yaml line 4: configuration issue description for finding 4, with remediation text 
+kept short.
+
+F-00005 RULE-005 high
+
+File svc005/deploy.yaml line 5: configuration issue description for finding 5, with remediation text 
+kept short.
+
+F-00006 RULE-006 high
+
+File svc006/deploy.yaml line 6: configuration issue description for finding 6, with remediation text 
+kept short.
+
+F-00007 RULE-007 high
+
+File svc007/deploy.yaml line 7: configuration issue description for finding 7, with remediation text 
+kept short.
+
+F-00008 RULE-008 high
+
+File svc008/deploy.yaml line 8: configuration issue description for finding 8, with remediation text 
+kept short.
+
+F-00009 RULE-009 high
+
+File svc009/deploy.yaml line 9: configuration issue description for finding 9, with remediation text 
+kept short.
+
+F-00010 RULE-010 high
+
+File svc010/deploy.yaml line 10: configuration issue description for finding 10, with remediation 
+text kept short.
+
+F-00011 RULE-011 high
+
+File svc011/deploy.yaml line 11: configuration issue description for finding 11, with remediation 
+text kept short.
+
+F-00012 RULE-012 high
+
+File svc012/deploy.yaml line 12: configuration issue description for finding 12, with remediation 
+
+Page 1
+
+
+text kept short.
+
+F-00013 RULE-013 high
+
+File svc013/deploy.yaml line 13: configuration issue description for finding 13, with remediation 
+text kept short.
+
+F-00014 RULE-014 high
+
+File svc014/deploy.yaml line 14: configuration issue description for finding 14, with remediation 
+text kept short.
+
+F-00015 RULE-015 high
+
+File svc015/deploy.yaml line 15: configuration issue description for finding 15, with remediation 
+text kept short.
+
+F-00016 RULE-016 high
+
+File svc016/deploy.yaml line 16: configuration issue description for finding 16, with remediation 
+text kept short.
+
+F-00017 RULE-017 high
+
+File svc017/deploy.yaml line 17: configuration issue description for finding 17, with remediation 
+text kept short.
+
+F-00018 RULE-018 high
+
+File svc018/deploy.yaml line 18: configuration issue description for finding 18, with remediation 
+text kept short.
+
+F-00019 RULE-019 high
+
+File svc019/deploy.yaml line 19: configuration issue description for finding 19, with remediation 
+text kept short.
+
+F-00020 RULE-020 high
+
+File svc020/deploy.yaml line 20: configuration issue description for finding 20, with remediation 
+text kept short.
+
+F-00021 RULE-021 high
+
+File svc021/deploy.yaml line 21: configuration issue description for finding 21, with remediation 
+text kept short.
+
+F-00022 RULE-022 high
+
+File svc022/deploy.yaml line 22: configuration issue description for finding 22, with remediation 
+text kept short.
+
+F-00023 RULE-023 high
+
+File svc023/deploy.yaml line 23: configuration issue description for finding 23, with remediation 
+text kept short.
+
+F-00024 RULE-024 high
+
+File svc024/deploy.yaml line 24: configuration issue description for finding 24, with remediation 
+text kept short.
+
+Page 2
+
+
+F-00025 RULE-025 high
+
+File svc025/deploy.yaml line 25: configuration issue description for finding 25, with remediation 
+text kept short.
+
+F-00026 RULE-026 high
+
+File svc026/deploy.yaml line 26: configuration issue description for finding 26, with remediation 
+text kept short.
+
+F-00027 RULE-027 high
+
+File svc027/deploy.yaml line 27: configuration issue description for finding 27, with remediation 
+text kept short.
+
+F-00028 RULE-028 high
+
+File svc028/deploy.yaml line 28: configuration issue description for finding 28, with remediation 
+text kept short.
+
+F-00029 RULE-029 high
+
+File svc029/deploy.yaml line 29: configuration issue description for finding 29, with remediation 
+text kept short.
+
+F-00030 RULE-030 high
+
+File svc030/deploy.yaml line 30: configuration issue description for finding 30, with remediation 
+text kept short.
+
+F-00031 RULE-031 high
+
+File svc031/deploy.yaml line 31: configuration issue description for finding 31, with remediation 
+text kept short.
+
+F-00032 RULE-032 high
+
+File svc032/deploy.yaml line 32: configuration issue description for finding 32, with remediation 
+text kept short.
+
+F-00033 RULE-033 high
+
+File svc033/deploy.yaml line 33: configuration issue description for finding 33, with remediation 
+text kept short.
+
+F-00034 RULE-034 high
+
+File svc034/deploy.yaml line 34: configuration issue description for finding 34, with remediation 
+text kept short.
+
+F-00035 RULE-035 high
+
+File svc035/deploy.yaml line 35: configuration issue description for finding 35, with remediation 
+text kept short.
+
+F-00036 RULE-036 high
+
+File svc036/deploy.yaml line 36: configuration issue description for finding 36, with remediation 
+text kept short.
+
+F-00037 RULE-037 high
+
+Page 3
+
+
+File svc037/deploy.yaml line 37: configuration issue description for finding 37, with remediation 
+text kept short.
+
+F-00038 RULE-038 high
+
+File svc038/deploy.yaml line 38: configuration issue description for finding 38, with remediation 
+text kept short.
+
+F-00039 RULE-039 high
+
+File svc039/deploy.yaml line 39: configuration issue description for finding 39, with remediation 
+text kept short.
+
+F-00040 RULE-040 high
+
+File svc040/deploy.yaml line 40: configuration issue description for finding 40, with remediation 
+text kept short.
+
+F-00041 RULE-041 high
+
+File svc041/deploy.yaml line 41: configuration issue description for finding 41, with remediation 
+text kept short.
+
+F-00042 RULE-042 high
+
+File svc042/deploy.yaml line 42: configuration issue description for finding 42, with remediation 
+text kept short.
+
+F-00043 RULE-043 high
+
+File svc043/deploy.yaml line 43: configuration issue description for finding 43, with remediation 
+text kept short.
+
+F-00044 RULE-044 high
+
+File svc044/deploy.yaml line 44: configuration issue description for finding 44, with remediation 
+text kept short.
+
+F-00045 RULE-045 high
+
+File svc045/deploy.yaml line 45: configuration issue description for finding 45, with remediation 
+text kept short.
+
+F-00046 RULE-046 high
+
+File svc046/deploy.yaml line 46: configuration issue description for finding 46, with remediation 
+text kept short.
+
+F-00047 RULE-047 high
+
+File svc047/deploy.yaml line 47: configuration issue description for finding 47, with remediation 
+text kept short.
+
+F-00048 RULE-048 high
+
+File svc048/deploy.yaml line 48: configuration issue description for finding 48, with remediation 
+text kept short.
+
+F-00049 RULE-049 high
+
+File svc049/deploy.yaml line 49: configuration issue description for finding 49, with remediation 
+text kept short.
+
+Page 4
+
+
+F-00050 RULE-050 high
+
+File svc050/deploy.yaml line 50: configuration issue description for finding 50, with remediation 
+text kept short.
+
+F-00051 RULE-051 high
+
+File svc051/deploy.yaml line 51: configuration issue description for finding 51, with remediation 
+text kept short.
+
+F-00052 RULE-052 high
+
+File svc052/deploy.yaml line 52: configuration issue description for finding 52, with remediation 
+text kept short.
+
+F-00053 RULE-053 high
+
+File svc053/deploy.yaml line 53: configuration issue description for finding 53, with remediation 
+text kept short.
+
+F-00054 RULE-054 high
+
+File svc054/deploy.yaml line 54: configuration issue description for finding 54, with remediation 
+text kept short.
+
+F-00055 RULE-055 high
+
+File svc055/deploy.yaml line 55: configuration issue description for finding 55, with remediation 
+text kept short.
+
+F-00056 RULE-056 high
+
+File svc056/deploy.yaml line 56: configuration issue description for finding 56, with remediation 
+text kept short.
+
+F-00057 RULE-057 high
+
+File svc057/deploy.yaml line 57: configuration issue description for finding 57, with remediation 
+text kept short.
+
+F-00058 RULE-058 high
+
+File svc058/deploy.yaml line 58: configuration issue description for finding 58, with remediation 
+text kept short.
+
+F-00059 RULE-059 high
+
+File svc059/deploy.yaml line 59: configuration issue description for finding 59, with remediation 
+text kept short.
+
+F-00060 RULE-060 high
+
+File svc060/deploy.yaml line 60: configuration issue description for finding 60, with remediation 
+text kept short.
+
+F-00061 RULE-061 high
+
+File svc061/deploy.yaml line 61: configuration issue description for finding 61, with remediation 
+text kept short.
+
+F-00062 RULE-062 high
+
+Page 5
+
+
+File svc062/deploy.yaml line 62: configuration issue description for finding 62, with remediation 
+text kept short.
+
+F-00063 RULE-063 high
+
+File svc063/deploy.yaml line 63: configuration issue description for finding 63, with remediation 
+text kept short.
+
+F-00064 RULE-064 high
+
+File svc064/deploy.yaml line 64: configuration issue description for finding 64, with remediation 
+text kept short.
+
+F-00065 RULE-065 high
+
+File svc065/deploy.yaml line 65: configuration issue description for finding 65, with remediation 
+text kept short.
+
+F-00066 RULE-066 high
+
+File svc066/deploy.yaml line 66: configuration issue description for finding 66, with remediation 
+text kept short.
+
+F-00067 RULE-067 high
+
+File svc067/deploy.yaml line 67: configuration issue description for finding 67, with remediation 
+text kept short.
+
+F-00068 RULE-068 high
+
+File svc068/deploy.yaml line 68: configuration issue description for finding 68, with remediation 
+text kept short.
+
+F-00069 RULE-069 high
+
+File svc069/deploy.yaml line 69: configuration issue description for finding 69, with remediation 
+text kept short.
+
+F-00070 RULE-070 high
+
+File svc070/deploy.yaml line 70: configuration issue description for finding 70, with remediation 
+text kept short.
+
+F-00071 RULE-071 high
+
+File svc071/deploy.yaml line 71: configuration issue description for finding 71, with remediation 
+text kept short.
+
+F-00072 RULE-072 high
+
+File svc072/deploy.yaml line 72: configuration issue description for finding 72, with remediation 
+text kept short.
+
+F-00073 RULE-073 high
+
+File svc073/deploy.yaml line 73: configuration issue description for finding 73, with remediation 
+text kept short.
+
+F-00074 RULE-074 high
+
+File svc074/deploy.yaml line 74: configuration issue description for finding 74, with remediation 
+text kept short.
+
+Page 6
+
+
+F-00075 RULE-075 high
+
+File svc075/deploy.yaml line 75: configuration issue description for finding 75, with remediation 
+text kept short.
+
+F-00076 RULE-076 high
+
+File svc076/deploy.yaml line 76: configuration issue description for finding 76, with remediation 
+text kept short.
+
+F-00077 RULE-077 high
+
+File svc077/deploy.yaml line 77: configuration issue description for finding 77, with remediation 
+text kept short.
+
+F-00078 RULE-078 high
+
+File svc078/deploy.yaml line 78: configuration issue description for finding 78, with remediation 
+text kept short.
+
+F-00079 RULE-079 high
+
+File svc079/deploy.yaml line 79: configuration issue description for finding 79, with remediation 
+text kept short.
+
+F-00080 RULE-080 high
+
+File svc080/deploy.yaml line 80: configuration issue description for finding 80, with remediation 
+text kept short.
+
+F-00081 RULE-081 high
+
+File svc081/deploy.yaml line 81: configuration issue description for finding 81, with remediation 
+text kept short.
+
+F-00082 RULE-082 high
+
+File svc082/deploy.yaml line 82: configuration issue description for finding 82, with remediation 
+text kept short.
+
+F-00083 RULE-083 high
+
+File svc083/deploy.yaml line 83: configuration issue description for finding 83, with remediation 
+text kept short.
+
+F-00084 RULE-084 high
+
+File svc084/deploy.yaml line 84: configuration issue description for finding 84, with remediation 
+text kept short.
+
+F-00085 RULE-085 high
+
+File svc085/deploy.yaml line 85: configuration issue description for finding 85, with remediation 
+text kept short.
+
+F-00086 RULE-086 high
+
+File svc086/deploy.yaml line 86: configuration issue description for finding 86, with remediation 
+text kept short.
+
+F-00087 RULE-087 high
+
+Page 7
+
+
+File svc087/deploy.yaml line 87: configuration issue description for finding 87, with remediation 
+text kept short.
+
+F-00088 RULE-088 high
+
+File svc088/deploy.yaml line 88: configuration issue description for finding 88, with remediation 
+text kept short.
+
+F-00089 RULE-089 high
+
+File svc089/deploy.yaml line 89: configuration issue description for finding 89, with remediation 
+text kept short.
+
+F-00090 RULE-090 high
+
+File svc090/deploy.yaml line 90: configuration issue description for finding 90, with remediation 
+text kept short.
+
+F-00091 RULE-091 high
+
+File svc091/deploy.yaml line 91: configuration issue description for finding 91, with remediation 
+text kept short.
+
+F-00092 RULE-092 high
+
+File svc092/deploy.yaml line 92: configuration issue description for finding 92, with remediation 
+text kept short.
+
+F-00093 RULE-093 high
+
+File svc093/deploy.yaml line 93: configuration issue description for finding 93, with remediation 
+text kept short.
+
+F-00094 RULE-094 high
+
+File svc094/deploy.yaml line 94: configuration issue description for finding 94, with remediation 
+text kept short.
+
+F-00095 RULE-095 high
+
+File svc095/deploy.yaml line 95: configuration issue description for finding 95, with remediation 
+text kept short.
+
+F-00096 RULE-096 high
+
+File svc096/deploy.yaml line 96: configuration issue description for finding 96, with remediation 
+text kept short.
+
+F-00097 RULE-097 high
+
+File svc097/deploy.yaml line 97: configuration issue description for finding 97, with remediation 
+text kept short.
+
+F-00098 RULE-098 high
+
+File svc098/deploy.yaml line 98: configuration issue description for finding 98, with remediation 
+text kept short.
+
+F-00099 RULE-099 high
+
+File svc099/deploy.yaml line 99: configuration issue description for finding 99, with remediation 
+text kept short.
+
+Page 8
+
+
+F-00100 RULE-100 high
+
+File svc100/deploy.yaml line 100: configuration issue description for finding 100, with remediation 
+text kept short.
+
+F-00101 RULE-101 high
+
+File svc101/deploy.yaml line 101: configuration issue description for finding 101, with remediation 
+text kept short.
+
+F-00102 RULE-102 high
+
+File svc102/deploy.yaml line 102: configuration issue description for finding 102, with remediation 
+text kept short.
+
+F-00103 RULE-103 high
+
+File svc103/deploy.yaml line 103: configuration issue description for finding 103, with remediation 
+text kept short.
+
+F-00104 RULE-104 high
+
+File svc104/deploy.yaml line 104: configuration issue description for finding 104, with remediation 
+text kept short.
+
+F-00105 RULE-105 high
+
+File svc105/deploy.yaml line 105: configuration issue description for finding 105, with remediation 
+text kept short.
+
+F-00106 RULE-106 high
+
+File svc106/deploy.yaml line 106: configuration issue description for finding 106, with remediation 
+text kept short.
+
+F-00107 RULE-107 high
+
+File svc107/deploy.yaml line 107: configuration issue description for finding 107, with remediation 
+text kept short.
+
+F-00108 RULE-108 high
+
+File svc108/deploy.yaml line 108: configuration issue description for finding 108, with remediation 
+text kept short.
+
+F-00109 RULE-109 high
+
+File svc109/deploy.yaml line 109: configuration issue description for finding 109, with remediation 
+text kept short.
+
+F-00110 RULE-110 high
+
+File svc110/deploy.yaml line 110: configuration issue description for finding 110, with remediation 
+text kept short.
+
+F-00111 RULE-111 high
+
+File svc111/deploy.yaml line 111: configuration issue description for finding 111, with remediation 
+text kept short.
+
+F-00112 RULE-112 high
+
+Page 9
+
+
+File svc112/deploy.yaml line 112: configuration issue description for finding 112, with remediation 
+text kept short.
+
+F-00113 RULE-113 high
+
+File svc113/deploy.yaml line 113: configuration issue description for finding 113, with remediation 
+text kept short.
+
+F-00114 RULE-114 high
+
+File svc114/deploy.yaml line 114: configuration issue description for finding 114, with remediation 
+text kept short.
+
+F-00115 RULE-115 high
+
+File svc115/deploy.yaml line 115: configuration issue description for finding 115, with remediation 
+text kept short.
+
+F-00116 RULE-116 high
+
+File svc116/deploy.yaml line 116: configuration issue description for finding 116, with remediation 
+text kept short.
+
+F-00117 RULE-117 high
+

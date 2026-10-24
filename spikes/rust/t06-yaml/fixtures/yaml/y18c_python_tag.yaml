@@ -1,0 +1,1 @@
+p: !!python/object:os.system x

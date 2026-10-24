@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.1 (pre-implementation amendment CA-01) | Date: 2026-10-23 | Status: Proposed architecture
+Version: 0.3.3 (amendments CA-01, CA-02; store contract 1.3, wrapper protocol 1.1) | Date: 2026-10-23 | Status: Proposed architecture
 Scope: Single-user local application; Rust-oriented reference design, subject to language sign-off.
 
 ## 1. Architectural intent
@@ -141,7 +141,7 @@ Denied tasks do not become passes. Dynamic discoveries that introduce new networ
 
 ### Canonical application command/event contract (app contract v1.0, CA-01)
 
-This section is the single canonical command/event vocabulary (resolves C4/C5). UI Schema §17, the demo TUI and mocks refer to it; on conflict this section wins. The contract has its own version line (`app_contract_version` 1.0), independent of the document revision, store schema v1.2, wrapper protocol v1.0 and UI schema v1.0. Commands are typed requests from the UI reducer to the coordinator; events are typed projections back. Field-level DTOs are defined in code during P01 and reviewed as a shared contract.
+This section is the single canonical command/event vocabulary (resolves C4/C5). UI Schema §17, the demo TUI and mocks refer to it; on conflict this section wins. The contract has its own version line (`app_contract_version` 1.0), independent of the document revision, store schema v1.3, wrapper protocol v1.1 and UI schema v1.0. Commands are typed requests from the UI reducer to the coordinator; events are typed projections back. Field-level DTOs are defined in code during P01 and reviewed as a shared contract.
 
 Status: **pilot** = command/event is implemented in the pilot. **reserved (deferred)** = name and intent reserved so later work does not invent a conflicting interface; it is not implemented, is not shown as available in the UI and returns an explicit `OperationFailed{code="deferred"}` if dispatched.
 
@@ -323,6 +323,8 @@ Directory root is resolved by the platform application-data mechanism or explici
 | Git auth/update failure | Sanitised actionable message; skip repo; continue others |
 | Missing scanner | Unsupported capability, dependency guidance, no clean badge |
 | Scanner timeout/crash | Preserve earlier findings; failed/incomplete task |
+| Scanner output exceeds budget | Reader stops at budget, immediate termination; output marked truncated; check incomplete, never passed (CA-02) |
+| Leftover descendants after child exit | Group members cleaned up and recorded separately from the child's own status (CA-02); descendants outside the group remain a stated limitation |
 | Invalid schema/renderer missing inputs | Specific gap; other applicable checks continue |
 | Approval denied | Skip affected operation; qualified summary |
 | Terminal resize | Reflow layout; preserve app/run state |
@@ -353,9 +355,9 @@ Directory root is resolved by the platform application-data mechanism or explici
 | A-06 | Chat has no execution tools | Preserves advisory safety model |
 | A-07 | Direct Git invocation, script optional | Accepted by owner (D-03); `.sh` wrappers are extension X6 |
 | A-08 | No implicit all-network grant | Approval matches requested external access requirement |
-| A-09 | Native Rust process adapters implement protocol v1.0 DTOs | Accepted (D-03); supervisor owns timeout/cancel/process-tree kill out-of-band (CA-01) |
+| A-09 | Native Rust process adapters implement protocol v1.1 DTOs | Accepted (D-03); supervisor owns timeout/cancel/process-tree kill out-of-band (CA-01) |
 | A-10 | Linux x86_64 first pilot target, portable interfaces | Accepted (D-02); Windows/macOS unverified extensions (X5) |
-| A-11 | Independent version lines: document 0.3.x, store 1.2, wrapper protocol 1.0, app command/event contract 1.0, UI schema 1.0 | Resolves C6; see Data Schema §17 and §22 |
+| A-11 | Independent version lines: document 0.3.x, store 1.3, wrapper protocol 1.1, app command/event contract 1.0, UI schema 1.0 | Resolves C6; see Data Schema §17 and §22 |
 
 Physical deployment matrix, scanner/framework coverage, OpenRouter inference-model choice and performance budgets are sign-off gates, not architecture facts established by this draft.
 

@@ -1,0 +1,8 @@
+A) run-1 observation pipeline verbatim (no fixtures exist in this namespace):
+   result: [tr ]
+B) same pipeline, but each stage reports pid/ppid/pgid/comm of every process it sees (unfiltered):
+   pid=1 comm=bash ppid=0 pgid=0
+   pid=15 comm=bash ppid=1 pgid=0
+   pid=16 comm=tr ppid=1 pgid=0
+C) builtin-only scan (no external commands):
+   pid=1 comm=bash ppid=0 pgid=0

@@ -4,7 +4,7 @@ Proposed additions to `CLAUDE.md` (development contract v0.3 → v0.3.1). Existi
 
 ```markdown
 ## Pilot baseline (owner decisions 2026-10-23, plan.md §1)
-- Specs v0.3.1 with amendment CA-01; store schema 1.2, wrapper protocol 1.0, app command/event contract 1.0 (Architecture §6, canonical), UI schema 1.0. Canonical schema file: schemas/workbench-store-v1.2.schema.json; regenerate embedded/wrapper copies from it.
+- Specs v0.3.3 with amendments CA-01, CA-02; store schema 1.3, wrapper protocol 1.1, app command/event contract 1.0 (Architecture §6, canonical), UI schema 1.0. Canonical schema file: schemas/workbench-store-v1.3.schema.json; regenerate embedded/wrapper copies from it.
 - Linux x86_64 first pilot target; Windows/macOS unverified extensions.
 - Native Rust process adapters and direct Git; .sh wrappers are extension X6. ShellCheck/Bats only for scripts that exist.
 - Capability labels: PRD §16 is canonical (pilot/conditional/deferred).

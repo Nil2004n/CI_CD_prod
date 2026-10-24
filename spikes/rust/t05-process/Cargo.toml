@@ -1,0 +1,9 @@
+[package]
+name = "t05-process"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "P00-T05 spike placeholder (D3-1 dependency build only; not executed)"
+
+[dependencies]
+libc = "=0.2.191"

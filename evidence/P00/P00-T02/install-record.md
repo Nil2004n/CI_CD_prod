@@ -72,3 +72,35 @@ Disk use (approx.): python 228M, checkov 227M, uv 37M, `_uv-cache` 39M, `_stagin
 
 ## Rollback
 `rm -rf ~/.local/share/pwt-dev-tools` removes everything created here. `~/.local/bin/gitleaks` predates this work and is not touched by rollback.
+
+## Owner acceptance and recorded exceptions (2026-10-24)
+
+Installation checkpoint accepted with limitations. Not acceptance of scanner behaviour or application functionality (neither tested).
+
+- **PyPI provenance exception:** TLS + reviewed/hash-locked distribution integrity accepted for controlled development only. V3 not performed; it is a separate security-hardening decision. The yamllint/Checkov wheels and their dependency chain are **not provenance-verified**. To be revisited before customer distribution or sensitive client use. The acceptance does not extend to other package versions, downloads or installations.
+- Attestations (where verified) establish origin/build identity of an artifact, not that its code is safe.
+- Checksum-only limitation remains for Gitleaks and kubeconform; GitHub "release" attestations remain unverified.
+
+## Reporting corrections (original mistakes kept above)
+
+| # | Original report | Problem | Real evidence |
+|---|---|---|---|
+| RC-1 | Request A offline identity run printed `exit=` blank | zsh has no `PIPESTATUS` | Unpiped re-run: gitleaks `version`, actionlint `-version`, kubeconform `-v` each exit 0 |
+| RC-2 | V1 first cosign run printed `exit=0` | value was `tail`'s status | Unpiped re-run: three verifications exit 0; two negative controls exit 1 |
+| RC-3 | B1 `uv pip compile` printed `exit=0` | value was `tail`'s status | Not re-run; success inferred from complete lock files (3 and 96 `==`-pinned entries) containing the reviewed top-level wheel hashes. Treat as indirect evidence |
+
+From now on exit codes are captured per `evidence/README.md`.
+
+## Trusted hashes (re-hash before execution)
+
+| Input | SHA-256 |
+|---|---|
+| `~/.local/bin/gitleaks` | `88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509` |
+| `~/.local/share/pwt-dev-tools/actionlint/1.7.12/actionlint` | `c872d6db8c6bf83a8eaa704fc93999f027d55dffbc63b8a6abdccb47df5f4cd4` |
+| `~/.local/share/pwt-dev-tools/kubeconform/0.8.0/kubeconform` | `457722b36e98d7bdbc91525e594951ef5d7ea3a29da2d13b9b28a2fb8a5097b7` |
+| `~/.local/share/pwt-dev-tools/python/3.12.15+20261021/python/bin/python3.12` | `58fe899223901d346e9d3a0184bdd04d82a276ff1f99be0e68d5873ea71c1b68` |
+| `~/.local/share/pwt-dev-tools/uv/0.13.5/uv-x86_64-unknown-linux-gnu/uv` | `8a70db72685b7138121bfcda71fa1a00cb709ed9f1fdc4ecf1dd871e8e167e52` |
+| `/usr/local/bin/cosign` | `f7622ed3cf22e55e1ae6377c080979ff77a22da9981c11df222a2e444991e7cf` |
+
+Python venv contents are covered by the hash locks at install time; a venv-level re-hash method is to be defined before P00-T09.
+

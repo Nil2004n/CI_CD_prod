@@ -1,0 +1,61 @@
+# grep-based pattern review of NEW T07 build scripts and proc-macro crates (not an audit)
+== build script async-io-2.6.0/build.rs (16 lines)
+13:    if !cfg.probe_rustc_version(1, 87) {
+== build script crossbeam-utils-0.8.23/build.rs (51 lines)
+1:// The rustc-cfg listed below are considered public API, but it is *unstable*
+10:// With the exceptions mentioned above, the rustc-cfg emitted by the build
+22:    println!("cargo:rustc-check-cfg=cfg(crossbeam_no_atomic,crossbeam_sanitize_thread)");
+24:    let target = match env::var("TARGET") {
+37:    // stable rustc is used when the build script doesn't run. This is useful
+40:        println!("cargo:rustc-cfg=crossbeam_no_atomic");
+43:    let target = &*env::var("TARGET").expect("TARGET not set");
+46:    // x86_64-unknown-linux-gnutsan is available on stable since Rust 1.96: https://github.com/rust-lang/rust/pull/152757
+47:    let sanitize = env::var("CARGO_CFG_SANITIZE").unwrap_or_default();
+49:        println!("cargo:rustc-cfg=crossbeam_sanitize_thread");
+== build script getrandom-0.4.3/build.rs (11 lines)
+7:    let sanitizers = std::env::var("CARGO_CFG_SANITIZE").unwrap_or_default();
+9:        println!("cargo:rustc-cfg=getrandom_msan");
+== build script rustix-1.1.5/build.rs (281 lines)
+1:use std::env::var;
+10:    // the rustc version.
+18:    let inline_asm_name_present = std::fs::metadata(inline_asm_name).is_ok();
+43:    // Check for `--features=rustc-dep-of-std`.
+44:    let rustc_dep_of_std = var("CARGO_FEATURE_RUSTC_DEP_OF_STD").is_ok();
+47:    // is a rustc flag rather than a cargo feature flag because it's
+54:    // rustc flag rather than a cargo feature flag because it's experimental
+64:    if rustc_dep_of_std {
+86:        use_feature("rustc_diagnostics")
+189:    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_RUSTC_DEP_OF_STD");
+192:    // Remove the can_compile() probe artifact so OUT_DIR ends up empty.
+194:    // OUT_DIR destabilizes the cache keys of some build systems like Bazel.
+195:    let _ = std::fs::remove_file(probe_file());
+205:    // <https://doc.rust-lang.org/stable/std/fmt/trait.LowerExp.html#impl-LowerExp-for-NonZero%3CT%3E>
+216:    println!("cargo:rustc-cfg={}", feature);
+219:/// Test whether the rustc at `var("RUSTC")` supports the given feature.
+228:    PathBuf::from(var("OUT_DIR").unwrap()).join("rustix_test_can_compile")
+231:/// Test whether the rustc at `var("RUSTC")` can compile the given code.
+233:    use std::process::Stdio;
+235:    let rustc = var("RUSTC").unwrap();
+238:    // Use `RUSTC_WRAPPER` if it's set, unless it's set to an empty string, as
+240:    // [here]: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads
+241:    let wrapper = var("RUSTC_WRAPPER")
+246:        let mut cmd = std::process::Command::new(wrapper);
+247:        // The wrapper's first argument is supposed to be the path to rustc.
+248:        cmd.arg(rustc);
+251:        std::process::Command::new(rustc)
+== proc-macro async-recursion-1.2.0
+== proc-macro async-trait-0.1.92
+== proc-macro enumflags2_derive-0.7.12
+== proc-macro futures-macro-0.3.34
+== proc-macro serde_repr-0.1.21
+== proc-macro tracing-attributes-0.1.31
+== proc-macro zbus_macros-5.19.0
+== proc-macro zvariant_derive-5.15.1
+== proc-macro-crate (dependency of zbus_macros/zvariant_derive) file/env access
+proc-macro-crate-3.5.0/src/lib.rs:22:of a proc-macro with the name of the desired crate. `CARGO_MANIFEST_DIR` will be used to find the
+proc-macro-crate-3.5.0/src/lib.rs:131:                f.write_str("`CARGO_MANIFEST_DIR` env variable not set."),
+proc-macro-crate-3.5.0/src/lib.rs:173:/// The current `Cargo.toml` is determined by taking `CARGO_MANIFEST_DIR/Cargo.toml`.
+proc-macro-crate-3.5.0/src/lib.rs:185:    let manifest_dir = env::var("CARGO_MANIFEST_DIR").map_err(|_| Error::CargoManifestDirNotSet)?;
+proc-macro-crate-3.5.0/src/lib.rs:242:    let Ok(cargo) = env::var("CARGO") else {
+proc-macro-crate-3.5.0/src/lib.rs:335:    let content = fs::read_to_string(path)
+proc-macro-crate-3.5.0/src/lib.rs:348:        let cr = match env::var_os("CARGO_TARGET_TMPDIR") {

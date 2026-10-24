@@ -1,0 +1,15 @@
+Unicode unsupported
+
+[complex script/RTL not shaped] Arabic: .ملاعلاب ابحرم
+
+[complex script/RTL not shaped] Hebrew: .םלוע םולש
+
+Emoji: <U+1F600> <U+1F680>.
+
+Combining: é ä ñ.
+
+Astral: <U+1D400><U+1D401> <U+13000>.
+
+Page 1
+
+

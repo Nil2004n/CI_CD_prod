@@ -1,0 +1,6 @@
+uid in ns: 0
+interfaces:
+lo               DOWN           00:00:00:00:00:00 <LOOPBACK> 
+routes: 0 lines
+curl to static.crates.io exit=6
+curl to 1.1.1.1 exit=7
