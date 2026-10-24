@@ -72,6 +72,34 @@ Proposed: one branch per phase, `phase/Pxx-<slug>`, created from the approved ba
 ### 3.7 Evidence layout
 `evidence/<phase-or-cycle>/` holds logs and check records (see `evidence/README.md`). Root continuity files stay compact and link to evidence.
 
+### 3.8 Bounded parallel execution (owner policy, 2026-10-24, from P01 onward)
+
+**Lead (Opus) role:** coordinator, reviewer and integrator. Each phase gets a proposed bounded parallel plan, with **up to three workers** only where the dependency graph supports independent work. This supersedes the earlier "one, at most two" rule in §3.2 for P01 onward. CLAUDE.md still states the old rule; an amendment is proposed, not applied.
+
+**Before spawning, the lead:**
+- reads the plan, acceptance criteria and approvals;
+- fixes shared interfaces and a common baseline commit;
+- gives each worker an explicit scope, file ownership, tests and stop condition;
+- gives each worker a separate worktree and branch;
+- verifies the messaging mechanism and worktree support.
+
+**Communication:** workers may communicate directly about dependencies and interfaces. Shared-contract or scope changes need lead approval. If direct messaging is unavailable (as now: worker agents have no messaging tool), communication is routed through the lead, with a lead-monitored board file; messages are never claimed as delivered when they were not.
+
+**Workers:**
+- stay in scope and avoid shared control files unless assigned;
+- test their changes;
+- make local checkpoint commits only where authorised;
+- report commit hashes, tests, limitations and remaining work;
+- keep honest recovery notes if interrupted.
+
+**Lead ownership:** shared manifests and lockfiles, phase documentation and integration. The lead reviews worker commits, integrates them into the phase branch, resolves conflicts and runs combined regression and security checks.
+
+**Hard limits:**
+- no automatic merge to `main` and no push without the phase's explicit approvals;
+- no new dependencies, broadened permissions or repeated repair loops without approval;
+- finished workers are shut down;
+- on a usage-limit interruption, preserve partial state and stop; never schedule automatic continuation.
+
 ## 4. Phase roadmap
 
 Tier per phase refers to PRD §16 labels. Each phase approval covers its tasks and listed checks only. "Checks" become runnable commands only after P01 verifies them.
@@ -196,6 +224,25 @@ Process rule from T07 (owner, 2026-10-24): future spike requests enumerate every
 
 ### 5.1 Per-tool spike protocol (C1/C11 are hypotheses per tool)
 For each pinned tool record: (a) every repository config/ignore/allowlist/plugin/custom-check file it auto-discovers, and whether an explicit app-owned config fully neutralises each; (b) explicit-file input honoured vs directory walk — if walking, a staged selected-file copy strategy and its effect on line mapping; (c) output format(s), where raw secret material can appear (stdout, stderr, report file) and the effect of tool redaction options; (d) exit codes for clean, findings, parse error, crash, bad flag; (e) network attempts in default mode and whether they can be disabled verifiably; (f) behaviour on malformed YAML with a seeded fake secret (SCAN-08); (g) version string and binary checksum. Results feed a contract sheet: adapter ID, version, invocation template, config policy, scope strategy, parser ID, exit mapping, network policy, limitations.
+
+## 5A. P01 — workspace, domain types and contracts (planning, 2026-10-24; not approved for execution)
+
+Detail, interfaces, parallel waves and approvals A1–A7: `planning/P01-execution-plan.md`.
+
+| Task | Content | Owner | Network/installs | Hours |
+|---|---|---|---|---|
+| P01-T01 | P01 request: layout, toolchain-pin method, lint policy, frozen module interfaces, test plan | Lead | None | 1–1.5 |
+| P01-T02 | Dependency request: `serde` (derive) 1.0.229 + `serde_json` 1.0.154; offline (cache) or online (RustSec + locked fetch) resolution; build-exposure report | Lead | Option-dependent (A2/A3) | 1–2 |
+| P01-T03 | cargo-audit installation request (R-4) and offline advisory-DB plan | Lead | Install + fetch (A4) or stays deferred | 1–2 |
+| P01-T04 | Workspace scaffold `workbench/` (7 crates per Tech §4; only `domain` has content), toolchain pin, lints, frozen interface stubs, lockfile, check script; baseline commit B0 | Lead | None | 1–1.5 |
+| P01-T05 | Typed IDs + UTC timestamp newtypes, validation, serde, tests | W1 (wave 1) | None | 1–1.5 |
+| P01-T06 | `RedactedText`/`SanitisedText` newtypes; no raw construction/deserialisation; `compile_fail` doctests | W2 (wave 1) | None | 1–1.5 |
+| P01-T07 | Run/check/approval state machines (Arch §7) with exhaustive transition tests | W3 (wave 1) | None | 1–1.5 |
+| P01-T08 | App contract v1.0 command/event DTOs (Arch §6), reserved → `OperationNotAvailable`, delivery classes, round-trip tests | W1 (wave 2) | None | 1.5–2 |
+| P01-T09 | Integration; fmt/clippy `-D warnings`/test/build; cargo-audit if installed; reviewer + security-reviewer; evidence | Lead | None | 1–1.5 |
+| P01-T10 | P01 report, freeze update, status/handover; stop for acceptance | Lead | None | 0.5–1 |
+
+P01 total about 10–15 h hands-on, against the §7.1 estimate of 6–10 h. The difference is the request, dependency and cargo-audit work. Confidence is low.
 
 ## 6. Pilot acceptance anchors
 Release gates PRD §9 and §15 apply. Mocks never satisfy real-scan acceptance. Manual terminal/mouse/PDF checks stay listed as manual-pending until performed. Real OpenRouter behaviour is unverified until a separately approved real-API acceptance check.
