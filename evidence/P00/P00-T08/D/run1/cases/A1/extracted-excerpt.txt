@@ -1,0 +1,13 @@
+Active
+
+[raw HTML not rendered] <script>alert('x')</script>
+
+[raw HTML not rendered] <iframe src="https://example.invalid"></iframe>
+
+[raw HTML not rendered] <form action="https://example.invalid"><input name=a></form>
+
+js <javascript:alert(1)>
+
+Page 1
+
+

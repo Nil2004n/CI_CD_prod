@@ -171,3 +171,123 @@ Owner accepted the featureless configuration **for stage-B inspection** (pulldow
 - Whether `optimize=true` compression keeps output within limits.
 - Visual correctness of spike-owned wrapping and pagination.
 - WeasyPrint remains suspended; no research, upgrade or execution.
+
+## Owner decision, stage C and formal stage D (2026-10-24) — appended; A/A2/B above unchanged
+
+**Owner decision:** keep the featureless configuration for the experiment.
+- Provisionally accepted: whole-font embedding within existing limits; no complex-script shaping or RTL layout, as an explicit experimental limitation. Neither is accepted for the final product.
+- Not to be done: add `allsorts-azul`, enable `text_layout`, or add another engine.
+- Latin/CJK requirements, extraction checks and other mandatory criteria must not be weakened.
+- Approved: stage C, then stage D (the eleven P1 cases). WeasyPrint stays suspended.
+
+### Implementation agent — disclosure
+`CLAUDE.md` now directs implementation to the `sonnet-implementer` sub-agent. A spawn attempt returned "Agent type 'sonnet-implementer' not found" because the definition is not loaded in this session (it needs a new session). No generic agent was substituted with an unpinned alias. **The harness was written by Opus as a disclosed fallback.** No worker was used, and the worker model remains unverified.
+
+### C — implementation and build (`C/`)
+- Harness `spikes/rust/t08-pdf/src/main.rs` (std + pulldown-cmark + printpdf only); scripts `spikes/rust/t08-pdf/run/{outer.sh,setup-and-run.sh}`.
+- Design fixes made before any run and before any output was observed: T1 path column moved last (to avoid extraction interleaving of multi-line cells); row measurement no longer double-counts statistics; unused fields removed.
+- `unshare -rn <isolated cargo> build --frozen --offline -p t08-pdf`:
+  - attempt 1 exit 101 (`C-build-1.log`): 11 compile errors in harness code (missing lifetime on `layout_markdown`, with cascading type errors) and 2 warnings. All dependency build scripts and proc-macros ran during this attempt, inside the network namespace;
+  - fixed;
+  - attempt 2 exit 0, **0 warnings** (`C-build-2.log`).
+- 71 packages compiled (the rest were cached from earlier spikes), all in the reviewed T08 host graph (`C/compiled.txt`). No download or index update. Manifests and `Cargo.lock` unchanged (`C/hashes-before.txt` = `C/hashes-after.txt`).
+- Artifact `2905abc9…ed564f3`.
+- Build-time code ran **without a filesystem sandbox**; pattern review and a stripped environment do not prove otherwise.
+
+### D — isolation and formal run (`D/preflight/`, `D/run1/`)
+- **Command:** `outer.sh` (outside) → `timeout -s KILL 900 unshare -r -n --pid --fork --mount-proc --kill-child env -i PATH LANG bash setup-and-run.sh` (PID 1 check, root prefix, artifact SHA-256, `ulimit -v 2097152`) → `exec env -i` harness as PID 1.
+- **Preflight 11/11 passed** before any conversion:
+  - PID 1; network namespace loopback only; inherited environment exactly `{LANG, PATH}`;
+  - spike root 0700 with the expected prefix; address-space limit 2 GiB;
+  - each allowlisted font is a regular file whose SHA-256 inside equals the hash recorded outside: DejaVuSans `bb01e8ee…3481`, DroidSansFallbackFull `acb6440a…77b8`, NotoSansMono-Regular `6b692c4b…e29f`;
+  - `/usr/bin/mutool` and `/usr/bin/sha256sum` present.
+  - Font hashes were unchanged after the run.
+- **Resource-loading routes (code review):** the harness opens only the three allowlisted font paths, its own fixture/output files under the spike root, `/proc/self/{status,limits,net/dev}` and `/dev/urandom`. `mutool` is given only the temp PDF and spike-owned output paths. Private `HOME` under the spike root. No other tool was used.
+- Formal run `D/run1/`: 11 s wall in total; spike root removed; fonts unchanged.
+
+### Formal results (run1) — the run FAILED its stated criteria
+**Overall: no supported-content PDF passed the six-step verification.** Every PDF-producing case (U1-latin-cjk, U1-unsupported, U2, T1, B1, R1, L1, A1, G1, C1) failed **step 5**, the forbidden-object scan, on the name **`/Annots`**. U1-latin-cjk also failed **step 4**. Per the request's failure behaviour (§7), temp PDFs of failed cases were removed, so **no PDF was written or retained**. The artifact directory is empty and there is no `artifact-pdfs.sha256`.
+
+| Case | Render | Steps 1–3 | Step 4 (extraction) | Step 5 | Verdict |
+|---|---|---|---|---|---|
+| U1-latin-cjk (supported) | ok, 1 p, 2,525,895 B | pass | **FAIL**: sentinel `한국어` missing (Hangul shown as `<U+D55C><U+AD6D><U+C5B4> <U+C2DC><U+D5D8>`); 10/11 sentinels incl. Latin and Han/Kana present | **FAIL** `/Annots` | verification_failed |
+| U1-unsupported | ok, 1 p, 387,359 B | pass | pass (RTL marker, emoji code points) | **FAIL** `/Annots` | verification_failed |
+| U2 | ok, 1 p, 387,086 B | pass | pass (all 6 controls shown as code points) | **FAIL** `/Annots` | verification_failed |
+| T1 | ok, 13 p, 429,270 B | pass (13 in 8–60) | pass (7/7, incl. 200-char path) | **FAIL** `/Annots` | verification_failed |
+| B1 | ok, 6 p, 651,180 B | pass | pass (4/4) | **FAIL** `/Annots` | verification_failed |
+| R1 | ok, 1 p, 387,034 B | pass | pass | **FAIL** `/Annots`; 0 image objects | verification_failed |
+| L1 | ok, 1 p, 386,956 B | pass | pass | **FAIL** `/Annots`; 0 image objects | verification_failed |
+| A1 | ok, 1 p, 387,070 B | pass | pass (script/iframe/form/`javascript:` as literal text) | **FAIL** `/Annots`; no JavaScript/JS/Launch/URI/SubmitForm/AcroForm/OpenAction/AA names | verification_failed |
+| G1 | ok, 401 p, 833,390 B | pass (401 in 50–1500) | pass (3/3) | **FAIL** `/Annots` | verification_failed |
+| C1 | ok, 1 p, 386,822 B | pass | pass (canary present, as required) | **FAIL** `/Annots` | verification_failed; canary artefacts removed |
+| X1a input > 8 MiB | `limit_exceeded:input_bytes` | — | — | — | expected typed failure, no PDF |
+| X1b nesting 17 | `limit_exceeded:nesting` | — | — | — | expected typed failure, no PDF |
+| X1c 33 columns | `limit_exceeded:table_columns` | — | — | — | expected typed failure, no PDF |
+| X1d > 2,000 pages | `limit_exceeded:pages` | — | — | — | expected typed failure, no PDF |
+| X1e list depth 4 | `limit_exceeded:list_depth` | — | — | — | expected typed failure, no PDF |
+| F1a font fault | `font_unavailable:DejaVuSans:parse_failed` | — | — | — | expected typed failure, no PDF |
+| F1b write fault | `write_failed:entity not found`, `temp_removed` | — | — | — | expected typed failure, no PDF; JSON/MD companions unchanged (hash check) |
+
+In steps 3–5, no case showed parser repair or error output, encryption reported by `mutool info`, image XObjects or object streams. Every `mutool draw` printed `warning: ICC support is not available` (a tool build note, not a repair); it is recorded in the per-case stderr. No other name in the forbidden list was found. `/Metadata` was also absent from both the original and the normalised file; note that `clean -d` without `-m` may drop metadata, so the original-file scan is the relevant one, and objects are not in object streams.
+
+### Diagnosis (confirmed vs hypothesis)
+- **D-A (confirmed from source; runtime content not inspected).** printpdf 0.12.8 writes `("Annots", Array(links))` unconditionally in every page dictionary (`src/serialize.rs` ~332). `links` is populated only from `Op::LinkAnnotation`, which the harness never emits, so the array is expected to be **empty**. This could not be shown at runtime: the normalised and temp PDFs were deleted on failure, as designed. The request's P1 criterion "also no `/Annots`" is therefore unattainable with this library without an output-level change. It is a criterion/library mismatch, not a sign of annotations being emitted.
+- **D-B (confirmed).** The allowlisted fonts have **no Hangul syllable glyphs**: DroidSansFallbackFull covers the Han/Kana fixtures but not U+AC00–D7A3. Korean, which the fixture includes in "supported CJK", fails extraction and appears as visible code points. No other allowlisted or installed font directory lists a CJK family (`/usr/share/fonts/truetype`: adwaita, dejavu, droid, firacode, font-awesome, freefont, hack, lato, liberation, lyx, noto (mono/emoji only), quicksand). Hangul coverage in any of them is not verified.
+- **H-1 (confirmed harness defect, mine).** `is_rtl` includes `U+FE70..=U+FEFF`, so the BOM U+FEFF counts as RTL. U2 (controls) therefore received a spurious `[complex script/RTL not shaped]` marker; the extraction shows it. It did not change any step result, but it is incorrect output. Bounded fix: the range should end at U+FEFC.
+- **H-2 (process defect, mine).** On verification failure the temp PDF and normalised file are removed (request §7). That leaves no artefact with which to show D-A at runtime. The textual evidence (results, tool logs, extraction excerpts) is preserved.
+- **O-1 (observation; cause not established).** G1's layout model reports `model_max_right_overflow_pt = 1.185`: one line extends 1.2 pt past the right margin, well inside the 50 pt page margin, so it is not clipped at the page edge. Hypothesis (unverified): the line-width accounting differs between the fit test (word width without its trailing space) and the emitted width, or font-advance rounding. All other cases report ≤ 0.
+
+### Typography verdicts (run1) — extraction ≠ visual; visual **unverified for every case**
+Rendering pages to images is not in the approved tool list (`mutool info`, `draw -F txt`, `clean -d`). No page was inspected visually, so visual legibility, overlap and mark positioning are **unverified**, not passed.
+
+| Fixture | Glyph coverage | Extraction vs expectation | Visual | Wrapping / clipping / page and table boundaries (layout model) |
+|---|---|---|---|---|
+| U1 Latin precomposed (supported) | all in DejaVuSans; 0 missing | all Latin sentinels present (Ærøskøbing, café, façade, Łódź, Šibenik, …) | unverified | 1 page; no overflow |
+| U1 CJK Han/Kana (supported) | 20 chars from DroidSansFallbackFull | 漢字テスト, ひらがな, カタカナ, 中文测试, 報告書-0042 present | unverified | — |
+| U1 Korean (declared supported) | **5 missing → shown as `<U+XXXX>`** | **fail** (`한국어` absent) | unverified | — |
+| U1 Arabic/Hebrew (unsupported) | glyphs in DejaVuSans, **unshaped**, logical order; RTL marker shown | extracted in reversed visual order (`.ملاعلاب ابحرم`, `.םלוע םולש`), as expected for unshaped LTR placement; explicit limitation marker present | unverified (expected incorrect: no joining/bidi) | — |
+| U1 emoji | not rendered; `<U+1F600> <U+1F680>` | matches the documented limitation | unverified | — |
+| U1 combining (e+U+0301, a+U+0308, n+U+0303) | marks present in DejaVuSans, **positioned without GPOS** | extracts as `é ä ñ`; mapping preserved | **unverified**; positioning not claimed | — |
+| U1 astral (𝐀𝐁, 𓀀) | missing → `<U+1D400><U+1D401> <U+13000>` | as documented | unverified | — |
+| U2 controls | all 6 shown as code points | pass; plus a spurious RTL marker (H-1) | unverified | — |
+| T1 tables | DejaVuSans only | all 7 sentinels incl. the unbroken 200-char path | unverified | 13 pages; header repeated 12 times; 5 long words broken at character boundaries; min baseline 3.3 pt above bottom limit; no right overflow |
+| B1 page breaks | DejaVuSans + NotoSansMono | first/last code lines, last paragraph, end marker present | unverified | 6 pages; 15 code continuations with `↪`; no overflow |
+| G1 large | DejaVuSans only | first/middle/last finding present | unverified | 401 pages; **max right overflow 1.185 pt (O-1)** |
+
+Supported (Latin, Han/Kana) and intentionally unsupported (RTL, emoji, astral, combining positioning) fixtures are kept separate. The unsupported ones produced their documented visible limitation outcome and are **not** reported as correctly rendered.
+
+### Size, time, resources (debug build; `optimize=true`, i.e. flate compression and pruning; `subset_fonts=true` has no effect without `text_layout`; `secure=true` means "skip unknown ops", **not encryption or a security boundary**)
+| Case | Input B | Pages | Fonts embedded (file bytes) | Output B | Conversion wall ms | Peak RSS (VmHWM, render child) |
+|---|---|---|---|---|---|---|
+| U1-latin-cjk | 222 | 1 | DejaVuSans + DroidSansFallbackFull (4,793,140) | 2,525,895 | 2,258 | 39.9 MiB |
+| U1-unsupported | 154 | 1 | DejaVuSans (759,720) | 387,359 | 296 | 17.2 MiB |
+| T1 | 25,102 | 13 | DejaVuSans | 429,270 | 407 | 21.5 MiB |
+| B1 | 21,763 | 6 | DejaVuSans + NotoSansMono (1,270,332) | 651,180 | 480 | 20.6 MiB |
+| G1 | 737,481 | 401 | DejaVuSans | 833,390 | 1,931 | 41.6 MiB |
+| others (U2, R1, L1, A1, C1) | 44–207 | 1 | DejaVuSans | 386,822–387,086 | 289–301 | 17.1–17.4 MiB |
+
+- The font-file estimate differs from the measured PDF size: compression roughly halves the embedded fonts (DejaVuSans 0.76 MB → about 0.38 MB per PDF; with DroidSansFallbackFull, 4.79 MB → 2.53 MB).
+- All outputs are far below the 64 MiB ceiling. That is evidence about this experiment, not proof that multi-MB report PDFs are acceptable for routine product use.
+- Wall time is measured by the orchestrator around the render child; peak memory is self-reported VmHWM of the render child. `mutool` timings are in the per-step details.
+
+### Suitability (current evidence)
+**P1 is not established as suitable: the formal run failed.**
+- All outputs fail the request's "no `/Annots`" criterion (D-A, a library behaviour).
+- Korean is not covered by the allowlisted fonts (D-B).
+- Visual correctness is unverified throughout.
+- On the passing parts: Latin and Han/Kana extraction, tables with header repetition and unbroken long paths, page breaks, code wrapping, remote/local/active content rendered as inert text with no image, JavaScript, action or form objects, typed limits and failure paths, and no encryption are encouraging.
+- Whether P1 becomes "suitable only with limitations" depends on owner decisions on D-A and D-B and on a visual-inspection method.
+
+### Proposed bounded debug cycle P00-T08-D01 (not started; needs owner approval)
+1. **D-A, owner decision on the criterion. I do not change it.** Either:
+   - **(a)** amend the P1 rule to "`/Annots` absent **or** an empty array; any annotation object, `/Subtype /Link`, or action dictionary is a failure", verified by parsing each page dictionary's `/Annots` value in the `clean -d` output (the harness's existing tokenizer, extended to read the array value); or
+   - **(b)** keep the criterion, in which case P1 is unsuitable without an output-level change, and no such change is proposed.
+2. **D-B, owner decision.** Either:
+   - **(a)** an installation request for a Hangul-capable font (for example a Debian CJK font package) plus an allowlist amendment; or
+   - **(b)** declare Korean outside the supported set for this experiment (a scope decision, not to be taken by me); or
+   - **(c)** record the allowlisted fonts as not meeting full CJK coverage.
+3. **H-1 fix:** RTL range ending at U+FEFC; regression: U2 must have no RTL marker, and U1-unsupported must still have its 2.
+4. **H-2 fix:** on verification failure, move the temp PDF and normalised file to a quarantine artefact directory outside source control, marked "not written", instead of deleting them. C1 is still deleted.
+5. **O-1:** diagnose the 1.185 pt overflow by recording the offending line's measured widths. Fix only if a confirmed cause is found.
+6. **Visual check (optional, owner decision):** approve `mutool draw -F png` (or `-F pnm`) on spike-owned PDFs, with Opus inspecting the rendered pages, so that visual verdicts can move from "unverified".
+7. **Retest:** a full formal re-run of all eleven cases as `D/D01/`. run1 is preserved unchanged.
