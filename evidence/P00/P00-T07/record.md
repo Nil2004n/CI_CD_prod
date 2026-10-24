@@ -110,3 +110,67 @@ Owner chose **K-A**: a spike-only exception for RUSTSEC-2026-0370/-0371/-0372, b
 
 ### Limitations
 Grep-based review only; transitive code not audited; no filesystem sandbox for build scripts or proc-macros; results are for the exact locked graph.
+
+## Stage C and D (owner-approved 2026-10-24) — appended; A/A2/B above unchanged
+
+Authority: owner approval of the d5f5687 push, stage C (harness + package-scoped frozen offline build, with acceptance of the reported build-time exposure for this locked spike build only), stage D env check, and cases K01a–K06. Executed by Opus. The `d5f5687` push was a normal fast-forward from `f076c6c`; the remote was verified as `d5f5687` and `main` was unchanged.
+
+### C — implementation and build (`C/`)
+- Harness `spikes/rust/t07-keyring/src/main.rs` (std + `keyring` only); run scripts `spikes/rust/t07-keyring/run/{outer.sh,setup-and-run.sh}`. Manifests and `Cargo.lock` unchanged: SHA-256 before = after both builds (`C/hashes-before.txt`, `C/hashes-after.txt`). No new dependencies, features, refetch or installation. No `.cargo/config*` in any ancestor.
+- Build commands: `unshare -rn <isolated cargo> build --frozen --offline -p t07-keyring`.
+  - Build 1 (`C-build-1.log`): exit 0, 0 warnings, 99 packages compiled, all in the reviewed host graph (`C/compiled.txt`). Artifact `4ee636ee…5def0`.
+  - Build 2 (`C-build-2.log`, after adding the K04b sub-case): exit 0, 0 warnings, only `t07-keyring` recompiled. Artifact `3b8665cf…6e73b40f`.
+- **Build-time code has no filesystem sandbox.** The 10 build scripts, 9 proc-macros and `proc-macro-crate`'s `cargo locate-project` ran with the user's file permissions inside a network namespace only. Pattern review and a stripped environment do not prove that they did nothing else.
+
+### D — isolation and runs (`D/`)
+- **Layers:** `outer.sh` (outside: `mktemp` root, metadata-only before/after snapshot, 240 s `timeout -s KILL`, sanitised copy, removal of the exact root only) → `unshare -r -n -m --pid --fork --mount-proc --kill-child env -i PATH LANG` → `setup-and-run.sh` (PID 1; artifact SHA-256 check; tmpfs masks; `exec env -i` of the harness as PID 1).
+- **Preflight** (`D/preflight/`, artifact 1; `D/preflight-2/`, artifact 2): **20/20 checks passed** before any daemon or library call:
+  - PID 1; euid 0 in the namespace;
+  - masks are tmpfs, private propagation and empty for `/run/user`, `/run/dbus`, `~/.local/share/keyrings`, `/tmp/.X11-unix`, `/usr/share/dbus-1/services` and `/etc/dbus-1/session.d` (`/usr/share/dbus-1/session.d` does not exist; `/var/run` → `/run`);
+  - root mount private;
+  - `/run/user/0/bus`, `/run/user/1000/bus` and `/run/dbus/system_bus_socket` absent;
+  - network namespace has loopback only;
+  - inherited environment exactly `{LANG, PATH}`;
+  - spike root 0700 with the expected prefix;
+  - daemon and tool binaries present.
+- **Per bus:** the harness-written `bus.conf` was re-verified (1 servicedir, empty; no standard servicedirs, `<include>`, systemd or `<user>`). The daemon's printed address equals the private socket, and `ListActivatableNames` = `["org.freedesktop.DBus"]` only. The last check is done with `dbus-send` against the **private** bus only; this tool was added for the check and is disclosed.
+- **Per case process:** environment is exactly the §4.3 set; `DBUS_SESSION_BUS_ADDRESS` equals exactly the expected `unix:path=` socket, or is absent for K01a/K01b; host fallback paths absent. All passed.
+- **Binding limitation preserved:** binding is shown by construction and these assertions, not by a library-level bus-ID check (the `keyring` API exposes no connection).
+- **Real paths:** `stat` of `/run/user/1000/bus` plus a hash of names/mtime/size of `~/.local/share/keyrings`, and the PID lists of host `dbus-daemon`/`gnome-keyring-daemon`, were identical before and after every run (`outer-*.txt`; `real_path_snapshot=unchanged`). Nothing real was opened or connected to.
+- **Runs:**
+  - `D/run1/` (artifact 1): K01a–K04, K06, K05. It did **not** include the K04b sub-case planned in request §4.4, which I had omitted from the first implementation.
+  - `D/run2/` (artifact 2): adds K04b; this is the formal result.
+  - run1 is preserved unchanged. Outcomes for the cases common to both runs are identical.
+  - Each run took 13 s; the spike root was removed after each.
+
+### Case outcomes (run2)
+| Case | Setup | R1 library call | R2 prompt | R3 app deadline (10 s) | R4 worker | R5 forced kill | Verdict |
+|---|---|---|---|---|---|---|---|
+| K01a | no address; `XDG_RUNTIME_DIR=<case>/run` | returned in 0 ms: `PlatformFailure` ("Failed to connect to `unix:path=<case>/run/bus`: No such file") | no | no | finished | no | typed, bounded failure ✔ |
+| K01b | no address; `XDG_RUNTIME_DIR` unset | returned in 0 ms: `PlatformFailure` (connect to `unix:path=/run/user/0/bus`: No such file) | no | no | finished | no | typed ✔; confirms the euid-0 fallback (masked) |
+| K02 | private bus, empty servicedir | returned in 20 ms: `PlatformFailure` ("ServiceUnknown: org.freedesktop.secrets was not provided by any .service files") | no | no | finished | no | typed ✔; **the bus attempted activation and the private config refused it** |
+| K03 | private bus + `gnome-keyring-daemon --foreground --components=secrets --control-directory=<case>/keyring-ctl --unlock` (password via stdin) | all 8 ops returned, all ok (set, get = C, replace, get = C2, delete, get → `NoEntry`); each ≤ 41 ms | no | no | finished | no | round trip ✔ on a unique synthetic entry; control socket in the private dir; daemon owned `org.freedesktop.secrets` on the private bus |
+| K04 | as K03 without `--unlock` (no login/default collection) | `store_status`/`new` ok; `set_password` returned in 1 ms: `NoStorageAccess` ("result not returned from SS API": `ReadAlias("default")` = `/`, before any prompt); get/delete → `NoEntry` | no (prompt path not reached; per source) | no | finished | no | typed ✔ for "no default collection" |
+| K04b | unlocked, then default collection `/org/freedesktop/secrets/collection/login` locked via `Service.Lock` on the private bus (`Locked` = true) | `set_password` returned in 6 ms: `NoStorageAccess` ("**prompt dismissed**"); get/delete → `NoEntry` | **yes**: the daemon logged "couldn't create system prompt: … ServiceUnknown: org.gnome.keyring.SystemPrompter" | no | finished | no | typed ✔ **only because no prompter can be activated**, so gnome-keyring dismisses the prompt immediately |
+| K06 | harness listener accepts and never replies | **did not return**: the connect inside `store_status` blocked | n/a | **yes**, at op 0 | **still blocked at exit → leaked worker, not cancelled** | no orchestrator kill; the case process ended itself at 11.0 s via `exit`, which ended the blocked thread | **containment only; no library-level timeout** |
+| K05 | after all cases | — | — | — | — | — | ✔ C, C2 and U (hex) absent from all 24 app-owned/captured files. Private service storage (4 files under `cases/*/data/keyrings/`) is reported separately: no plaintext occurrence (encrypted by gnome-keyring). Only spike-owned paths were scanned. Results guard (synthetic value in results) not triggered |
+
+- After every case and at the end there were no processes left in the namespace, and all daemons stopped with SIGTERM.
+- The host process lists were unchanged.
+- Committed evidence contains only `results.json`, per-case harness stdout/stderr and daemon logs (all scanned by K05), the preflight results and the outer summaries. No keyring databases, runtime directories or secrets.
+
+### Suitability conclusion (spike evidence; not a product decision)
+- **Direct in-process use of `keyring` v1 is not suitable as-is.** An unresponsive bus (K06) blocks the store initialisation indefinitely. There is no library timeout, and the blocked thread cannot be cancelled; only process exit ends it. Store initialisation is also cached per process, so a failure at first use stays a failure for the life of that process.
+- **Workable shape (for P03 to decide):** perform OS-store operations in a short-lived, application-owned helper process with a hard deadline and kill. The helper gets a validated `unix:path=`-only session address (because of the `unixexec:`/`ibus:` finding), and failure maps to "OS store unavailable". The fallback is session-only, or disabled AI.
+- The alternative is an app-owned zbus connection with `method_timeout` via `secret-service::connect_with_existing`. That would need new direct dependencies and approval, and it still would not bound prompt waits.
+- Absent bus, absent service, no default collection, a locked collection without a prompter, and the normal round trip all yield typed errors or success within milliseconds on this host.
+- **Untested:** a locked collection **with** a real desktop prompter, where the source shows an unbounded wait for the user; PAM-unlocked login sessions; KWallet/KeePassXC; other gnome-keyring versions.
+- Persistent OS storage remains **not accepted** for pilot or product. K-D is not chosen.
+
+### Remaining risks
+- The advisory exception (unmaintained zvariant/zbus_names/zvariant_derive) still applies to this path.
+- Binding is shown by construction plus assertions; there is no independent peer-credential or bus-ID check.
+- No filesystem sandbox for build-time code or for the daemons beyond the masks.
+- `dbus-send` was used for private-bus verification and locking (an existing host tool, not in the original command list).
+- gnome-keyring ran as namespace-root (uid 0 mapped to the user), which a real session does not.
+- Leaked-worker containment relies on process exit.

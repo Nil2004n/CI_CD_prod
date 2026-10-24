@@ -1,0 +1,2 @@
+
+** (gnome-keyring-daemon:65): WARNING **: 11:32:51.301: couldn't create system prompt: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.keyring.SystemPrompter was not provided by any .service files
