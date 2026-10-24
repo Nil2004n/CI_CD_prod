@@ -87,3 +87,8 @@ So with cwd = repository, the repository `.checkov.yaml` is a default config fil
   - the signature gate was not used as a boundary;
   - H-NET evidence is heuristic.
 - **Implementation:** by Opus (no worker spawned in this cycle).
+
+## 7. Later status (P00-T09-D02, 2026-10-24)
+- Marker attribution for all 16 invocations was resolved from this run's existing per-invocation path-level `files_created` and the end-state path listing. Basis: `evidence/debug/P00-T09-D02/record.md` §1.
+- The name-only `new_execution_markers` field is unreliable when names repeat and is not used. No Checkov re-run was needed.
+- Contract clarifications are in `evidence/P00/P00-T09/contract-checkov-rev2.md`. Sections 1–6 above are unchanged.

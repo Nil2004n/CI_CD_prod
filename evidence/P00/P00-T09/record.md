@@ -200,3 +200,9 @@ No assertion was weakened, no regression case removed, and no canary changed (C0
 
 ## 11. Follow-up
 Checkov contract revision 2 and its evidence: `evidence/debug/P00-T09-D01/record.md`, `contract-checkov-rev2.md`. Run1 above is unchanged; R1 stays rejected.
+
+## 12. Later status (P00-T09-D02, 2026-10-24)
+- The raw `run1/results.json` was moved, with its hash verified unchanged (`e84a6c53…`), to the private location `~/.local/share/pwt-dev-tools/_private-evidence/P00-T09/run1/results.json` (mode 0600, outside the checkout).
+- The committed derivative `run1/results.pem-redacted.json` and its `.meta` remain the repository copy.
+- H-3 was fixed in the shared harness and revalidated: `evidence/debug/P00-T09-D02/record.md`.
+- Sections 1–11 above are unchanged.

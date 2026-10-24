@@ -188,6 +188,39 @@ def cases(ctx):
     ck("s3_base64_form_detected_and_redacted", "C09" in r["canary_in_stdout"] and "<canary-b64:C09>" in r["stdout_excerpt"],
        {"excerpt": r["stdout_excerpt"]})
 
+    # ---------------------------------------------------------------- H-3: registered synthetic PEM components
+    comps = ctx.components
+    lines = [v for k, v in sorted(comps.items()) if k.startswith("PEM-L")]
+
+    def comp_free(s: str) -> bool:
+        """No full component, no >=15-char fragment of any body line, no trailing component prefix, no canary."""
+        if red.hits(s.encode()) or "PWTFAKE" in s or red._tail_prefix_len(s):
+            return False
+        return not any(l[i:i + 15] in s for l in lines for i in range(0, len(l) - 14))
+
+    def h3(name, data: bytes, *, need_hit=True, field="stdout_excerpt"):
+        r = emit("st-h3-" + name, data)
+        ok = comp_free(r[field]) and comp_free(r["_stdout"][-600:].decode("utf-8", "replace") if r["retained_trailing_partial_removed"]["stdout"] else "")
+        hit = bool(set(r["canary_in_stdout"]) & set(comps)) if need_hit else True
+        ck(f"h3_{name}", ok and hit, {"component_detected_in_stream": hit, "excerpt_free_of_components": comp_free(r[field]),
+                                      "excerpt_len": len(r[field]), "withheld": r[field].startswith("<excerpt withheld")})
+
+    ck("h3_components_registered", len(lines) == 7 and {"PEM-BODY", "PEM-BLOCK"} <= set(comps) and lines[0] == c["C05"],
+       {"component_ids": sorted(comps), "body_lines": len(lines)})
+    block = comps["PEM-BLOCK"]
+    h3("multiline_yaml", ("key: |\n" + "".join("  " + l + "\n" for l in block.splitlines())).encode())
+    h3("json_escaped", ('{"Secret": ' + __import__("json").dumps(block) + "}\n").encode())
+    h3("single_line_mid", ("value " + lines[3] + " end\n").encode())
+    h3("fragment_20", ("frag=" + lines[4][17:37] + "\n").encode())
+    h3("excerpt_boundary", b"x" * (common.EXCERPT - 30) + lines[2].encode() + b"y" * 200 + b"\n")
+    h3("capture_boundary", b"x" * (common.OUTPUT_CAP - 25) + lines[5].encode() + b"\n")
+    ctx.note("selftest_h3_note_probe", {"k": "body " + lines[6], "frag": lines[1][10:40]})
+    ck("h3_note_redacted", comp_free(repr(ctx.notes[-1]["value"])), {"redacted": comp_free(repr(ctx.notes[-1]["value"]))})
+    tb = ctx.sanitise("Traceback (most recent call last):\n  ValueError: bad key " + lines[3] + "\n")
+    ck("h3_exception_text_redacted", comp_free(tb), {"redacted": comp_free(tb)})
+    guard_probe = __import__("json").dumps({"x": "pre " + lines[2][5:30] + " post"})
+    ck("h3_guard_detects_component_fragment_in_json", bool(set(red.hits(guard_probe.encode())) & set(comps)), {})
+
     # ---------------------------------------------------------------- S4
     r = emit("st-control", b"\x1b[31mRED\x1b[0m\x07\xe2\x80\xaeabc\r\n")
     ex = r["stdout_excerpt"]

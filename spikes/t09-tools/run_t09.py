@@ -160,14 +160,16 @@ def main() -> int:
               "tools": {}}
     canaries = fixtures.gen_canaries()
     markers = fixtures.canary_markers(canaries)
-    red = common.Redactor(canaries, markers)
+    components = fixtures.synthetic_components(canaries)
+    red = common.Redactor(canaries, markers, components)
+    result["registered_synthetic_components"] = sorted(components)   # IDs only, never values
     sentinel = root / "sentinel" / "SENTINEL.txt"
     sentinel.parent.mkdir(mode=0o700)
     sentinel.write_text("pwt-t09 synthetic sentinel " + secrets.token_hex(8) + "\n")
     sentinel_hash = sha256(sentinel)
     run_tools = [] if not pf_ok else (["selftest"] if preflight_only else tools)
     for t in run_tools:
-        ctx = common.Ctx(root, t, canaries, markers)
+        ctx = common.Ctx(root, t, canaries, markers, components)
         skip = {ctx.work, root / "out"}
         snap0 = _snapshot([root], skip)
         outside0 = {str(d): _top_names(d) for d in OBSERVED_OUTSIDE}

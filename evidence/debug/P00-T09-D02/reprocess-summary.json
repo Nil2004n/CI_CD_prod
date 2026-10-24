@@ -1,0 +1,61 @@
+{
+ "note": "fresh canaries/components: the original run-time fixture values are unavailable, so this cannot retro-detect original fixture material; it checks idempotence and residual indicators only",
+ "files": {
+  "T09-run1-raw-private": {
+   "sha256": "e84a6c53f1e5652404a7c3fbc95f3f94bfdca30c5e424377e6b5bd5ccdb399f5",
+   "strings": 26133,
+   "strings_changed_by_corrected_redactor": 0,
+   "pwtfake_substrings": 0,
+   "high_entropy_64_runs": 12,
+   "control_or_bidi_after_md_escape": 0
+  },
+  "T09-run1-derivative": {
+   "sha256": "68e3f77b5f7317e6fece43e8d58204137acb149a64de472f81b75652a09f1f4e",
+   "strings": 26133,
+   "strings_changed_by_corrected_redactor": 0,
+   "pwtfake_substrings": 0,
+   "high_entropy_64_runs": 0,
+   "control_or_bidi_after_md_escape": 0
+  },
+  "T09-preflight-final": {
+   "sha256": "3b1d021a07ecccb865a195bd70db77c21c3e1c7a1525b5042d73d718761bbb39",
+   "strings": 1363,
+   "strings_changed_by_corrected_redactor": 0,
+   "pwtfake_substrings": 0,
+   "high_entropy_64_runs": 0,
+   "control_or_bidi_after_md_escape": 0
+  },
+  "D01-run1": {
+   "sha256": "70f35be5ede2f989ae2d89d4e987a27d1901e309928bb36b074e5dd721f7e25b",
+   "strings": 2810,
+   "strings_changed_by_corrected_redactor": 0,
+   "pwtfake_substrings": 0,
+   "high_entropy_64_runs": 0,
+   "control_or_bidi_after_md_escape": 0
+  },
+  "D01-preflight": {
+   "sha256": "7a8731da087eefe0f3d3496a764124eae55b96eaab445696e73082db886d8646",
+   "strings": 1301,
+   "strings_changed_by_corrected_redactor": 0,
+   "pwtfake_substrings": 0,
+   "high_entropy_64_runs": 0,
+   "control_or_bidi_after_md_escape": 0
+  },
+  "D02-gitleaks": {
+   "sha256": "3316ccd19b681368521c358ec87aa3c54cc3b7c496dc685437d8bac1b7851ccb",
+   "strings": 6618,
+   "strings_changed_by_corrected_redactor": 0,
+   "pwtfake_substrings": 0,
+   "high_entropy_64_runs": 0,
+   "control_or_bidi_after_md_escape": 0
+  },
+  "D02-preflight": {
+   "sha256": "082f167e3724086c1364685b8a4cb0b49014481b8acea75e509ef8815f9d82e7",
+   "strings": 1775,
+   "strings_changed_by_corrected_redactor": 0,
+   "pwtfake_substrings": 0,
+   "high_entropy_64_runs": 0,
+   "control_or_bidi_after_md_escape": 0
+  }
+ }
+}

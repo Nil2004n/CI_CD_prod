@@ -126,8 +126,10 @@ class Redactor:
     """Detection and redaction of the run-time fake secrets (values, base64 forms, embedded markers)."""
 
     _RUN = re.compile(r"PWTFAKE[A-Za-z0-9+/=]*")
+    WIN, STRIDE = 12, 4      # component fragments of >= WIN + STRIDE - 1 = 15 characters are always detected
+    MIN_COMPONENT_PARTIAL = 4  # a trailing component prefix shorter than this is not treated as a partial
 
-    def __init__(self, canaries: dict[str, str], markers: dict[str, str]):
+    def __init__(self, canaries: dict[str, str], markers: dict[str, str], components: dict[str, str] | None = None):
         self.markers = markers
         self.full: list[tuple[str, str]] = []          # (pattern, label), longest first
         self.detect: dict[str, list[bytes]] = {}
@@ -135,9 +137,23 @@ class Redactor:
             b64 = base64.b64encode(v.encode()).decode()
             self.full += [(v, f"<canary:{cid}>"), (b64, f"<canary-b64:{cid}>")]
             self.detect[cid] = [v.encode(), b64.encode(), markers[cid].encode()]
+        # H-3: registered secret-bearing components of multi-part synthetic fixtures (e.g. every PEM body line).
+        self.windows: dict[str, str] = {}
+        for cid, v in (components or {}).items():
+            self.full.append((v, f"<synthetic:{cid}>"))
+            pats = [v.encode()]
+            if "\n" not in v:
+                for i in range(0, len(v) - self.WIN + 1, self.STRIDE):
+                    self.windows.setdefault(v[i:i + self.WIN], cid)
+                    pats.append(v[i:i + self.WIN].encode())
+            self.detect[cid] = pats
         self.full.sort(key=lambda pl: -len(pl[0]))
-        self.prefix_sources = [p for p, _ in self.full] + list(markers.values())
-        self.maxlen = max(len(p) for p in self.prefix_sources)
+        comp_vals = set((components or {}).values())
+        # (pattern, minimum trailing-prefix length): canaries/markers start with public prefixes, so any length
+        # counts; registered random components count from MIN_COMPONENT_PARTIAL characters.
+        self.prefix_sources = [(p, self.MIN_COMPONENT_PARTIAL if p in comp_vals else 1) for p, _ in self.full if "\n" not in p] \
+            + [(m, 1) for m in markers.values()]
+        self.maxlen = max(len(p) for p, _ in self.prefix_sources)
 
     def _marker_label(self, m: re.Match) -> str:
         run = m.group(0)
@@ -152,13 +168,25 @@ class Redactor:
                 s = s.replace(p, label)
         # Every canary puts its marker before its random part, so any surviving fragment that reveals
         # random characters starts with a marker: redact the marker and the alphabet run after it.
-        return self._RUN.sub(self._marker_label, s)
+        s = self._RUN.sub(self._marker_label, s)
+        # Fragments of registered components: redact the whole base64-alphabet run around any known window.
+        if self.windows:
+            def frag(m: re.Match) -> str:
+                run = m.group(0)
+                for w, cid in self.windows.items():
+                    if w in run:
+                        return f"<synthetic-fragment:{cid}>"
+                return run
+            s = self._B64RUN.sub(frag, s)
+        return s
+
+    _B64RUN = re.compile(r"[A-Za-z0-9+/=]{%d,}" % WIN)
 
     def _tail_prefix_len(self, s) -> int:
         best = 0
-        for p in self.prefix_sources:
+        for p, mn in self.prefix_sources:
             pp = p if isinstance(s, str) else p.encode()
-            for k in range(min(len(pp) - 1, len(s)), best, -1):
+            for k in range(min(len(pp) - 1, len(s)), max(best, mn - 1), -1):
                 if s.endswith(pp[:k]):
                     best = k
                     break
@@ -174,9 +202,12 @@ class Redactor:
 
     def excerpt(self, data: bytes, limit: int = EXCERPT) -> tuple[str, bool]:
         s = self.text(_escape(data))
-        if len(s) <= limit:
-            return s, False
-        return self.trim_tail(s[:limit])[0], True
+        cut = len(s) > limit
+        if cut:
+            s = self.trim_tail(s[:limit])[0]
+        if self.hits(s.encode()) or "PWTFAKE" in s:
+            return "<excerpt withheld: residual registered synthetic material>", cut
+        return s, cut
 
 
 class _StreamScan:
@@ -317,12 +348,14 @@ def reap_orphans(exclude: set[int] = frozenset()) -> int:
 class Ctx:
     """Per-tool context handed to `cases(ctx)`."""
 
-    def __init__(self, root: Path, tool: str, canaries: dict[str, str], markers: dict[str, str]):
+    def __init__(self, root: Path, tool: str, canaries: dict[str, str], markers: dict[str, str],
+                 components: dict[str, str] | None = None):
         self.root = root
         self.tool = tool
         self.bin = str(TOOLS[tool])
         self.canaries = canaries          # canary ID -> raw value (memory only)
-        self.red = Redactor(canaries, markers)
+        self.components = components or {}  # H-3 synthetic fixture components (memory only)
+        self.red = Redactor(canaries, markers, self.components)
         self.rlimit_as = RLIMIT_AS_BY_TOOL.get(tool, RLIMIT_AS_DEFAULT)
         self.runs: list[dict] = []
         self.hyps: list[dict] = []

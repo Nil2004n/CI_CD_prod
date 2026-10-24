@@ -49,8 +49,29 @@ def canary_markers(c: dict[str, str]) -> dict[str, str]:
     return m
 
 
+_PEM_BODY: dict[str, str] = {}
+
+
+def _pem_body(c: dict[str, str]) -> str:
+    """Synthetic PEM body: the C05 canary line plus six random lines, generated once per canary set
+    (P00-T09 H-3: every component must be known to the redactor, so the body is no longer re-drawn per call)."""
+    if c["C05"] not in _PEM_BODY:
+        _PEM_BODY[c["C05"]] = c["C05"] + _r(64 * 6, ALNUM + "+/")
+    return _PEM_BODY[c["C05"]]
+
+
+def synthetic_components(c: dict[str, str]) -> dict[str, str]:
+    """Secret-bearing components of multi-part synthetic fixtures beyond the canaries (H-3): every PEM body
+    line, the joined body and the whole block. Registered with the redactor; never printed or persisted."""
+    body = _pem_body(c)
+    comps = {f"PEM-L{i // 64 + 1}": body[i:i + 64] for i in range(0, len(body), 64)}
+    comps["PEM-BODY"] = body
+    comps["PEM-BLOCK"] = pem_block(c)
+    return comps
+
+
 def pem_block(c: dict[str, str]) -> str:
-    body = c["C05"] + _r(64 * 6, ALNUM + "+/")
+    body = _pem_body(c)
     lines = [body[i:i + 64] for i in range(0, len(body), 64)]
     head = "-----BEGIN " + "RSA PRIVATE" + " KEY-----"
     tail = "-----END " + "RSA PRIVATE" + " KEY-----"
