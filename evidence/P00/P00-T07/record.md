@@ -174,3 +174,31 @@ Authority: owner approval of the d5f5687 push, stage C (harness + package-scoped
 - `dbus-send` was used for private-bus verification and locking (an existing host tool, not in the original command list).
 - gnome-keyring ran as namespace-root (uid 0 mapped to the user), which a real session does not.
 - Leaked-worker containment relies on process exit.
+
+## Owner acceptance (2026-10-24) — appended; A/A2/B/C/D sections, run1 (with its omitted K04b) and run2 unchanged
+
+P00-T07 is accepted as a **completed feasibility spike with qualified findings**.
+
+**Accepted observed results, for the tested isolated setup only:**
+- private unlocked-service credential round trip (K03);
+- observed missing-bus and missing-service errors (K01a, K01b, K02);
+- observed no-default-collection and locked-collection outcomes, without a prompter (K04, K04b);
+- no plaintext found in the inspected test-owned files (K05);
+- bounded containment and cleanup of the unresponsive case (K06).
+
+**Explicitly not accepted:**
+- direct synchronous keyring calls inside the main application;
+- persistent credential storage as a production or pilot feature;
+- native cancellation of blocked library operations;
+- real desktop-prompter behaviour;
+- other Secret Service implementations or normal login-session behaviour;
+- complete secret-leakage or dependency-safety assurance.
+
+Completing the experiment does not mean every suitability requirement passed.
+
+**Disclosures kept as recorded:**
+- `dbus-send` was used for private-bus verification and collection locking. That operation was **omitted from the original command list**; it targeted only the private bus and was not explicitly listed in any approval.
+- run1 omitted the planned K04b sub-case; run2 is the corrected formal run.
+- The 64-hex allowlist check before commit is evidence about those specific strings only. It is not a general proof that arbitrary secrets are absent.
+
+P03 carry-forward requirements: `plan.md` §5.2 FR-18–FR-24.

@@ -1,6 +1,6 @@
 # PWT YAML Security Workbench — Development Plan
 
-Plan revision: 1 (2026-10-23), with status-only updates of 2026-10-24 (task progress, answered questions, blocker states, branch-policy record; no scope, phase or estimate changes). Current Git state: see `status.md`.
+Plan revision: 1 (2026-10-23), with updates of 2026-10-24: status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries FR-01–FR-24 (§5.2); no scope, phase or estimate changes. Current Git state: see `status.md`.
 
 This plan is a schedule and control proposal, not evidence of implemented code or passed tests. No phase starts without explicit owner approval. Specification references are to the v0.3.1 documents (`01_PRD.md` … `05_Database_Data_Schema.md`).
 
@@ -138,7 +138,9 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T04 | **Accepted 2026-10-24 (qualified: tested procedure, Git 2.53.0, this host/fixtures only)**; run 1 failed, D01 re-run 36/0/0 (+1 observation) | `evidence/P00/P00-T04/` |
 | CA-02 | Applied, versioned and confirmed by owner: store 1.3, wrapper protocol 1.1, specs v0.3.3 | Data Schema §23, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/` |
 | P00-T06 | **Accepted 2026-10-24 based on D01, with documented conditions/limitations** (dependency/pipeline suitability for the tested cases; no fallback required); first run 96/5/6 preserved; D01 121/0/7, J16 35/35; carry-forward FR-05–FR-17 (§5.2) | `spikes/P00-T06-request-and-fixtures.md`, `evidence/P00/P00-T06/` |
-| P00-T07 – T11 | Not approved, not started; paused by owner — resume at **T07** | — |
+| P00-T07 | **Accepted 2026-10-24 as a completed feasibility spike with qualified findings** (tested isolated setup only; direct in-process keyring calls, persistent storage, native cancellation, real prompter and other implementations **not** accepted); spike-only advisory exception (RUSTSEC-2026-0370/-0371/-0372); run1 (omitted K04b) and run2 preserved; carry-forward FR-18–FR-24 (§5.2) | `spikes/P00-T07-request-and-isolation.md`, `evidence/P00/P00-T07/` |
+| P00-T08 | Documentation-only request prepared 2026-10-24 (P1 pulldown-cmark + printpdf, W existing WeasyPrint comparator subset); not approved for lookups/resolution/build/run | `spikes/P00-T08-request.md` |
+| P00-T09 – T11 | Not approved, not started | — |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
 
@@ -166,6 +168,20 @@ FR-05–FR-17 come from the P00-T06 acceptance (owner, 2026-10-24) and are manda
 | FR-15 | P00-T06 J04/J05/J08/J09/J15 | P02 (store validation); P08 | `format` assertions explicitly enabled; external `$ref` retrieval (HTTP and file) disabled/compiled out; unavailable schema → `schema_unavailable`, never valid |
 | FR-16 | P00-T06 J01–J16 | P02 (J11–J13, J16); P08 (J01–J07, J14, J15) | Current-contract fixtures (store 1.3 / protocol 1.1 examples and version-const negatives) and the differential comparison carried into the production test suites |
 | FR-17 | P00-T06 D01 B2/B3 | P07 | Repeated or internal U+FEFF remains content and is recorded; no blanket normalisation without a justified, owner-approved policy |
+
+FR-18–FR-24 come from the P00-T07 acceptance (owner, 2026-10-24). They are mandatory for **any future persistent OS credential-store implementation** and go into the production acceptance matrix. Persistent storage itself remains pending a separate architecture/security decision (K-D not chosen); session-only mode stays required and must not depend on a working desktop/keyring service. The helper is not implemented now. Evidence: `evidence/P00/P00-T07/record.md`.
+
+| ID | Source | Assigned | Requirement |
+|---|---|---|---|
+| FR-18 | T07 K06, source review | P03 (if OS-store mode is adopted) | **Execution boundary:** potentially blocking credential-store operations run outside the main application process in a bounded, separately terminable helper. Timeout is never implemented by abandoning a blocked thread in the app. Helper startup, IPC, operation and cleanup each have deadlines. Concurrent helpers and repeated attempts are bounded |
+| FR-19 | T07 design | P03 | **Credential transport:** bounded private IPC. Secrets only through the necessary private in-memory/pipe channel, never argv, routine environment variables, logs or durable IPC files. Helper identity, protocol and response framing validated; late responses after timeout discarded |
+| FR-20 | T07 source (`unixexec:`/`ibus:`, fallbacks) | P03 | **Bus/address policy:** parse and validate the complete allowed address (no `starts_with("unix:")` check). Reject executable, autolaunch and unapproved transports, and alternate-address lists that escape policy. Explicit source/fallback policy (`DBUS_SESSION_BUS_ADDRESS` → `$XDG_RUNTIME_DIR/bus` → `/run/user/<euid>/bus`) is decided, not inherited. The disclosed binding limit is preserved |
+| FR-21 | T07 K01–K06 | P03 | **Outcomes:** distinguish unavailable, missing entry, locked/denied, timeout and internal/protocol failure. On failure offer session-only mode or unavailable AI; **no plaintext fallback** |
+| FR-22 | T07 K06 | P03 | **Ambiguous operations:** a timed-out write or delete may have completed at the service. No rollback claim and no blind retry of an uncertain operation; explicit reconciliation and user-visible outcome |
+| FR-23 | T07 K04b, untested prompter | P03 adoption test | **Prompt/service effects:** killing a helper does not establish that a desktop prompt or service-side operation was cancelled. Real-user/private-service prompt and cancellation behaviour is an adoption test, not a property proven by T07 |
+| FR-24 | T07 advisory exception | P03 adoption; release | **Dependency acceptance:** the maintenance exception stays limited to T07. Re-screen the backend path (including whether a maintained zbus-6-compatible release exists) before P03 adoption and again before release |
+
+Process rule from T07 (owner, 2026-10-24): future spike requests enumerate every helper tool and operation, including verification utilities; an unlisted tool is not covered by approval of the surrounding stage.
 
 ### 5.1 Per-tool spike protocol (C1/C11 are hypotheses per tool)
 For each pinned tool record: (a) every repository config/ignore/allowlist/plugin/custom-check file it auto-discovers, and whether an explicit app-owned config fully neutralises each; (b) explicit-file input honoured vs directory walk — if walking, a staged selected-file copy strategy and its effect on line mapping; (c) output format(s), where raw secret material can appear (stdout, stderr, report file) and the effect of tool redaction options; (d) exit codes for clean, findings, parse error, crash, bad flag; (e) network attempts in default mode and whether they can be disabled verifiably; (f) behaviour on malformed YAML with a seeded fake secret (SCAN-08); (g) version string and binary checksum. Results feed a contract sheet: adapter ID, version, invocation template, config policy, scope strategy, parser ID, exit mapping, network policy, limitations.
