@@ -142,7 +142,8 @@ P00 approval would authorise only the tasks the owner names. Tasks needing netwo
 | P00-T07 | **Accepted 2026-10-24 as a completed feasibility spike with qualified findings** (tested isolated setup only; direct in-process keyring calls, persistent storage, native cancellation, real prompter and other implementations **not** accepted); spike-only advisory exception (RUSTSEC-2026-0370/-0371/-0372); run1 (omitted K04b) and run2 preserved; carry-forward FR-18–FR-24 (§5.2) | `spikes/P00-T07-request-and-isolation.md`, `evidence/P00/P00-T07/` |
 | P00-T08 | **Accepted 2026-10-24 with qualifications** (P1 pulldown-cmark + printpdf, featureless; tested cases only; whole-font embedding; no shaping/RTL; empty `/Annots` permitted; Korean out of scope D-15; visual correctness unverified; WeasyPrint suspended); run1 failed, D01 9/10 written, verdicts unchanged | `spikes/P00-T08-request.md`, `evidence/P00/P00-T08/`, `evidence/debug/P00-T08-D01/` |
 | P00-T09 | **Accepted 2026-10-24 with qualifications** (run1 contracts for yamllint/gitleaks/kubeconform/actionlint; Checkov revision 2 only, Kubernetes selected-file workflow; FR-25–FR-29; limits in `status.md`). Formal run1 done (checkov R1 stop condition fired, preserved); debug cycle P00-T09-D01 (Checkov contract revision 2, provisionally accepted as candidate) done with its own formal run; P00-T09-D02 (H-3 fix, attribution) done; carry-forward FR-25–FR-29 — see `status.md` and the records | `spikes/P00-T09-request.md`, `spikes/t09-tools/`, `evidence/P00/P00-T09/` |
-| P00-T10 – T11 | Not approved, not started | — |
+| P00-T10 | **Accepted 2026-10-24** as a completed schema-cache planning and offline reference-prototype task (not a production cache, schema coverage or collision-safe resolution); R-1 → FR-30 (P13 mandatory); O-1–O-6 open | `spikes/P00-T10-*.md`, `spikes/t10-cache/`, `evidence/P00/P00-T10/` |
+| P00-T11 | Not approved, not started | — |
 
 ### 5.2 Follow-up requirements register (from accepted spikes)
 
@@ -187,6 +188,7 @@ FR-18–FR-24 come from the P00-T07 acceptance (owner, 2026-10-24). They are man
 | FR-27 | P00-T09 + P00-T09-D01 checkov (pending T09 acceptance) | P09 | Only contract revision 2 (`evidence/P00/P00-T09/contract-checkov-rev2.md`): private cwd, app-owned HOME/XDG/TMP, app config outside input, explicit `--framework`, `--skip-download`, `--skip-results-upload`, `CKV_SKIP_PACKAGE_UPDATE_CHECK=True`, `-f` on allowlisted staged copies, never `-d`/cwd = repository/external checks; R1 rejected. Empty output or zero checks must be distinguished from a clean scan using input expectations and validated result structure; in-file suppressions surfaced; selected-file coverage limits reported; production staging helper still to be implemented and verified |
 | FR-28 | P00-T09 actionlint (pending T09 acceptance) | P13 | ShellCheck/Pyflakes integration remains unverified: disable the helpers explicitly; do not install them or claim the capability was tested without a separate approval and verification |
 | FR-29 | P00-T09 self-test (S2) | P06 (with FR-02) | Process-group cleanup does not contain descendants that leave the group (`setsid`); a bounded harness return is not proof of containment; production containment remains a separate requirement |
+| FR-30 | P00-T10 finding R-1 (accepted 2026-10-24) | P13 (mandatory acceptance requirement) | Before production schema lookup is enabled: manifest entries identify the complete API group, version and kind; lookup matches the complete identity, never a truncated group prefix; unknown or ambiguous identities return unsupported/not assessed and never fall back to a similarly named built-in schema; regression tests include the `apps.example.com/v1` Deployment and `networking.istio.io/v1` Ingress collisions plus valid built-in controls. Until then, unknown API groups must not be routed through the T10 filename mapping. The T10 prototype does not fix R-1 |
 
 Process rule from T07 (owner, 2026-10-24): future spike requests enumerate every helper tool and operation, including verification utilities; an unlisted tool is not covered by approval of the surrounding stage.
 
@@ -248,7 +250,7 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 |---|---|---|
 | B-01 | No tool installs approved (D-10): blocks P00-T08/T09, P08, P09, P13 | **Resolved for P00-T09 tools** (Request A + B1 installed 2026-10-24); open for T08 renderer candidates and conditional tools; cargo-audit pending P01 (R-4) |
 | B-02 | No crate download approval: blocks P00-T06/T07, P01 | Open — research done (P00-T03 rev 2); first libc-only resolve/fetch/build request D3-1 awaiting approval |
-| B-03 | No network approval for official-page lookup (Q-06): blocks P00-T02/T03/T10 | Resolved for T02/T03; open for T10 |
+| B-03 | No network approval for official-page lookup (Q-06): blocks P00-T02/T03/T10 | Resolved for T02/T03 and T10 (owner approval 2026-10-24) |
 | B-04 | Worker models unverified | Open — first Sonnet workers delegated in P00-T08-D01 and P00-T09 (configured `claude-sonnet-5-5`; self-reports unverified); Haiku/Sonnet agent definitions still proposals; Opus documentation fallback disclosed in `status.md` |
 | B-05 | Trivy on host reports `Version: dev` — not pinnable | X4 only |
 | B-06 | Linux Secret Service may be unavailable (headless) | P00-T07 |
