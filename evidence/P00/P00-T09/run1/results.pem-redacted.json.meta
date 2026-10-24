@@ -1,0 +1,8 @@
+{
+ "derived_from": "results.json",
+ "source_sha256": "e84a6c53f1e5652404a7c3fbc95f3f94bfdca30c5e424377e6b5bd5ccdb399f5",
+ "derived_sha256": "68e3f77b5f7317e6fece43e8d58204137acb149a64de472f81b75652a09f1f4e",
+ "replaced_lines": 12,
+ "rule": "64-char base64-alphabet runs with entropy > 4.5 bits/char inside *_excerpt fields",
+ "label": "<synthetic-pem-body-line-redacted>"
+}
