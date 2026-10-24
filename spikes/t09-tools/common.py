@@ -76,6 +76,8 @@ TOOLS = {
     "actionlint": USER_HOME / ".local/share/pwt-dev-tools/actionlint/1.7.12/actionlint",
     "kubeconform": USER_HOME / ".local/share/pwt-dev-tools/kubeconform/0.8.0/kubeconform",
     "selftest": Path("/usr/bin/python3"),    # harness self-checks only (enumerated helper)
+    # P00-T09-D01: same pinned checkov binary, evaluated under replacement contract R2 (cases_checkov_r2.py)
+    "checkov_r2": USER_HOME / ".local/share/pwt-dev-tools/checkov/3.3.30/venv/bin/checkov",
 }
 
 _INVISIBLE = {0x200B, 0x200E, 0x200F, 0x202A, 0x202B, 0x202C, 0x202D, 0x202E, 0x2066, 0x2067, 0x2068, 0x2069, 0xFEFF}

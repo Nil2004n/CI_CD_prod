@@ -197,3 +197,6 @@ No assertion was weakened, no regression case removed, and no canary changed (C0
   - The commit carries `run1/results.pem-redacted.json`, derived deterministically by `spikes/t09-tools/derive_public_results.py`: the 12 lines were replaced by a label, and the file is identical to the original outside `*_excerpt` fields. Its `.meta` records the source sha256 `e84a6c53…`.
 - **Proposed harness fix (not made; outside the Checkov-only debug cycle):** detect every line of synthetic multi-line fixtures (or give each PEM body line its own marker), then re-validate all tools' redaction. Owner decision.
 - **Session disclosure:** while locating this, about 30 characters of one synthetic body line were echoed in the session console; nothing was written elsewhere.
+
+## 11. Follow-up
+Checkov contract revision 2 and its evidence: `evidence/debug/P00-T09-D01/record.md`, `contract-checkov-rev2.md`. Run1 above is unchanged; R1 stays rejected.

@@ -1,0 +1,18 @@
+# P00-T09-D01 formal run — harness file sha256 (HEAD a2d848864833ac4c95471f56adadff338c52b324, branch phase/P00-decisions-spikes)
+2026-10-24T13:26:09Z
+9ff920a4bcfe80b4d8f25217170447e12832569d552c8997f735514021a4c2e5  common.py
+fb859360f5a668d26628058a3c2b98fe9dff29298160cd38d9f49f6ed1f72a6a  fixtures.py
+dbfaf0494309f4c6be14ce7d2bbe802525f719d29bd21edcb4abc505665bb2d5  run_t09.py
+93d9d04c41833d6d647854f429d1060f75f87c5b0f67f313c6b67dbd73a462ad  cases_selftest.py
+ce6dfc94b18fa3ccbaf3fbec60224f3190ef75b90e319e78f824560d931abeee  cases_checkov.py
+cc134af84b74fc5705bfdb70b9e491dda0f1d2ade640c1e0dd9314a702a23bda  cases_checkov_r2.py
+e852d6e96b0270f49e3471a35b47f7e8262d963caea6bbb98ad7a3900a6db83b  make_sheets.py
+7c4b94b1cf170c065ff9bc59fbe8d134c82ad95af8c489a2ed9c880bb9ffec0f  derive_public_results.py
+de7ecd4173b4ad63a642b24d948ff789b0c2494ba7217f7f5dbc511bb2044d35  run/outer.sh
+a6be88fd39324b04389f6d3d3513ba3127dbd17d1122501c2dbc95142bd783c6  run/setup-and-run.sh
+git status --porcelain:
+ M spikes/t09-tools/common.py
+ M spikes/t09-tools/run_t09.py
+?? evidence/P00/P00-T09/run1/results.json
+?? evidence/debug/P00-T09-D01/
+?? spikes/t09-tools/cases_checkov_r2.py

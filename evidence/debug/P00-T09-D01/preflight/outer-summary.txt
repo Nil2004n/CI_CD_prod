@@ -1,0 +1,4 @@
+start=2026-10-24T13:26:09Z end=2026-10-24T13:26:42Z
+tools=checkov_r2
+exit=0
+cleanup: root removed

@@ -108,7 +108,7 @@ def preflight(root: Path, tools: list[str]) -> tuple[bool, list[dict]]:
         ck(f"tool {t} child rlimit_as", True, common.RLIMIT_AS_BY_TOOL.get(t, common.RLIMIT_AS_DEFAULT))
         if t in TRUSTED:
             ck(f"tool {t} sha256 trusted", b.is_file() and sha256(b) == TRUSTED[t], sha256(b) if b.is_file() else "")
-        if t in ("yamllint", "checkov"):
+        if t in ("yamllint", "checkov", "checkov_r2"):
             ck("python3.12 sha256 trusted", sha256(PY312) == TRUSTED["python3.12"], sha256(PY312))
     for helper in ("shellcheck", "pyflakes"):
         ck(f"helper {helper} absent from PATH", not any((Path(d) / helper).exists() for d in "/usr/bin:/bin".split(":")), "")
