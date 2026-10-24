@@ -1,0 +1,17 @@
+before=85 after=179 added=94 removed=0 changed_existing=6
+CHANGED ('ahash', '0.8.12') deps/checksum differ
+CHANGED ('getrandom', '0.3.4') deps/checksum differ
+CHANGED ('js-sys', '0.3.106') deps/checksum differ
+CHANGED ('jsonschema', '0.60.1') deps/checksum differ
+CHANGED ('jsonschema-value', '0.60.1') deps/checksum differ
+CHANGED ('referencing', '0.60.1') deps/checksum differ
+SECOND VERSION of existing crate: getrandom 0.4.3 (existing: ['0.3.4'] )
+SECOND VERSION of existing crate: r-efi 6.0.0 (existing: ['5.3.0'] )
+sources: {'local', 'registry+https://github.com/rust-lang/crates.io-index'}
+--- detail of changed existing entries ---
+('ahash', '0.8.12') dependencies before: ['cfg-if', 'getrandom', 'once_cell', 'serde', 'version_check', 'zerocopy'] after: ['cfg-if', 'getrandom 0.3.4', 'once_cell', 'serde', 'version_check', 'zerocopy']
+('getrandom', '0.3.4') dependencies before: ['cfg-if', 'js-sys', 'libc', 'r-efi', 'wasip2', 'wasm-bindgen'] after: ['cfg-if', 'js-sys', 'libc', 'r-efi 5.3.0', 'wasip2', 'wasm-bindgen']
+('js-sys', '0.3.106') dependencies before: ['cfg-if', 'wasm-bindgen'] after: ['cfg-if', 'futures-util', 'wasm-bindgen']
+('jsonschema', '0.60.1') dependencies before: ['ahash', 'bytecount', 'data-encoding', 'email_address', 'fancy-regex', 'fraction', 'getrandom', 'itoa', 'jsonschema-regex', 'jsonschema-value', 'num-cmp', 'num-traits', 'percent-encoding', 'referencing', 'regex', 'serde', 'serde_json', 'strum', 'unicode-general-category', 'uuid-simd'] after: ['ahash', 'bytecount', 'data-encoding', 'email_address', 'fancy-regex', 'fraction', 'getrandom 0.3.4', 'itoa', 'jsonschema-regex', 'jsonschema-value', 'num-cmp', 'num-traits', 'percent-encoding', 'referencing', 'regex', 'serde', 'serde_json', 'strum', 'unicode-general-category', 'uuid-simd']
+('jsonschema-value', '0.60.1') dependencies before: ['ahash', 'bytecount', 'fraction', 'getrandom', 'memchr', 'num-cmp', 'num-traits', 'serde_json', 'zmij'] after: ['ahash', 'bytecount', 'fraction', 'getrandom 0.3.4', 'memchr', 'num-cmp', 'num-traits', 'serde_json', 'zmij']
+('referencing', '0.60.1') dependencies before: ['ahash', 'fluent-uri', 'getrandom', 'hashbrown', 'itoa', 'micromap', 'parking_lot', 'percent-encoding', 'serde_json'] after: ['ahash', 'fluent-uri', 'getrandom 0.3.4', 'hashbrown', 'itoa', 'micromap', 'parking_lot', 'percent-encoding', 'serde_json']
