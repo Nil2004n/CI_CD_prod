@@ -206,3 +206,6 @@ Checkov contract revision 2 and its evidence: `evidence/debug/P00-T09-D01/record
 - The committed derivative `run1/results.pem-redacted.json` and its `.meta` remain the repository copy.
 - H-3 was fixed in the shared harness and revalidated: `evidence/debug/P00-T09-D02/record.md`.
 - Sections 1–11 above are unchanged.
+
+## 13. Acceptance
+**Accepted by the owner, 2026-10-24, with qualifications:** yamllint, gitleaks, kubeconform, actionlint per T09 run1 contracts; Checkov contract revision 2 only, for the tested Kubernetes selected-file workflow (R1a/R1b rejected); carry-forward FR-25–FR-29; limits: output guard covers registered synthetic fixtures only, write tracking is not confinement, process-group escape not contained, ShellCheck/Pyflakes untested, production adapters and staging helper not built. This is spike acceptance, not production adapter acceptance. Records 1–12 and the D01/D02 records are unchanged.
