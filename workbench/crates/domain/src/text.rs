@@ -60,6 +60,36 @@ pub trait Redactor {
 /// fn f(_: SanitisedText) {}
 /// f(String::from("x"));
 /// ```
+///
+/// Positive control for the next case (compiles) - `SanitisedText` by `Default`:
+///
+/// ```
+/// use domain::text::{sanitise, SanitisedText};
+/// let _: SanitisedText = sanitise("x");
+/// ```
+///
+/// Compile-fail case: `SanitisedText` by `Default` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{sanitise, SanitisedText};
+/// let _: SanitisedText = SanitisedText::default();
+/// ```
+///
+/// Positive control for the next case (compiles) - `SanitisedText` by `FromStr`:
+///
+/// ```
+/// use domain::text::{sanitise, SanitisedText};
+/// let _ = "x".parse::<String>();
+/// let _: SanitisedText = sanitise("x");
+/// ```
+///
+/// Compile-fail case: `SanitisedText` by `FromStr` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{sanitise, SanitisedText};
+/// let _ = "x".parse::<SanitisedText>();
+/// let _: SanitisedText = sanitise("x");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SanitisedText(String);
 
@@ -185,7 +215,132 @@ pub struct SanitisedText(String);
 /// impl Redactor for Id {
 ///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
 /// }
+/// let _: RedactedText = redact("x", &Id);
 /// let _ = serde_json::from_str::<RedactedText>("\"x\"");
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` from a `SanitisedText` via `From`:
+///
+/// ```
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = redact(sanitise("x").as_str(), &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` from a `SanitisedText` via `From` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = RedactedText::from(sanitise("x"));
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` from a `SanitisedText` via `Into`:
+///
+/// ```
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = redact(sanitise("x").as_str(), &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` from a `SanitisedText` via `Into` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = sanitise("x").into();
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` by `Default`:
+///
+/// ```
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` by `Default` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = RedactedText::default();
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` by `FromStr`:
+///
+/// ```
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = "x".parse::<String>();
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` by `FromStr` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = "x".parse::<RedactedText>();
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` by `TryFrom`:
+///
+/// ```
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = String::try_from(String::from("x"));
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` by `TryFrom` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, sanitise, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = RedactedText::try_from(String::from("x"));
+/// let _: RedactedText = redact("x", &Id);
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RedactedText(String);

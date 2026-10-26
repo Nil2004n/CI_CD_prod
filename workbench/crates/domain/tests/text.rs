@@ -338,3 +338,56 @@ fn deserialize_rejects_non_string() {
     assert!(serde_json::from_str::<SanitisedText>("1").is_err());
     assert!(serde_json::from_str::<SanitisedText>("null").is_err());
 }
+
+/// Exhaustive check over every Unicode scalar value (P01-D04a, reviewer L1): `sanitise` must leave a
+/// code point unchanged exactly when it is outside the frozen escape set and produce `<U+XXXX>` exactly
+/// when it is inside. The oracle below is this test's own literal copy of the frozen set
+/// (`planning/P01-T01-request.md` §5.3), written independently of `domain::text` internals and of
+/// `ESCAPE_RANGES` above, so that over-escaping outside the set is detected, not just sampled.
+#[test]
+fn every_unicode_scalar_value_matches_frozen_escape_set() {
+    fn oracle_escapes(c: char) -> bool {
+        let u = c as u32;
+        // C0 controls except TAB (0x09) and LF (0x0A), DEL, C1 controls.
+        (u <= 0x1F && u != 0x09 && u != 0x0A)
+            || u == 0x7F
+            || (0x80..=0x9F).contains(&u)
+            // Bidi controls.
+            || u == 0x061C
+            || u == 0x200E
+            || u == 0x200F
+            || (0x202A..=0x202E).contains(&u)
+            || (0x2066..=0x2069).contains(&u)
+            // Zero-width characters and BOM.
+            || (0x200B..=0x200D).contains(&u)
+            || u == 0x2060
+            || u == 0xFEFF
+            // Line and paragraph separators.
+            || u == 0x2028
+            || u == 0x2029
+    }
+
+    let mut scalars = 0_u32;
+    let mut escaped = 0_u32;
+    for cp in 0..=0x10FFFF_u32 {
+        let Some(c) = char::from_u32(cp) else {
+            continue; // surrogate range D800..=DFFF is not a scalar value
+        };
+        scalars += 1;
+        let input = c.to_string();
+        let out = sanitise(&input);
+        if oracle_escapes(c) {
+            escaped += 1;
+            assert_eq!(
+                out.as_str(),
+                format!("<U+{:04X}>", cp),
+                "U+{cp:04X} must be escaped"
+            );
+        } else {
+            assert_eq!(out.as_str(), input, "U+{cp:04X} must pass unchanged");
+        }
+    }
+    // 0x110000 code points minus 2048 surrogates; the independent oracle covers 82 escapes.
+    assert_eq!(scalars, 0x11_0000 - 0x800);
+    assert_eq!(escaped, 82);
+}
