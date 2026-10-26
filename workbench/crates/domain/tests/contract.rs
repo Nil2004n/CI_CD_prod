@@ -8,8 +8,12 @@
 //! passing positive control that names the same type.
 //! All secrets below are synthetic, recognisably fake markers.
 
-// clippy.toml's allow-*-in-tests covers only `#[test]` functions, not the shared helpers below.
-#![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
+#![allow(
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unwrap_used,
+    reason = "shared helpers outside #[test] fns are not covered by clippy.toml allow-*-in-tests"
+)]
 
 use domain::contract::{
     APP_CONTRACT_VERSION, AdapterId, AppCommand, AppEvent, ApprovalDecision, ApprovalLifetime,
