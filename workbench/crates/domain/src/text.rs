@@ -173,6 +173,7 @@ pub struct SanitisedText(String);
 ///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
 /// }
 /// let _: RedactedText = redact("x", &Id);
+/// let _ = serde_json::from_str::<String>("\"x\"");
 /// ```
 ///
 /// Compile-fail case: `RedactedText` by deserialising (does not compile):
@@ -218,6 +219,16 @@ fn needs_escape(c: char) -> bool {
             | '\u{2028}'
             | '\u{2029}'
     )
+}
+
+/// Builds a [`RedactedText`] from a compile-time literal, applying the same escaping as [`sanitise`].
+///
+/// Only for compile-time literal, application-authored text containing no secrets or user, child or
+/// provider content. Never pass `format!`-built or runtime data: a `&'static str` can still be leaked
+/// from a `String` with `Box::leak`, so this is a discipline rule backed by review.
+#[cfg_attr(not(test), allow(dead_code))] // used by contract.rs from P01-T08
+pub(crate) fn redact_static(text: &'static str) -> RedactedText {
+    RedactedText(escape(text))
 }
 
 /// Escapes every code point of the frozen escape set as `<U+XXXX>` (uppercase hex, at least four digits).
@@ -304,5 +315,39 @@ impl<'de> serde::Deserialize<'de> for SanitisedText {
 impl serde::Serialize for RedactedText {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Redactor, redact, redact_static};
+    use std::borrow::Cow;
+
+    struct Identity;
+
+    impl Redactor for Identity {
+        fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> {
+            Cow::Borrowed(raw)
+        }
+    }
+
+    #[test]
+    fn redact_static_passes_literal_through_unchanged() {
+        assert_eq!(
+            redact_static("storage operation failed").as_str(),
+            "storage operation failed"
+        );
+    }
+
+    #[test]
+    fn redact_static_escapes_control_characters() {
+        assert_eq!(redact_static("a\u{1b}b").as_str(), "a<U+001B>b");
+    }
+
+    #[test]
+    fn redact_static_equals_redact_with_identity() {
+        for lit in ["plain", "a\u{1b}[31mb", "x\u{202e}y\u{2028}", "한국어", ""] {
+            assert_eq!(redact_static(lit), redact(lit, &Identity));
+        }
     }
 }
