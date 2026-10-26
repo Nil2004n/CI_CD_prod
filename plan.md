@@ -300,7 +300,7 @@ Process rule from T07 (owner, 2026-10-24): future spike requests enumerate every
 ### 5.1 Per-tool spike protocol (C1/C11 are hypotheses per tool)
 For each pinned tool record: (a) every repository config/ignore/allowlist/plugin/custom-check file it auto-discovers, and whether an explicit app-owned config fully neutralises each; (b) explicit-file input honoured vs directory walk — if walking, a staged selected-file copy strategy and its effect on line mapping; (c) output format(s), where raw secret material can appear (stdout, stderr, report file) and the effect of tool redaction options; (d) exit codes for clean, findings, parse error, crash, bad flag; (e) network attempts in default mode and whether they can be disabled verifiably; (f) behaviour on malformed YAML with a seeded fake secret (SCAN-08); (g) version string and binary checksum. Results feed a contract sheet: adapter ID, version, invocation template, config policy, scope strategy, parser ID, exit mapping, network policy, limitations.
 
-## 5A. P01 — workspace, domain types and contracts (planning, 2026-10-24; not approved for execution)
+## 5A. P01 — workspace, domain types and contracts (planned 2026-10-24; approved for execution, accepted and merged 2026-10-26)
 
 Detail, interfaces, parallel waves and approvals A1–A7: `planning/P01-execution-plan.md`.
 
@@ -317,7 +317,7 @@ Detail, interfaces, parallel waves and approvals A1–A7: `planning/P01-executio
 | P01-T09 | Integration; fmt/clippy `-D warnings`/test/build; cargo-audit if installed; reviewer + security-reviewer; evidence | Lead | None | 1–1.5 |
 | P01-T10 | P01 report, freeze update, status/handover; stop for acceptance | Lead | None | 0.5–1 |
 
-**Progress (2026-10-26):** T01–T10 done; CA-03 applied; **P01 accepted by the owner 2026-10-26** (`evidence/P01/P01-report.md`); not merged to `main`. Debug cycles P01-D01–D06 (§9).
+**Progress (2026-10-26):** T01–T10 done; CA-03 applied; **P01 accepted by the owner 2026-10-26** (`evidence/P01/P01-report.md`); **merged into `main` 2026-10-26** (`--no-ff` merge `7324da6` of `phase/P01-foundation` at `5a3e4ed`). Debug cycles P01-D01–D06 (§9).
 
 P01 total about 10–15 h hands-on, against the §7.1 estimate of 6–10 h. The difference is the request, dependency and cargo-audit work. Confidence is low.
 
