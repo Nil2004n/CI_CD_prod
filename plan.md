@@ -249,7 +249,7 @@ Detail, interfaces, parallel waves and approvals A1–A7: `planning/P01-executio
 | P01-T09 | Integration; fmt/clippy `-D warnings`/test/build; cargo-audit if installed; reviewer + security-reviewer; evidence | Lead | None | 1–1.5 |
 | P01-T10 | P01 report, freeze update, status/handover; stop for acceptance | Lead | None | 0.5–1 |
 
-**Progress (2026-10-26):** T01–T10 done; P01 lead-verified, awaiting owner acceptance (`evidence/P01/P01-report.md`). Debug cycles P01-D01–D05 (§9).
+**Progress (2026-10-26):** T01–T10 done; CA-03 applied; **P01 accepted by the owner 2026-10-26** (`evidence/P01/P01-report.md`); not merged to `main`. Debug cycles P01-D01–D06 (§9).
 
 P01 total about 10–15 h hands-on, against the §7.1 estimate of 6–10 h. The difference is the request, dependency and cargo-audit work. Confidence is low.
 

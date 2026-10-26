@@ -3,7 +3,7 @@
 Date: 2026-10-26 (conformance §10 and CA-03 §11 added the same day at owner request; §3 numbers are the final post-CA-03 run).
 - **Phase branch:** `phase/P01-foundation`; base `main` `485b3a8`; the planning commit is `2667a31`.
 - **Prepared by:** Opus (lead). No Haiku documentation agent is installed.
-- **Status:** **complete and verified by the lead; awaiting owner acceptance.** Merging to `main` is a separate approval.
+- **Status:** **accepted by the owner on 2026-10-26** ("I accept p01, commit and push to the phase branch"), with the limitations in §8, §10 and §11. Merging to `main` is a separate approval and has not been done.
 
 This report states what was done and what was verified. It is not a claim that the code is secure or production-ready.
 
