@@ -2,8 +2,10 @@
 //! (`planning/P01-T01-request.md` §5.5 and §6.3 row T08; Architecture §6 tables).
 //!
 //! Expected tables are written out literally and are not derived from the implementation. The
-//! compile-time guards (no `Clone`, no serde, no `Display`, no `String` as `RedactedText`) are the
-//! `compile_fail` doctests in `src/contract.rs`, each paired with a passing positive control.
+//! compile-time guards (no `Clone`/`PartialEq`/`Hash`/`Display`/serde on the secret and raw-input
+//! wrappers, no serde on commands, no `Deserialize` on events, no `String` or `SanitisedText` as an
+//! event's `RedactedText`) are the `compile_fail` doctests in `src/contract.rs`, each paired with a
+//! passing positive control that names the same type.
 //! All secrets below are synthetic, recognisably fake markers.
 
 // clippy.toml's allow-*-in-tests covers only `#[test]` functions, not the shared helpers below.

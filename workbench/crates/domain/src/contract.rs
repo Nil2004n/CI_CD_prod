@@ -78,6 +78,58 @@ pub enum DeliveryClass {
 /// let secret = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
 /// let _ = serde_json::to_string(&secret);
 /// ```
+///
+/// Positive control for the next case (compiles) - `CredentialSecret` is not `Display`:
+///
+/// ```
+/// use domain::contract::CredentialSecret;
+/// let a = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// let _ = format!("{}", a.expose());
+/// ```
+///
+/// Compile-fail case: `CredentialSecret` is not `Display` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::CredentialSecret;
+/// let a = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// let _ = format!("{}", a);
+/// ```
+///
+/// Positive control for the next case (compiles) - `CredentialSecret` is not `PartialEq`:
+///
+/// ```
+/// use domain::contract::CredentialSecret;
+/// let a = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// let b = CredentialSecret::new(String::from("FAKE-SECRET-0001"));
+/// let _ = a.expose() == b.expose();
+/// ```
+///
+/// Compile-fail case: `CredentialSecret` is not `PartialEq` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::CredentialSecret;
+/// let a = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// let b = CredentialSecret::new(String::from("FAKE-SECRET-0001"));
+/// let _ = a == b;
+/// ```
+///
+/// Positive control for the next case (compiles) - `CredentialSecret` is not `Hash`:
+///
+/// ```
+/// use domain::contract::CredentialSecret;
+/// fn h<T: std::hash::Hash>(_: &T) {}
+/// let a = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// h(&a.expose());
+/// ```
+///
+/// Compile-fail case: `CredentialSecret` is not `Hash` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::CredentialSecret;
+/// fn h<T: std::hash::Hash>(_: &T) {}
+/// let a = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// h(&a);
+/// ```
 pub struct CredentialSecret(String);
 
 impl CredentialSecret {
@@ -143,6 +195,58 @@ impl Drop for CredentialSecret {
 /// use domain::contract::RawInput;
 /// let raw = RawInput::new(String::from("x"));
 /// let _ = serde_json::to_string(&raw);
+/// ```
+///
+/// Positive control for the next case (compiles) - `RawInput` is not `Clone`:
+///
+/// ```
+/// use domain::contract::RawInput;
+/// let a = RawInput::new(String::from("x"));
+/// let _ = Clone::clone(&a.as_str());
+/// ```
+///
+/// Compile-fail case: `RawInput` is not `Clone` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::RawInput;
+/// let a = RawInput::new(String::from("x"));
+/// let _ = Clone::clone(&a);
+/// ```
+///
+/// Positive control for the next case (compiles) - `RawInput` is not `PartialEq`:
+///
+/// ```
+/// use domain::contract::RawInput;
+/// let a = RawInput::new(String::from("x"));
+/// let b = RawInput::new(String::from("y"));
+/// let _ = a.as_str() == b.as_str();
+/// ```
+///
+/// Compile-fail case: `RawInput` is not `PartialEq` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::RawInput;
+/// let a = RawInput::new(String::from("x"));
+/// let b = RawInput::new(String::from("y"));
+/// let _ = a == b;
+/// ```
+///
+/// Positive control for the next case (compiles) - `RawInput` is not `Hash`:
+///
+/// ```
+/// use domain::contract::RawInput;
+/// fn h<T: std::hash::Hash>(_: &T) {}
+/// let a = RawInput::new(String::from("x"));
+/// h(&a.as_str());
+/// ```
+///
+/// Compile-fail case: `RawInput` is not `Hash` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::RawInput;
+/// fn h<T: std::hash::Hash>(_: &T) {}
+/// let a = RawInput::new(String::from("x"));
+/// h(&a);
 /// ```
 pub struct RawInput(String);
 
@@ -293,7 +397,7 @@ pub enum ExportFormat {
 /// ```
 /// use domain::contract::AppCommand;
 /// let cmd = AppCommand::InspectDependencies;
-/// let _ = format!("{cmd:?}");
+/// let _ = (serde_json::to_string(&1u8), &cmd);
 /// ```
 ///
 /// Compile-fail case: `AppCommand` is not `Serialize` (does not compile):
@@ -318,6 +422,20 @@ pub enum ExportFormat {
 /// use domain::contract::AppCommand;
 /// let cmd = AppCommand::InspectDependencies;
 /// let _ = Clone::clone(&cmd);
+/// ```
+///
+/// Positive control for the next case (compiles) - `AppCommand` is not `Deserialize`:
+///
+/// ```
+/// use domain::contract::AppCommand;
+/// let _ = (serde_json::from_str::<serde_json::Value>("{}"), std::any::type_name::<AppCommand>());
+/// ```
+///
+/// Compile-fail case: `AppCommand` is not `Deserialize` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::AppCommand;
+/// let _ = serde_json::from_str::<AppCommand>("{}");
 /// ```
 #[derive(Debug)]
 pub enum AppCommand {
@@ -639,7 +757,7 @@ pub enum FailureCode {
 /// Positive control for the next case (compiles) - `AppEvent` is not `Deserialize`:
 ///
 /// ```
-/// let _ = serde_json::from_str::<serde_json::Value>("{}");
+/// let _ = (serde_json::from_str::<serde_json::Value>("{}"), std::any::type_name::<domain::contract::AppEvent>());
 /// ```
 ///
 /// Compile-fail case: `AppEvent` is not `Deserialize` (does not compile):
@@ -672,6 +790,32 @@ pub enum FailureCode {
 ///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
 /// }
 /// let _ = AppEvent::StorageFailure { detail: String::from("x") };
+/// ```
+///
+/// Positive control for the next case (compiles) - a `SanitisedText` is not `RedactedText` in an event field:
+///
+/// ```
+/// use domain::contract::AppEvent;
+/// use domain::text::{redact, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = AppEvent::StorageFailure { detail: redact("x", &Id) };
+/// ```
+///
+/// Compile-fail case: a `SanitisedText` is not `RedactedText` in an event field (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::AppEvent;
+/// use domain::text::{redact, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = AppEvent::StorageFailure { detail: domain::text::sanitise("x") };
 /// ```
 #[derive(Clone, PartialEq, Debug, Serialize)]
 #[serde(tag = "event_type")]
@@ -991,7 +1135,7 @@ const DEFERRED_DETAIL: &str =
 /// Rejects reserved commands with `OperationFailed { code: Deferred }` (Architecture §6).
 ///
 /// The decision is derived from [`AppCommand::status`] (single source of truth). The returned
-/// `detail` is the fixed literal [`DEFERRED_DETAIL`]; the command's name and payload are never
+/// `detail` is the fixed literal `DEFERRED_DETAIL`; the command's name and payload are never
 /// formatted into it.
 #[allow(
     clippy::result_large_err,
