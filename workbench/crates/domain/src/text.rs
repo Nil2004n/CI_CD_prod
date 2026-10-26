@@ -17,35 +17,35 @@ pub trait Redactor {
 ///
 /// # Construction is closed
 ///
-/// `SanitisedText` from a `String` via `From` (positive control compiles):
+/// Positive control for the next case (compiles) - `SanitisedText` from a `String` via `From`:
 ///
 /// ```
 /// use domain::text::{sanitise, SanitisedText};
 /// let _: SanitisedText = sanitise("x");
 /// ```
 ///
-/// `SanitisedText` from a `String` via `From` (does not compile):
+/// Compile-fail case: `SanitisedText` from a `String` via `From` (does not compile):
 ///
 /// ```compile_fail
 /// use domain::text::{sanitise, SanitisedText};
 /// let _: SanitisedText = SanitisedText::from(String::from("x"));
 /// ```
 ///
-/// `SanitisedText` from a `String` via `Into` (positive control compiles):
+/// Positive control for the next case (compiles) - `SanitisedText` from a `String` via `Into`:
 ///
 /// ```
 /// use domain::text::{sanitise, SanitisedText};
 /// let _: SanitisedText = sanitise("x");
 /// ```
 ///
-/// `SanitisedText` from a `String` via `Into` (does not compile):
+/// Compile-fail case: `SanitisedText` from a `String` via `Into` (does not compile):
 ///
 /// ```compile_fail
 /// use domain::text::{sanitise, SanitisedText};
 /// let _: SanitisedText = String::from("x").into();
 /// ```
 ///
-/// A `String` passed where `SanitisedText` is required (positive control compiles):
+/// Positive control for the next case (compiles) - A `String` passed where `SanitisedText` is required:
 ///
 /// ```
 /// use domain::text::{sanitise, SanitisedText};
@@ -53,7 +53,7 @@ pub trait Redactor {
 /// f(sanitise("x"));
 /// ```
 ///
-/// A `String` passed where `SanitisedText` is required (does not compile):
+/// Compile-fail case: A `String` passed where `SanitisedText` is required (does not compile):
 ///
 /// ```compile_fail
 /// use domain::text::{sanitise, SanitisedText};
@@ -67,7 +67,7 @@ pub struct SanitisedText(String);
 ///
 /// # Construction is closed
 ///
-/// `RedactedText` from a `String` via `From` (positive control compiles):
+/// Positive control for the next case (compiles) - `RedactedText` from a `String` via `From`:
 ///
 /// ```
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -79,7 +79,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = redact("x", &Id);
 /// ```
 ///
-/// `RedactedText` from a `String` via `From` (does not compile):
+/// Compile-fail case: `RedactedText` from a `String` via `From` (does not compile):
 ///
 /// ```compile_fail
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -91,7 +91,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = RedactedText::from(String::from("x"));
 /// ```
 ///
-/// `RedactedText` from a `String` via `Into` (positive control compiles):
+/// Positive control for the next case (compiles) - `RedactedText` from a `String` via `Into`:
 ///
 /// ```
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -103,7 +103,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = redact("x", &Id);
 /// ```
 ///
-/// `RedactedText` from a `String` via `Into` (does not compile):
+/// Compile-fail case: `RedactedText` from a `String` via `Into` (does not compile):
 ///
 /// ```compile_fail
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -115,7 +115,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = String::from("x").into();
 /// ```
 ///
-/// `RedactedText` from a `&str` via `From` (positive control compiles):
+/// Positive control for the next case (compiles) - `RedactedText` from a `&str` via `From`:
 ///
 /// ```
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -127,7 +127,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = redact("x", &Id);
 /// ```
 ///
-/// `RedactedText` from a `&str` via `From` (does not compile):
+/// Compile-fail case: `RedactedText` from a `&str` via `From` (does not compile):
 ///
 /// ```compile_fail
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -139,7 +139,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = RedactedText::from("x");
 /// ```
 ///
-/// `RedactedText` by tuple-struct construction (positive control compiles):
+/// Positive control for the next case (compiles) - `RedactedText` by tuple-struct construction:
 ///
 /// ```
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -151,7 +151,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = redact("x", &Id);
 /// ```
 ///
-/// `RedactedText` by tuple-struct construction (does not compile):
+/// Compile-fail case: `RedactedText` by tuple-struct construction (does not compile):
 ///
 /// ```compile_fail
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -163,7 +163,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = RedactedText(String::new());
 /// ```
 ///
-/// `RedactedText` by deserialising (positive control compiles):
+/// Positive control for the next case (compiles) - `RedactedText` by deserialising:
 ///
 /// ```
 /// use domain::text::{redact, RedactedText, Redactor};
@@ -175,7 +175,7 @@ pub struct SanitisedText(String);
 /// let _: RedactedText = redact("x", &Id);
 /// ```
 ///
-/// `RedactedText` by deserialising (does not compile):
+/// Compile-fail case: `RedactedText` by deserialising (does not compile):
 ///
 /// ```compile_fail
 /// use domain::text::{redact, RedactedText, Redactor};
