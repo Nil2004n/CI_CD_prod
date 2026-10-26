@@ -1,6 +1,6 @@
 # P01 report — workspace, domain types and contracts
 
-Date: 2026-10-26.
+Date: 2026-10-26 (conformance section §10 added the same day at owner request).
 - **Phase branch:** `phase/P01-foundation`; base `main` `485b3a8`; the planning commit is `2667a31`.
 - **Prepared by:** Opus (lead). No Haiku documentation agent is installed.
 - **Status:** **complete and verified by the lead; awaiting owner acceptance.** Merging to `main` is a separate approval.
@@ -126,3 +126,24 @@ No defect reached the two-cycle limit.
 1. Accept P01 (with the limitations above) and approve merging `phase/P01-foundation` into `main` (`--no-ff`) and pushing `main`.
 2. Approve cargo-audit stage C-A (single-crate fetch and lockfile inspection) before P02 starts.
 3. Approve P02 planning (JSON store v1.3), including the event-envelope design (decision 2).
+
+## 10. Conformance with plan, architecture and PRD (owner-requested check, 2026-10-26)
+Full record: `evidence/P01/conformance/record.md`.
+- **Fresh `--final` run:** PASS, 415/0/0, 32 compile_fail.
+- **Scripted document cross-check:** **25 PASS, 2 NOTE.** The script parses Arch §4/§6/§7, Tech §4, the schema enums, UI §5 and PRD §16 directly.
+  - Commands and events equal Arch §6: 29 and 34 names, with matching status and delivery.
+  - State machines equal Arch §7 plus T01-D1/D2.
+  - Schema enums match.
+  - Reserved commands map to PRD-deferred capabilities.
+  - The KEY-01 shape holds.
+- **Process:**
+  - plan §3.8 policy followed;
+  - CLAUDE.md invariants hold (no secrets in the P01 diff, no network or installs, approved commits only, worker reports re-verified);
+  - no spec changed except the owner-accepted Arch §6 line;
+  - 0 unpushed commits.
+
+**Limitations: expected and accepted for this phase.** Each one falls inside a later phase's planned scope (P02 envelope/emission/store, P03 credentials, P06 redaction, P11/P12 renderer escaping, P17 chat) or rests on an explicit owner decision (A3, A4, A5, D5 and the B1 decisions). None leaves an approved P01 requirement unmet.
+
+**Two items that are not P01 limitations, raised for the owner:**
+1. **Specification inconsistency.** The store `ToolManifest.availability` (`ready, missing, incompatible, deferred, unconfigured`) differs from UI §5 `tools.states` (`ready, missing, incompatible, unavailable, denied, deferred`). The code follows the UI list. A mapping decision is needed before P06.
+2. **Carry-forward to P02.** The store models must use `RedactedText`/`SanitisedText` for all free-text fields (plan §4 P01 intent), and the P02 static checks should extend the type allowlist to them.
