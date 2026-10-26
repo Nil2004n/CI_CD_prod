@@ -3,8 +3,8 @@
 //!
 //! Commands are in-process requests from the UI reducer to the coordinator: they may carry raw user
 //! input ([`RawInput`]) and the BYOK key ([`CredentialSecret`]); both mask their `Debug`, and commands have no serde. Events are
-//! projections back to the UI and to the activity log: free text is [`RedactedText`] or
-//! [`crate::text::SanitisedText`] only, and events serialise with `event_type` equal to the Architecture §6 name.
+//! projections back to the UI and to the activity log: free text is [`RedactedText`] only (enforced by the
+//! static field-type allowlist), and events serialise with `event_type` equal to the Architecture §6 name.
 //! No event carries key material, raw secrets or raw child-process output.
 
 use crate::ids::{
