@@ -1,13 +1,13 @@
 # Handover
 
-Checkpoint: 2026-10-26, **P01 accepted by the owner (2026-10-26)** and pushed on `phase/P01-foundation`; **not merged to `main`**. Report `evidence/P01/P01-report.md`, freeze `evidence/P01/P01-freeze.json`. CA-03 applied (store contract **1.4**, UI schema **1.1**, canonical file `schemas/workbench-store-v1.4.schema.json`, `ToolAvailability`); FR-31 for P02; readiness audit 33/33 (`evidence/P01/readiness/`). **Resume point: owner approval of the `--no-ff` merge into `main` + push**, then cargo-audit stage C-A and P02 planning (each needs approval). B1 decisions recorded in `status.md`. Written by Opus directly; no Haiku documentation agent is installed.
+Checkpoint: 2026-10-26, **P01 accepted by the owner and merged into `main`** (`--no-ff` merge `7324da6` of `phase/P01-foundation` at `5a3e4ed`; `main` pushed to `origin/main` with this handover update). Report `evidence/P01/P01-report.md`, freeze `evidence/P01/P01-freeze.json`. CA-03 applied (store contract **1.4**, UI schema **1.1**, canonical file `schemas/workbench-store-v1.4.schema.json`, `ToolAvailability`); FR-31 for P02; readiness audit 33/33 (`evidence/P01/readiness/`). **Resume point: owner approval of cargo-audit stage C-A and of P02 planning** (P02 branch to be created from `main`). B1 decisions recorded in `status.md`. Written by Opus directly; no Haiku documentation agent is installed.
 
 Lessons (P01 wave 1): never share a Cargo target dir between checkouts (runner now keys it by repo path; verify worktrees with `--repo`); loop over pairs in `bash`, not zsh; read doctest pairs as control-then-case; production-code static checks ignore `#[cfg(test)] mod`; cross-check worker test counts per suite (P01-D03).
 
 Earlier checkpoint (historical): 2026-10-24, P00 accepted with qualifications and merged to `main` (`5888826`).
 
 ## Resume steps
-1. `git status -sb`, `git log --oneline -3`, `git worktree list`. Expect `phase/P01-foundation` = `origin/phase/P01-foundation` at the T10 commit, clean tree, no worker worktrees; `main` = `origin/main` = `485b3a8`.
+1. `git status -sb`, `git log --oneline -3`, `git worktree list`. Expect branch `main` = `origin/main` at the P01 docs commit (after merge `7324da6`), clean tree, no worker worktrees; `phase/P01-foundation` = `origin/phase/P01-foundation` = `5a3e4ed`.
 2. Read `status.md`, `planning/P01-T01-request.md` (frozen interfaces §5, test plan §6.3, packets §7, debug bounds §9), `evidence/P01/T04/record.md`.
 3. Checks: `python3 -I -B dev/p01_check.py all --slot lead --final (floors from dev/p01_baseline.json, 416/32) --out <dir>` (add `--repo <worktree>` to verify a worker branch) (all Cargo via direct 1.97.1 binaries, `env -i`, isolated CARGO_HOME, `unshare -rn`, `--frozen`). `static --final` must pass only at T09.
 4. Worker packets: step 0 `git merge --ff-only <B0>` (harness creates worktrees from `main`); per-slot target dirs `p01-w1..w3`; workers commit only on their own branch.
