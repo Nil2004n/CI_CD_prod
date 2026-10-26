@@ -215,6 +215,7 @@ pub struct SanitisedText(String);
 /// impl Redactor for Id {
 ///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
 /// }
+/// let _: RedactedText = redact("x", &Id);
 /// let _ = serde_json::from_str::<RedactedText>("\"x\"");
 /// ```
 ///
