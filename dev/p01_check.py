@@ -18,20 +18,37 @@ import time
 import tomllib
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parent.parent  # replaced by --repo
 WS = REPO / "workbench"
 PWT = Path("/home/kali/.local/share/pwt-dev-tools")
 TC = Path("/home/kali/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin")
 TOOLCHAIN_VERSION = "1.97.1"
 SLOTS = ("lead", "w1", "w2", "w3")
+# Approved registry set: (version, source, checksum) equal to the P00 lock entries (evidence/P01/T02/record.md).
+CRATES_IO = "registry+https://github.com/rust-lang/crates.io-index"
 EXPECTED_REGISTRY = {
-    "serde": "1.0.229", "serde_core": "1.0.229", "serde_derive": "1.0.229", "serde_json": "1.0.154",
-    "zmij": "1.0.23", "itoa": "1.0.18", "memchr": "2.8.3", "proc-macro2": "1.0.107", "quote": "1.0.47",
-    "syn": "3.0.9", "unicode-ident": "1.0.27",
+    "itoa": ("1.0.18", CRATES_IO, "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"),
+    "memchr": ("2.8.3", CRATES_IO, "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"),
+    "proc-macro2": ("1.0.107", CRATES_IO, "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"),
+    "quote": ("1.0.47", CRATES_IO, "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"),
+    "serde": ("1.0.229", CRATES_IO, "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"),
+    "serde_core": ("1.0.229", CRATES_IO, "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"),
+    "serde_derive": ("1.0.229", CRATES_IO, "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"),
+    "serde_json": ("1.0.154", CRATES_IO, "e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6"),
+    "syn": ("3.0.9", CRATES_IO, "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b"),
+    "unicode-ident": ("1.0.27", CRATES_IO, "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"),
+    "zmij": ("1.0.23", CRATES_IO, "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"),
 }
 MEMBERS = {"domain", "application", "repositories", "scanning", "retrieval", "persistence", "terminal-ui"}
 ALLOWED_DIRECT_DEPS = {"serde", "serde_json"}
 TEST_RESULT = re.compile(r"test result: (\w+)\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out")
+
+
+def target_dir(slot):
+    """Per slot AND per repository checkout. Cargo's artifact names for workspace members do not depend on
+    the workspace's absolute path, so two identically laid-out worktrees sharing one target directory can
+    link each other's stale builds (found in P01 wave-1 verification, evidence/P01/T07/lead-verify)."""
+    return PWT / "_cargo-target" / f"p01-{slot}-{hashlib.sha256(str(REPO).encode()).hexdigest()[:12]}"
 
 
 def cargo_env(slot):
@@ -39,7 +56,7 @@ def cargo_env(slot):
         f"PATH={TC}:/usr/bin:/bin",
         f"HOME={PWT}/_cargo-home",
         f"CARGO_HOME={PWT}/_cargo-home",
-        f"CARGO_TARGET_DIR={PWT}/_cargo-target/p01-{slot}",
+        f"CARGO_TARGET_DIR={target_dir(slot)}",
         f"RUSTC={TC}/rustc",
         f"RUSTDOC={TC}/rustdoc",
         "CARGO_TERM_COLOR=never",
@@ -87,53 +104,243 @@ def step_env(slot, out):
     return {"step": "env", "checks": checks, "ok": all(c["ok"] for c in checks)}
 
 
-def code_lines(path):
-    """Yields (lineno, line) with // comments stripped (string contents are not parsed)."""
-    for i, line in enumerate(path.read_text().splitlines(), 1):
-        yield i, line.split("//", 1)[0] if "//" in line and not line.strip().startswith("///") else line
+def strip_comments(text, mask_strings=False):
+    """Removes // and /* */ comments (doc comments included), keeping newlines so line numbers hold.
+    String, raw-string and char literals are respected (a `//` inside a string is not a comment);
+    with mask_strings their contents are replaced by spaces. Lifetimes are not mistaken for chars."""
+    out, i, n = [], 0, len(text)
+    char_lit = re.compile(r"b?'(\\.|\\u\{[0-9a-fA-F]+\}|[^\\'\n])'")
+    while i < n:
+        c = text[i]
+        if text.startswith("//", i):
+            j = text.find("\n", i)
+            j = n if j < 0 else j
+            out.append(" " * (j - i))
+            i = j
+        elif text.startswith("/*", i):
+            depth, j = 1, i + 2
+            while j < n and depth:
+                if text.startswith("/*", j):
+                    depth, j = depth + 1, j + 2
+                elif text.startswith("*/", j):
+                    depth, j = depth - 1, j + 2
+                else:
+                    j += 1
+            out.append("".join(ch if ch == "\n" else " " for ch in text[i:j]))
+            i = j
+        elif (m := re.match(r'b?r(#*)"', text[i:i + 300])) and (i == 0 or not (text[i - 1].isalnum() or text[i - 1] == "_")):
+            close = '"' + m.group(1)
+            j = text.find(close, i + m.end())
+            j = n if j < 0 else j + len(close)
+            body = text[i:j]
+            out.append(body if not mask_strings else "".join(ch if ch == "\n" else " " for ch in body))
+            i = j
+        elif c == '"':
+            j = i + 1
+            while j < n and text[j] != '"':
+                j += 2 if text[j] == "\\" else 1
+            j = min(j + 1, n)
+            body = text[i:j]
+            out.append(body if not mask_strings else '"' + "".join(ch if ch == "\n" else " " for ch in body[1:-1]) + '"')
+            i = j
+        elif c in "'b" and (m := char_lit.match(text, i)) and (c == "'" or text[i + 1] == "'"):
+            out.append(m.group(0) if not mask_strings else " " * len(m.group(0)))
+            i = m.end()
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
 
 
-def enum_block(text, name):
-    m = re.search(rf"pub enum {name}\b[^{{]*\{{", text)
+def drop_test_modules(code):
+    """Blanks `#[cfg(test)] mod <name> { ... }` blocks (keeping newlines) in comment-stripped code, so
+    production-code checks do not count unit tests. Brace matching runs on string-masked code."""
+    masked = strip_comments(code, mask_strings=True)
+    out = list(code)
+    for m in re.finditer(r"#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*\{", masked):
+        depth, i = 1, m.end()
+        while depth and i < len(masked):
+            depth += {"{": 1, "}": -1}.get(masked[i], 0)
+            i += 1
+        for k in range(m.start(), i):
+            if out[k] != "\n":
+                out[k] = " "
+    return "".join(out)
+
+
+def code_lines(path, production=False):
+    """Yields (lineno, line) of code with comments removed; with production, unit-test modules too."""
+    code = strip_comments(path.read_text())
+    yield from enumerate((drop_test_modules(code) if production else code).splitlines(), 1)
+
+
+def split_top(s):
+    """Splits at commas that are not nested inside (), [], {} or <>."""
+    parts, depth, cur = [], 0, []
+    for ch in s:
+        if ch in "([{<":
+            depth += 1
+        elif ch in ")]}>":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    parts.append("".join(cur))
+    return [p.strip() for p in parts if p.strip()]
+
+
+def enum_variants(code, name):
+    """Parses `pub enum <name> { ... }` from comment-stripped, string-masked code.
+    Returns None if absent, else a list of (variant, kind, [(field, type)]) with kind unit/struct/tuple."""
+    m = re.search(rf"\bpub\s+enum\s+{name}\b[^{{;]*\{{", code)
     if not m:
         return None
     depth, i = 1, m.end()
-    while depth and i < len(text):
-        depth += {"{": 1, "}": -1}.get(text[i], 0)
+    while depth and i < len(code):
+        depth += {"{": 1, "}": -1}.get(code[i], 0)
         i += 1
-    return text[m.end():i - 1]
+    body = re.sub(r"#\s*\[[^\]]*\]", " ", code[m.end():i - 1])
+    variants = []
+    for item in split_top(body):
+        mv = re.match(r"(\w+)\s*(.*)$", item, re.S)
+        if not mv:
+            variants.append((item, "unparsed", []))
+            continue
+        vname, rest = mv.group(1), mv.group(2).strip()
+        if rest == "" or rest.startswith("="):
+            variants.append((vname, "unit", []))
+        elif rest.startswith("{") and rest.endswith("}"):
+            fields = []
+            for f in split_top(rest[1:-1]):
+                mf = re.match(r"(?:pub(?:\([^)]*\))?\s+)?(\w+)\s*:(?!:)\s*(.+)$", f, re.S)
+                fields.append((mf.group(1), " ".join(mf.group(2).split())) if mf else (f, "<unparsed>"))
+            variants.append((vname, "struct", fields))
+        elif rest.startswith("("):
+            variants.append((vname, "tuple", [("_", t) for t in split_top(rest[1:-1])]))
+        else:
+            variants.append((vname, "unparsed", []))
+    return variants
+
+
+ID_TYPES = {"ApprovalId", "ArtifactId", "CheckId", "ChunkId", "ConversationId", "EventId", "FileId", "FindingId",
+            "MessageId", "RepoId", "ReportId", "RequestId", "RunId", "SourceId", "SuppressionId", "TaskId", "WorkflowId"}
+DOMAIN_ENUMS = {"RunState", "CheckOutcome", "ApprovalState", "Capability", "Category", "Severity", "Assessment", "Coverage"}
+EVENT_FIELD_TYPES = {"Option", "Vec", "u32", "bool", "UtcTimestamp", "RedactedText", "SanitisedText"} | ID_TYPES | DOMAIN_ENUMS
+COMMAND_FIELD_TYPES = EVENT_FIELD_TYPES | {"RawInput"}
+COMMAND_DATA_ENUMS = {"SelectionChange": COMMAND_FIELD_TYPES, "CredentialAction": {"CredentialSecret", "CredentialMode"}}
+
+
+def check_contract(text, final):
+    """Allowlist check of AppEvent/AppCommand field types (planning/P01-T01-request.md §5.5, §6.4).
+    Every identifier in a field type must be allowlisted; contract-local types must be fieldless enums
+    (or the listed command data enums, checked recursively); tuple variants are rejected."""
+    code = strip_comments(text, mask_strings=True)
+    checks = []
+
+    def local_unit_enum(t):
+        v = enum_variants(code, t)
+        return v is not None and all(k == "unit" for _, k, _ in v)
+
+    def bad_fields(enum, allowed, data_enums):
+        bad = []
+        for vname, kind, fields in enum_variants(code, enum) or []:
+            if kind in ("tuple", "unparsed"):
+                bad.append(f"{enum}::{vname}: {kind} variant not allowed")
+            for fname, ftype in fields:
+                for ident in re.findall(r"[A-Za-z_]\w*", ftype) or ["<none>"]:
+                    if ident in allowed:
+                        continue
+                    if ident in data_enums and enum_variants(code, ident) is not None:
+                        continue
+                    if re.fullmatch(r"[A-Z]\w*", ident) and local_unit_enum(ident):
+                        continue
+                    bad.append(f"{enum}::{vname}.{fname}: `{ident}` in `{ftype}`")
+        return bad
+
+    for enum, allowed, data in (("AppEvent", EVENT_FIELD_TYPES, {}), ("AppCommand", COMMAND_FIELD_TYPES, COMMAND_DATA_ENUMS)):
+        if enum_variants(code, enum) is None:
+            checks.append({"check": f"{enum} field types allowlisted", "ok": not final,
+                           "note": f"{enum} not present" + (" (required at --final)" if final else " yet")})
+            continue
+        bad = bad_fields(enum, allowed, data)
+        for de, de_allowed in data.items():
+            bad += bad_fields(de, (allowed | de_allowed), {})
+        checks.append({"check": f"{enum} field types allowlisted", "hits": bad, "ok": not bad})
+    return checks
+
+
+def static_selftest():
+    """Fixtures for every bypass reported by the P01 B1 security review (M3, L6); each must be caught."""
+    head = "pub enum AppCommand { A }\n"
+    must_fail = {
+        "tuple variant": "pub enum AppEvent { A(String) }",
+        "comma generic": "pub enum AppEvent { A { m: HashMap<u32, String> } }",
+        "multi-line type": "pub enum AppEvent {\n A {\n m:\n Vec<\n String,\n >,\n },\n}",
+        "alias": "type Msg = String;\npub enum AppEvent { A { m: Msg } }",
+        "path type": "pub enum AppEvent { A { m: std::string::String } }",
+        "OsString": "pub enum AppEvent { A { m: OsString } }",
+        "PathBuf": "pub enum AppEvent { A { m: PathBuf } }",
+        "Vec<u8>": "pub enum AppEvent { A { m: Vec<u8> } }",
+        "Arc<str>": "pub enum AppEvent { A { m: Arc<str> } }",
+        "Box<dyn Error>": "pub enum AppEvent { A { m: Box<dyn Error> } }",
+        "brace in doc comment": "pub enum AppEvent {\n /// see }\n A { a: u32 },\n /// {\n B { b: String },\n}",
+        "local enum with data": "pub enum Leak { X(String) }\npub enum AppEvent { A { m: Leak } }",
+        "raw string in command": "pub enum AppCommand { A { url: String } }\npub enum AppEvent { B }",
+    }
+    results = []
+    for name, src in must_fail.items():
+        text = src if "AppCommand" in src else head + src
+        ok = not all(c["ok"] for c in check_contract(text, final=True))
+        results.append({"case": f"rejects {name}", "ok": ok})
+    good = ("pub enum Flag { On, Off }\npub enum AppCommand { A { url: RawInput, ids: Vec<RepoId> } }\n"
+            "pub enum AppEvent {\n /// doc with { brace\n A { r: RepoId, t: Option<RedactedText>, f: Flag },\n B,\n}")
+    results.append({"case": "accepts allowlisted contract", "ok": all(c["ok"] for c in check_contract(good, final=True))})
+    results.append({"case": "final requires both enums", "ok": not all(c["ok"] for c in check_contract("pub enum AppEvent { B }", final=True))})
+    hidden = 'let s = "a//b"; unsafe { x() }\nlet u = "c//d"; println!("x");'
+    stripped = strip_comments(hidden)
+    results.append({"case": "unsafe after // in string is visible", "ok": bool(re.search(r"\bunsafe\b", stripped))})
+    results.append({"case": "println after // in string is visible", "ok": bool(re.search(PRINT_RE, stripped))})
+    results.append({"case": "comment text is removed", "ok": "unsafe" not in strip_comments("// unsafe { }\n/* println!() */")})
+    rd = re.compile(r"\bimpl\b[^{;]*\bRedactor\s+for\b")
+    in_test = "fn a() {}\n#[cfg(test)]\nmod tests {\n    struct I;\n    impl Redactor for I { fn x() { let s = \"}\"; } }\n}\n"
+    results.append({"case": "Redactor impl inside #[cfg(test)] mod is ignored", "ok": not rd.search(drop_test_modules(strip_comments(in_test)))})
+    results.append({"case": "Redactor impl outside test module is caught",
+                    "ok": bool(rd.search(drop_test_modules(strip_comments(in_test + "impl Redactor for Leak {}\n"))))})
+    results.append({"case": "lifetime is not a char literal", "ok": "unsafe" in strip_comments("fn f<'a>(x: &'a str) { unsafe {} }")})
+    return results
+
+
+PRINT_RE = r"\b(e?print(ln)?|dbg)\s*!|\bio::std(out|err)\s*\(|\bstd(out|err)\s*\(\s*\)"
 
 
 def step_static(final, out):
     checks = []
     rs = sorted(WS.rglob("*.rs"))
-    src = [p for p in rs if "/src/" in str(p)]
+    src = [p for p in rs if (WS / "crates") in p.parents and p.relative_to(WS / "crates").parts[1:2] == ("src",)]
+    hits = [f"{p.relative_to(REPO)}:{i}" for p in rs for i, l in code_lines(p) if re.search(r"\bunsafe\b", l)]
+    checks.append({"check": "no `unsafe` in code (comments stripped)", "hits": hits, "ok": not hits})
+    hits = [f"{p.relative_to(REPO)}:{i}" for p in src for i, l in code_lines(p, production=True) if re.search(PRINT_RE, l)]
+    checks.append({"check": "no print/dbg/stdout/stderr in src", "hits": hits, "ok": not hits})
     hits = [f"{p.relative_to(REPO)}:{i}" for p in rs for i, l in code_lines(p)
-            if re.search(r"\bunsafe\s*(\{|fn\b|impl\b|trait\b)", l)]
-    checks.append({"check": "no unsafe blocks/fns/impls", "hits": hits, "ok": not hits})
-    hits = [f"{p.relative_to(REPO)}:{i}" for p in src for i, l in code_lines(p)
-            if re.search(r"\b(e?println|e?print|dbg)!", l)]
-    checks.append({"check": "no print/dbg macros in src", "hits": hits, "ok": not hits})
-    hits = [f"{p.relative_to(REPO)}:{i}" for p in rs for i, l in code_lines(p)
-            if re.search(r"\btodo!|\bunimplemented!|clippy::todo", l)]
+            if re.search(r"\btodo\s*!|\bunimplemented\s*!|clippy::todo", l)]
     checks.append({"check": "no todo!/unimplemented!/allow(clippy::todo)" + ("" if final else " (informational before T09)"),
                    "hits": len(hits), "ok": (not hits) if final else True})
+    hits = [f"{p.relative_to(REPO)}:{i}" for p in src if p.name != "contract.rs" for i, l in code_lines(p, production=True)
+            if re.search(r"\.\s*expose\s*\(", l)]
+    checks.append({"check": "CredentialSecret::expose() not called in src outside contract.rs", "hits": hits, "ok": not hits})
+    hits = [f"{p.relative_to(REPO)}:{i}" for p in src for i, l in code_lines(p, production=True)
+            if re.search(r"\bimpl\b[^{;]*\bRedactor\s+for\b", l)]
+    checks.append({"check": "no Redactor impl in src outside #[cfg(test)] modules (until P06)", "hits": hits, "ok": not hits})
     contract = WS / "crates/domain/src/contract.rs"
-    block = enum_block(contract.read_text(), "AppEvent") if contract.exists() else None
-    if block is None:
-        checks.append({"check": "AppEvent has no raw string field types", "ok": not final,
-                       "note": "AppEvent not present" + (" (required at --final)" if final else " yet")})
-    else:
-        bad = [l.strip() for l in block.splitlines() if re.search(r":\s*(&\s*'?\w*\s*str\b|String\b|Box<str>|Cow<)", l)]
-        checks.append({"check": "AppEvent has no raw string field types", "hits": bad, "ok": not bad})
-        cblock = enum_block(contract.read_text(), "AppCommand") or ""
-        bad = [l.strip() for l in cblock.splitlines() if re.search(r":\s*(&\s*'?\w*\s*str\b|String\b|Box<str>|Cow<)", l)
-               and "// raw-input:" not in l]
-        checks.append({"check": "AppCommand raw string fields are marked // raw-input:", "hits": bad, "ok": not bad})
+    checks += check_contract(contract.read_text() if contract.exists() else "", final)
+    st = static_selftest()
+    checks.append({"check": "static checker self-test", "cases": st, "ok": all(c["ok"] for c in st)})
     lock = tomllib.loads((WS / "Cargo.lock").read_text())["package"]
-    reg = {(p["name"], p["version"]) for p in lock if p.get("source")}
+    reg = {(p["name"], (p["version"], p["source"], p.get("checksum"))) for p in lock if p.get("source")}
     mem = {p["name"] for p in lock if not p.get("source")}
-    checks.append({"check": "Cargo.lock registry set == approved exact versions",
+    checks.append({"check": "Cargo.lock registry set == approved (version, source, checksum)",
                    "extra": sorted(map(list, reg - set(EXPECTED_REGISTRY.items()))),
                    "missing": sorted(map(list, set(EXPECTED_REGISTRY.items()) - reg)),
                    "ok": reg == set(EXPECTED_REGISTRY.items())})
@@ -169,11 +376,23 @@ def main():
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--package")
     ap.add_argument("--final", action="store_true")
+    ap.add_argument("--min-passed", type=int, default=0, help="fail the test step below this many passed tests")
+    ap.add_argument("--min-compile-fail", type=int, default=0, help="fail the test step below this many compile_fail doctests")
+    ap.add_argument("--repo", type=Path, help="checkout to verify (default: this script's checkout)")
     a = ap.parse_args()
+    global REPO, WS
+    if a.repo:
+        REPO = a.repo.resolve()
+        WS = REPO / "workbench"
+    if not (WS / "Cargo.toml").is_file():
+        print(f"no workspace at {WS}")
+        return 2
     out = a.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     scope = ["-p", a.package] if a.package else ["--workspace"]
     modes = ["env", "fmt", "clippy", "test", "build", "static"] if a.mode == "all" else [a.mode]
+    if a.mode not in ("env", "all", "static"):
+        modes = ["env", *modes]  # T01 §2: version gate and netns probe before any Cargo command
     head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "-C", str(REPO), "status", "--short"], capture_output=True, text=True).stdout
     results = []
@@ -187,7 +406,11 @@ def main():
         elif m == "test":
             r = run_cargo("test", ["test", *scope, "--frozen"], a.slot, out)
             r["counts"] = test_counts(out / "test.log")
-            if r["counts"]["ignored"] or r["counts"]["failed"] or not r["counts"]["suites"]:
+            log_text = (out / "test.log").read_text(errors="replace")
+            r["counts"]["compile_fail_ok"] = len(re.findall(r" - compile fail \.\.\. ok$", log_text, re.M))
+            r["floors"] = {"min_passed": a.min_passed, "min_compile_fail": a.min_compile_fail}
+            if (r["counts"]["ignored"] or r["counts"]["failed"] or not r["counts"]["suites"]
+                    or r["counts"]["passed"] < a.min_passed or r["counts"]["compile_fail_ok"] < a.min_compile_fail):
                 r["ok"] = False
         elif m == "build":
             r = run_cargo("build", ["build", *scope, "--frozen"], a.slot, out)
@@ -196,7 +419,7 @@ def main():
         results.append(r)
         if m == "env" and not r["ok"]:
             break
-    summary = {"tool": "dev/p01_check.py", "mode": a.mode, "slot": a.slot, "package": a.package, "final": a.final,
+    summary = {"tool": "dev/p01_check.py", "repo": str(REPO), "target_dir": str(target_dir(a.slot)), "mode": a.mode, "slot": a.slot, "package": a.package, "final": a.final,
                "repo_head": head, "dirty": dirty.splitlines(), "results": results,
                "ok": all(r["ok"] for r in results) and len(results) == len(modes)}
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
