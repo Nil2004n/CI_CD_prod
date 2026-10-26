@@ -1,6 +1,6 @@
 # P01 report — workspace, domain types and contracts
 
-Date: 2026-10-26 (conformance section §10 added the same day at owner request).
+Date: 2026-10-26 (conformance §10 and CA-03 §11 added the same day at owner request; §3 numbers are the final post-CA-03 run).
 - **Phase branch:** `phase/P01-foundation`; base `main` `485b3a8`; the planning commit is `2667a31`.
 - **Prepared by:** Opus (lead). No Haiku documentation agent is installed.
 - **Status:** **complete and verified by the lead; awaiting owner acceptance.** Merging to `main` is a separate approval.
@@ -36,16 +36,16 @@ This report states what was done and what was verified. It is not a claim that t
 | T09 verification + final reviews | PASS; D04; acceptance criteria assessed | `evidence/P01/T09/record.md` |
 | T10 lint tightening, report, freeze | PASS; D05 | this report, `evidence/debug/P01-D05/record.md`, `evidence/P01/P01-freeze.json` |
 
-## 3. Final verification (lead; `evidence/P01/T10/check-final`)
-- **Command:** `python3 -I -B dev/p01_check.py all --slot lead --final --out evidence/P01/T10/check-final`.
-- **Tree:** HEAD `cf54227`, plus this T10 documentation: the Arch §6 line and untracked evidence, with no code difference.
+## 3. Final verification (lead; `evidence/P01/CA-03/check-final`, after CA-03; the earlier T10 run `evidence/P01/T10/check-final` was 415/0/0)
+- **Command:** `python3 -I -B dev/p01_check.py all --slot lead --final --out evidence/P01/CA-03/check-final`.
+- **Tree:** the merge of P01-D06 (`8e4f469`), plus the baseline floor raised to 416 and untracked evidence/records.
 - **Environment:** rustc/cargo/rustdoc 1.97.1 called directly, `env -i`, isolated `CARGO_HOME`, per-repo target dir, every Cargo command in `unshare -rn` (probe errno 101), `--frozen`.
 
 | Check | Result |
 |---|---|
 | `cargo fmt --all -- --check` | exit 0 |
 | `cargo clippy --workspace --all-targets --frozen -- -D warnings` (lints now `deny` + `allow_attributes_without_reason`) | exit 0, 0 warnings |
-| `cargo test --workspace --frozen` | exit 0. 20 suites: **415 passed, 0 failed, 0 ignored**. Unit 3, contract 22, ids_time 279, states 23, text 19, versions 5, doctests 64 (32 run + **32 compile_fail**). Floors 415/32 from the committed baseline |
+| `cargo test --workspace --frozen` | exit 0. 20 suites: **416 passed, 0 failed, 0 ignored**. Unit 3, contract 23, ids_time 279, states 23, text 19, versions 5, doctests 64 (32 run + **32 compile_fail**). Floors 416/32 from the committed baseline |
 | `cargo build --workspace --frozen` | exit 0 |
 | static (17 checks) | PASS. Checks include: no `unsafe`; no print macros; no `todo!`; contract field-type allowlist; `RedactedText` impl set; `redact_static` call sites; `expose` sites; `#[allow]` allowlist; no `build.rs`/`.cargo` config; lock (version, source, checksum) and whole-lock hash; manifests ⊆ {serde, serde_json}; self-test 25/25 |
 | Lockfile and manifests during every step | unchanged (hash-checked) |
@@ -129,7 +129,7 @@ No defect reached the two-cycle limit.
 
 ## 10. Conformance with plan, architecture and PRD (owner-requested check, 2026-10-26)
 Full record: `evidence/P01/conformance/record.md`.
-- **Fresh `--final` run:** PASS, 415/0/0, 32 compile_fail.
+- **Fresh `--final` run:** PASS, 415/0/0, 32 compile_fail (before CA-03; after CA-03 see §11).
 - **Scripted document cross-check:** **25 PASS, 2 NOTE.** The script parses Arch §4/§6/§7, Tech §4, the schema enums, UI §5 and PRD §16 directly.
   - Commands and events equal Arch §6: 29 and 34 names, with matching status and delivery.
   - State machines equal Arch §7 plus T01-D1/D2.
@@ -145,5 +145,22 @@ Full record: `evidence/P01/conformance/record.md`.
 **Limitations: expected and accepted for this phase.** Each one falls inside a later phase's planned scope (P02 envelope/emission/store, P03 credentials, P06 redaction, P11/P12 renderer escaping, P17 chat) or rests on an explicit owner decision (A3, A4, A5, D5 and the B1 decisions). None leaves an approved P01 requirement unmet.
 
 **Two items that are not P01 limitations, raised for the owner:**
-1. **Specification inconsistency.** The store `ToolManifest.availability` (`ready, missing, incompatible, deferred, unconfigured`) differs from UI §5 `tools.states` (`ready, missing, incompatible, unavailable, denied, deferred`). The code follows the UI list. A mapping decision is needed before P06.
-2. **Carry-forward to P02.** The store models must use `RedactedText`/`SanitisedText` for all free-text fields (plan §4 P01 intent), and the P02 static checks should extend the type allowlist to them.
+1. **Specification inconsistency — resolved by CA-03 (§11).** The store `ToolManifest.availability` (`ready, missing, incompatible, deferred, unconfigured`) differs from UI §5 `tools.states` (`ready, missing, incompatible, unavailable, denied, deferred`). The code follows the UI list. A mapping decision is needed before P06.
+2. **Carry-forward to P02 — recorded as FR-31 (§11).** The store models must use `RedactedText`/`SanitisedText` for all free-text fields (plan §4 P01 intent), and the P02 static checks should extend the type allowlist to them.
+
+## 11. CA-03 and FR-31 (owner approval 2026-10-26, applied before the merge)
+### CA-03: canonical tool availability (`evidence/P01/CA-03/`, Data Schema §24)
+- **One list in store and UI:** `ready, missing, incompatible, unconfigured, unavailable, deferred`. `denied` is now a permission badge from approval/coverage records, not a tool state.
+- **Versions:** store contract 1.3 → **1.4** (file renamed `workbench-store-v1.4.schema.json`); UI schema 1.0 → **1.1**; wrapper protocol unchanged at 1.1; app contract stays **1.0**, because nothing had been published before this merge. Specs are now revision **0.3.4**.
+- **Lead part (`cb4910c`):** schemas, specs, plan (D-16) and `versions.rs`.
+  - Check `check_ca03.py`: run 1 was 28/1 (historical lines needed supersession notes); run 2 was **29/0/0**; after the merge, 29/0/0 again.
+- **Worker part (P01-D06, `4b4b3fe`):** `ToolStatus` → `ToolAvailability`, field `availability`, a schema cross-check test, and test paths/versions.
+- **Final run:** **416/0/0, 32 compile_fail**, every check PASS. Conformance rev 2: **26 PASS / 1 NOTE**. The spec inconsistency is resolved; the only note left is the deferred test directories.
+
+### FR-31: safe text in P02 store models (`plan.md` §5.2)
+FR-31 is a mandatory P02 acceptance requirement:
+- a reviewed classification of every plain-string schema field (closed enum, validated newtype, `RedactedText`, or `SanitisedText`);
+- `RedactedText` read-back only through a persistence-private sealed path, with re-escaping on read;
+- the static allowlist extended to store-model structs, with negative controls;
+- a schema-completeness test;
+- compile_fail guards.

@@ -1,4 +1,4 @@
-"""P01 conformance check: code vs 03_Architecture.md §4/§6/§7, 02_Technical_Specification.md §4,
+"""P01 conformance check (rev 2, after CA-03: store v1.4 schema, ToolAvailability): code vs 03_Architecture.md §4/§6/§7, 02_Technical_Specification.md §4,
 05 schema enums, 01_PRD.md §16 deferred labels. Read-only; parses the documents, not the tests."""
 import json, re, sys, tomllib
 sys.path.insert(0, "dev"); import p01_check as pc
@@ -114,7 +114,7 @@ chk("Tech §4", "tests/{fixtures,contracts,integration} present", False, "deferr
 chk("Tech §2/§22", "dependencies limited to Serde stack (D-01: others via later phases/spikes)", True, "serde, serde_json only")
 
 # E. Schema enums vs contract-local enums
-S = json.load(open("schemas/workbench-store-v1.3.schema.json"))["$defs"]
+S = json.load(open("schemas/workbench-store-v1.4.schema.json"))["$defs"]
 def find(o, key):
     if isinstance(o, dict):
         for k,v in o.items():
@@ -137,9 +137,9 @@ avail = None
 for v in find(S, "availability"):
     if isinstance(v, dict) and "enum" in v: avail = v["enum"]
 ui = open("04_UI_Schema.md").read()
-ui_states = re.search(r"states: \[([^\]]*)\]", ui).group(1).replace(" ","").split(",")
-ts = [s for _,s in rust_enum(contract,"ToolStatus")]
-chk("UI §5", "ToolStatus == UI Schema tools.states", sorted(ts)==sorted(ui_states), f"{ts}")
+ui_states = re.search(r"^\s+states: \[([^\]]*)\]", ui, re.M).group(1).replace(" ","").split(",")
+ts = [s for _,s in rust_enum(contract,"ToolAvailability")]
+chk("UI §5", "ToolAvailability == UI Schema tools.states", sorted(ts)==sorted(ui_states), f"{ts}")
 chk("Data §7 vs UI §5", "store ToolManifest.availability == UI tools.states (spec consistency)", sorted(avail)==sorted(ui_states), f"store {avail} vs UI {ui_states}")
 
 # F. PRD §16 deferred labels vs reserved commands / deferred capabilities
@@ -155,8 +155,10 @@ chk("PRD KEY-01", "credential has no plaintext/serde path (no Serialize/Clone/Di
 
 # G. versions (A-11)
 ver = open("workbench/crates/domain/src/versions.rs").read()
-chk("Arch A-11", "independent version lines store 1.3 / protocol 1.1 / app 1.0 / UI 1.0",
-    '"1.3"' in ver and '"1.1"' in ver and '"1.0"' in ver and 'APP_CONTRACT_VERSION: &str = "1.0"' in contract)
+a11 = re.search(r"\| A-11 \|([^|]*)\|", arch).group(1)
+chk("Arch A-11", "versions.rs == Arch A-11 line (store 1.4 / protocol 1.1 / app 1.0 / UI 1.1, CA-03)",
+    'STORE_SCHEMA_VERSION: &str = "1.4"' in ver and 'WRAPPER_PROTOCOL_VERSION: &str = "1.1"' in ver and 'UI_SCHEMA_VERSION: &str = "1.1"' in ver
+    and 'APP_CONTRACT_VERSION: &str = "1.0"' in contract and all(x in a11 for x in ["store 1.4", "wrapper protocol 1.1", "app command/event contract 1.0", "UI schema 1.1"]), a11.strip())
 
 json.dump(R, open("evidence/P01/conformance/conformance.json","w"), indent=2)
 for r in R: print(("PASS " if r["ok"] else "NOTE ")+f"[{r['area']}] {r['check']}" + (f" :: {r['detail']}" if r['detail'] and (not r['ok'] or len(r['detail'])<160) else ""))

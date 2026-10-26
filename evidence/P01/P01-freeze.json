@@ -1,7 +1,7 @@
 {
   "phase": "P01",
   "date": "2026-10-26",
-  "status": "inventory at P01-T10; not adoption or build permission for later phases",
+  "status": "inventory at P01 completion (after CA-03); not adoption or build permission for later phases",
   "toolchain": {
     "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
     "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
@@ -93,7 +93,8 @@
         "version": "1.0.23",
         "checksum": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
       }
-    ]
+    ],
+    "sha256_now": "fb8b7d076ccf7f79c94128c24d84e88bee763dc7fabfbf95befb5af361a71258"
   },
   "build_code_exposure": {
     "build_scripts": [
@@ -111,10 +112,16 @@
   },
   "advisory_status": "cargo-audit not run (install deferred, A4=4a); last RustSec screen = P00 direct-candidate screen 2026-10-24",
   "contract_versions": {
-    "store": "1.3",
+    "store": "1.4",
     "wrapper_protocol": "1.1",
     "app_contract": "1.0",
-    "ui_schema": "1.0"
+    "ui_schema": "1.1",
+    "amendments": [
+      "CA-01",
+      "CA-02",
+      "CA-03"
+    ],
+    "spec_revision": "0.3.4"
   },
   "dev_tooling": {
     "runner": {
@@ -123,7 +130,13 @@
     },
     "baseline": {
       "path": "dev/p01_baseline.json",
-      "sha256": "532ec1c8168c84e88335f21936fef337d7e3f99d1b19a6749151bde0e4bc9dd6"
+      "sha256": "cfa80eafe2f74f03f2858fa0e00f6b5d29c4580fb5987533c2733ef79f9f050f",
+      "min_passed": 416,
+      "min_compile_fail": 32
     }
+  },
+  "canonical_schema": {
+    "path": "schemas/workbench-store-v1.4.schema.json",
+    "sha256": "909e2a55c315ca07096f9123e6986b637a83b1bcdfc4eb6ff88d9d06daa80e2e"
   }
 }

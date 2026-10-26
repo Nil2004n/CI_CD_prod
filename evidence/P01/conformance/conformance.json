@@ -127,15 +127,15 @@
   },
   {
     "area": "UI \u00a75",
-    "check": "ToolStatus == UI Schema tools.states",
+    "check": "ToolAvailability == UI Schema tools.states",
     "ok": true,
-    "detail": "['ready', 'missing', 'incompatible', 'unavailable', 'denied', 'deferred']"
+    "detail": "['ready', 'missing', 'incompatible', 'unconfigured', 'unavailable', 'deferred']"
   },
   {
     "area": "Data \u00a77 vs UI \u00a75",
     "check": "store ToolManifest.availability == UI tools.states (spec consistency)",
-    "ok": false,
-    "detail": "store ['ready', 'missing', 'incompatible', 'deferred', 'unconfigured'] vs UI ['ready', 'missing', 'incompatible', 'unavailable', 'denied', 'deferred']"
+    "ok": true,
+    "detail": "store ['ready', 'missing', 'incompatible', 'unconfigured', 'unavailable', 'deferred'] vs UI ['ready', 'missing', 'incompatible', 'unconfigured', 'unavailable', 'deferred']"
   },
   {
     "area": "PRD \u00a716",
@@ -157,8 +157,8 @@
   },
   {
     "area": "Arch A-11",
-    "check": "independent version lines store 1.3 / protocol 1.1 / app 1.0 / UI 1.0",
+    "check": "versions.rs == Arch A-11 line (store 1.4 / protocol 1.1 / app 1.0 / UI 1.1, CA-03)",
     "ok": true,
-    "detail": ""
+    "detail": "Independent version lines: document 0.3.x, store 1.4, wrapper protocol 1.1, app command/event contract 1.0, UI schema 1.1 (CA-03)"
   }
 ]

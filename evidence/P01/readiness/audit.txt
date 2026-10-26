@@ -1,0 +1,34 @@
+PASS plan §5A lists exactly T01-T10
+PASS T01 deliverable exists
+PASS T02 deliverable exists
+PASS T03 deliverable exists
+PASS T04 deliverable exists
+PASS T05 deliverable exists
+PASS T06 deliverable exists
+PASS T07 deliverable exists
+PASS T08 deliverable exists
+PASS T09 deliverable exists
+PASS T10 deliverable exists
+PASS execution-plan §6 has 9 criteria
+PASS T09 record assesses all 9 as Met
+PASS status records A1..A7 decisions
+PASS plan §4 P01 row present
+PASS P01 scope item: Cargo workspace
+PASS P01 scope item: pinned toolchain
+PASS P01 scope item: typed IDs/states
+PASS P01 scope item: command/event DTOs
+PASS P01 scope item: RedactedText/SanitisedText
+PASS final --final run PASS with floors 416/32
+PASS cargo-audit status recorded as not run (A4)
+PASS no FR register entry assigned to P01
+PASS FR-31 recorded for P02
+PASS plan §9 logs P01-D01..D06
+PASS each debug cycle has a record
+PASS CA-03 check 29/0/0 after merge
+PASS conformance rev2: only the approved deferral remains
+PASS freeze matches lock, runner, baseline, schema
+PASS P01 report has §1-§11
+PASS no extra worktrees
+PASS no leftover worker branches
+PASS main untouched (= origin/main = 485b3a8)
+pass 33 / 33
