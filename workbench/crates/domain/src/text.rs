@@ -14,10 +14,178 @@ pub trait Redactor {
 }
 
 /// Text with unsafe code points escaped.
+///
+/// # Construction is closed
+///
+/// Positive control for the next case (compiles) - `SanitisedText` from a `String` via `From`:
+///
+/// ```
+/// use domain::text::{sanitise, SanitisedText};
+/// let _: SanitisedText = sanitise("x");
+/// ```
+///
+/// Compile-fail case: `SanitisedText` from a `String` via `From` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{sanitise, SanitisedText};
+/// let _: SanitisedText = SanitisedText::from(String::from("x"));
+/// ```
+///
+/// Positive control for the next case (compiles) - `SanitisedText` from a `String` via `Into`:
+///
+/// ```
+/// use domain::text::{sanitise, SanitisedText};
+/// let _: SanitisedText = sanitise("x");
+/// ```
+///
+/// Compile-fail case: `SanitisedText` from a `String` via `Into` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{sanitise, SanitisedText};
+/// let _: SanitisedText = String::from("x").into();
+/// ```
+///
+/// Positive control for the next case (compiles) - A `String` passed where `SanitisedText` is required:
+///
+/// ```
+/// use domain::text::{sanitise, SanitisedText};
+/// fn f(_: SanitisedText) {}
+/// f(sanitise("x"));
+/// ```
+///
+/// Compile-fail case: A `String` passed where `SanitisedText` is required (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{sanitise, SanitisedText};
+/// fn f(_: SanitisedText) {}
+/// f(String::from("x"));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SanitisedText(String);
 
 /// Text that passed through a [`Redactor`] and was then escaped like [`SanitisedText`].
+///
+/// # Construction is closed
+///
+/// Positive control for the next case (compiles) - `RedactedText` from a `String` via `From`:
+///
+/// ```
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` from a `String` via `From` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = RedactedText::from(String::from("x"));
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` from a `String` via `Into`:
+///
+/// ```
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` from a `String` via `Into` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = String::from("x").into();
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` from a `&str` via `From`:
+///
+/// ```
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` from a `&str` via `From` (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = RedactedText::from("x");
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` by tuple-struct construction:
+///
+/// ```
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` by tuple-struct construction (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = RedactedText(String::new());
+/// ```
+///
+/// Positive control for the next case (compiles) - `RedactedText` by deserialising:
+///
+/// ```
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _: RedactedText = redact("x", &Id);
+/// ```
+///
+/// Compile-fail case: `RedactedText` by deserialising (does not compile):
+///
+/// ```compile_fail
+/// use domain::text::{redact, RedactedText, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = serde_json::from_str::<RedactedText>("\"x\"");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RedactedText(String);
 
@@ -31,10 +199,41 @@ pub fn redact(raw: &str, redactor: &dyn Redactor) -> RedactedText {
     RedactedText(escape(&redactor.redact(raw)))
 }
 
-/// Escapes every code point of the frozen escape set as `<U+XXXX>`.
-#[allow(clippy::todo, unused_variables)]
+/// Whether `c` belongs to the frozen escape set (`planning/P01-T01-request.md` §5.3).
+fn needs_escape(c: char) -> bool {
+    matches!(
+        c,
+        '\u{0000}'..='\u{0008}'
+            | '\u{000B}'..='\u{001F}'
+            | '\u{007F}'
+            | '\u{0080}'..='\u{009F}'
+            | '\u{061C}'
+            | '\u{200E}'
+            | '\u{200F}'
+            | '\u{202A}'..='\u{202E}'
+            | '\u{2066}'..='\u{2069}'
+            | '\u{200B}'..='\u{200D}'
+            | '\u{2060}'
+            | '\u{FEFF}'
+            | '\u{2028}'
+            | '\u{2029}'
+    )
+}
+
+/// Escapes every code point of the frozen escape set as `<U+XXXX>` (uppercase hex, at least four digits).
+///
+/// TAB (U+0009) and LF (U+000A) are kept. Disclosed ambiguity: literal input text such as `<U+001B>` is
+/// indistinguishable from an escaped ESC, which is what makes escaping idempotent.
 fn escape(raw: &str) -> String {
-    todo!("P01-T06")
+    let mut out = String::with_capacity(raw.len());
+    for c in raw.chars() {
+        if needs_escape(c) {
+            out.push_str(&format!("<U+{:04X}>", u32::from(c)));
+        } else {
+            out.push(c);
+        }
+    }
+    out
 }
 
 impl SanitisedText {
