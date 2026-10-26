@@ -1,6 +1,6 @@
 # PWT YAML Security Workbench — Development Plan
 
-Plan revision: 1 (2026-10-23), with updates of 2026-10-24: status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries FR-01–FR-24 (§5.2); no scope, phase or estimate changes. Current Git state: see `status.md`.
+Plan revision: 1 (2026-10-23), with updates of 2026-10-24 and 2026-10-26 (P01 progress, D-16/CA-03, FR-31, **D-17 headless CLI §4.1**): status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries (§5.2). Scope/estimate change on 2026-10-26: D-17 adds a headless CLI increment to every feature phase from P02 (§4.1, §7.1); no phases added or removed. Current Git state: see `status.md`.
 
 This plan is a schedule and control proposal, not evidence of implemented code or passed tests. No phase starts without explicit owner approval. Specification references are to the v0.3.1 documents (`01_PRD.md` … `05_Database_Data_Schema.md`).
 
@@ -26,6 +26,7 @@ Owner decisions received 2026-10-23 (planning-stage approval message). Recorded 
 | D-14 | Phase-branch policy; no commits/merges/pushes without explicit approval; record actual revisions and dirty state | §3.6 |
 | D-16 | (2026-10-26) CA-03 before the P01 merge: canonical tool availability `ready, missing, incompatible, unconfigured, unavailable, deferred` in store and UI; `denied` is a permission badge, not a tool state; store 1.3 → 1.4, UI schema 1.0 → 1.1, app contract stays 1.0 | Data §24, UI §5/§14, P01 |
 | D-15 | (2026-10-24) Korean (Hangul script) support is **out of scope for the entire project**. Korean text in assessed files is still processed as data: never silently dropped and never a crash; where displayed or rendered it degrades visibly (e.g. `<U+XXXX>`). No Hangul font, IME or Korean-specific layout is a project target | PRD §16, P00-T08 |
+| D-17 | (2026-10-26) Headless developer CLI: from P02, every feature phase adds command-line access to the feature it creates, so each feature can be exercised headless as soon as it exists (detail §4.1). The CLI is a second presentation adapter over the same coordinator and Arch §6 command/event contract as the TUI; it never bypasses permissions, redaction or the store writer | §4, §4.1, §7 |
 
 Planning corrections 1–6 from the same message are applied: capability labels (PRD §16, SCAN-05/SCAN-06/RAG sources kept), minimal AI kept, early slice carries redaction/coverage (P01/P06/P07), per-tool hypothesis spikes (P00-T09), narrow retrieval sources (P17), and the agent loop (§3).
 
@@ -114,7 +115,7 @@ P15a (demo TUI on mocks) may start after P01; P18 (Figma) after P15a + Figma del
 |---|---|---|---|---|
 | P00 | pilot | Decisions frozen, spike protocols, install/crate requests, spikes, tool/crate freeze (detail §5) | Spike records per protocol | Phase approval; T02 needs Q-06; spikes need D-10/crate approvals |
 | P01 | pilot | Cargo workspace (crates per Tech §4), pinned toolchain, typed IDs/states, canonical command/event DTOs (Arch §6), `RedactedText`/`SanitisedText` newtypes so unsanitised text cannot reach persistence types | fmt, clippy `-D warnings`, test, build verified; DTO round-trip tests; cargo-audit if installed | Crate download approval |
-| P02 | pilot | JSON store v1.4 (CA-03): typed models, schema + semantic validation (Data §11, §18), single writer, lock, temp+replace, recovery, export manifests | Schema conformance of all roots; interruption/malformed/full-disk fixtures; same-day naming | P01 |
+| P02 | pilot | **Headless CLI crate `crates/cli` created (D-17, §4.1).** JSON store v1.4 (CA-03): typed models, schema + semantic validation (Data §11, §18), single writer, lock, temp+replace, recovery, export manifests | Schema conformance of all roots; interruption/malformed/full-disk fixtures; same-day naming | P01 |
 | P03 | pilot | Permission evaluator (scope/revision/fingerprint), child-env sanitiser (strip model key/unrelated secrets), credential abstraction (session-only; keyring behind spike result) | Scope-match tables; env-strip tests; no key in any serialised output | P01, P02 |
 | P04 | pilot | URL validation (HTTPS/SSH only), clone/fast-forward update, unsafe-state detection, per-repo locks, provenance, Git safety controls from P00-T04 | Local fixture repos (dirty, diverged, hooks, filters, submodules); no source mutation | P00-T04, P02 |
 | P05 | pilot | Inventory, exclusions/symlinks/limits, classifier (generic/Actions/Kubernetes; Compose/Helm reported conditional), tristate selection + selectors, reference detection recorded as gaps (SCAN-05) | Hostile filenames, symlink escape, limits, selector semantics | P04 |
@@ -136,7 +137,74 @@ P15a (demo TUI on mocks) may start after P01; P18 (Figma) after P15a + Figma del
 | P20 | pilot | Linux x86_64 packaging, prerequisite/install guide, tool manifest, notices, manual acceptance | Release gates PRD §9/§15 | P19 |
 | X1–X6 | conditional | zizmor, Compose, Helm, Trivy (needs pinnable build), Windows/macOS, `.sh` parity | Own contract sheets | Separate approval each |
 
+Every feature phase from P02 also delivers its §4.1 CLI increment and that increment's scripted scenarios, as part of its own acceptance checks.
+
 Deferred (no phase; interfaces reserved): SCAN-06 live verification, SCAN-05 non-image references, SCAN-09 historical secrets, RES-06 suppression/baseline, run comparison, AI report narration (Q-02), embeddings, chat persistence/historical chat, remote documentation ingestion, draggable splits.
+
+### 4.1 Headless developer CLI (D-17, owner decision 2026-10-26)
+
+**Purpose.** A developer can try every feature from the command line as soon as the phase that creates it is accepted, without waiting for the TUI (P15b). It is also the scripted acceptance path for those phases.
+
+**Simple usage (target shape, from P02).**
+- Build once: `cargo build -p cli` through the phase runner (same pinned toolchain, `env -i`, offline, as for every other check).
+- Try one feature by hand: `pwt-workbench-cli --data-dir <tmp> <group> <command> [args] [--json]`, e.g. `store validate`, `repo add <url>`, `scan start <run-id>`.
+- See what can be tried: `pwt-workbench-cli help` lists every command; `pwt-workbench-cli features` prints the feature index (below).
+- Test everything headless in one go: `python3 -I -B dev/<phase runner> cli` runs all scripted CLI scenarios of all accepted phases (also included in `all`). No TUI, terminal or display is needed; scenarios use temporary data dirs and synthetic fixtures only.
+
+**Definition of done per feature (every phase from P02).** A feature counts as delivered only when all three exist:
+1. a CLI command (or a flag on an existing one) that exercises it headless through the coordinator;
+2. at least one scripted scenario test that runs that command against a synthetic fixture and asserts on its `--json` events and exit code (plus at least one negative/failure case);
+3. a row in the feature index: requirement ID (PRD/Tech/FR), command, scenario test name, mode (`real`, `mock`, `dev`, or `manual-pending`).
+A test in the CLI crate checks that every index row names an existing command and an existing test, so the index cannot silently go stale. Features that cannot be exercised headless (e.g. pure TUI layout) are listed in the index as `manual-pending` with the reason, never omitted.
+
+**Design rules** (constraints, binding on every phase):
+
+**Same path as the TUI.**
+- The new crate `workbench/crates/cli`, binary `pwt-workbench-cli`, parses arguments into Arch §6 `AppCommand`s and sends them through the `application` coordinator.
+- It prints the resulting `AppEvent`s. It never calls Git, scanners, the store or HTTP directly.
+- Commands without an Arch §6 equivalent are labelled `dev` (see P06), call only domain/application entry points, and are excluded from release builds unless the owner decides otherwise at P20.
+
+**Output.**
+- Default output is human-readable. `--json` emits one serialised `AppEvent` per line (JSON Lines), using the existing golden-tested serialisation.
+- Exit codes are documented per command. Execution status is kept separate from findings: exit 0 means the command executed, never "clean".
+
+**Data location.**
+- `--data-dir <dir>` is required for every command that touches app data.
+- The CLI never defaults to the user's real application-data directory during development. Test scenarios use temporary directories.
+
+**Permissions.**
+- Approvals are never implied. A pending `ApprovalRequested` stops the command and prints the request. The user approves explicitly (`approvals approve <approval-id>` or an interactive confirmation on a TTY), then re-runs.
+- There is no blanket `--yes` and no auto-approval flag. Network operations follow the same approval and owner rules as everywhere else.
+
+**Secrets.**
+- Keys are never read from argv or environment variables. `credential set` reads from a TTY prompt with echo off, or from stdin with `--stdin`.
+- Raw input appears only as `RawInput` inside commands. Printed output carries only `RedactedText`/`SanitisedText`, escaped for the terminal.
+
+**Mocks.** Mock providers and fake tools are opt-in (`--mock-provider`, `dev` fixtures). They are labelled in every output line and can never satisfy real-scan or real-API acceptance.
+
+**Dependencies.** Argument parsing uses `std` only, unless a parser crate is approved through a normal dependency request.
+
+**Tests.** Each phase adds scripted CLI scenarios (`workbench/crates/cli/tests/<phase>_*.rs`) that run the binary on synthetic fixtures. They are part of the regression suite and of the runner's committed test floors.
+
+**Per-phase increments** (commands are proposals; exact names are fixed in each phase request):
+
+| Phase | CLI increment | Scripted scenario examples |
+|---|---|---|
+| P02 | Crate and binary skeleton; `--version` (all contract versions); `help`, `features` (feature index + staleness test); runner `cli` mode; `store init`, `store validate`, `store show <file>`, `store recover` | Init a temp store; validate all roots; malformed/interrupted-write recovery; schema 1.4 rejection of a 1.3-labelled file |
+| P03 | `approvals list/approve/deny/revoke`; `credential set --session` (stdin/TTY), `credential status`, `credential delete`; `dev env-preview <tool>` (sanitised child environment, values masked) | Scope/revision mismatch prompts again; the key never appears in output, argv or logs |
+| P04 | `repo add <url>`, `repo list`, `repo refresh <id>`, `repo status <id>`, `repo remove <id> [--delete-checkout] [--purge-index] [--keep-reports]` | Dirty/diverged/hook/filter/submodule fixture repos unchanged and skipped with reason; remote clone only with network approval |
+| P05 | `discover <repo>`, `files list [--filter]`, `select file/repo/visible/all/mode/patterns` | Hostile filenames escaped; symlink escape excluded with reason; tristate counts |
+| P06 | `tools preflight`, `tools list`; `dev supervise <fake-tool-fixture>` | Crash, timeout, output flood (RC-FLOOD), early close and secret-bearing stderr reported as typed outcomes |
+| P07★ | `plan review`, `scan start <run-id>`, `scan cancel <run-id>`, `runs list/show`, `report show <report-id>` | End-to-end slice on a synthetic repo; seeded secret absent from all output; malformed YAML gives a finding plus honest coverage |
+| P08, P09, P13 | Adapters selectable in `plan review --adapters …`; per-tool coverage in `runs show` | Per-tool golden runs; missing tool gives a coverage gap, not a pass |
+| P10–P12 | `report export <id> --format json/md/pdf`, `report regenerate <id> --format md/pdf` | Dedup provenance visible; PDF failure keeps JSON/MD; regeneration without rescanning |
+| P14 | `workflow save/list/show/delete/enable/disable/run`; `dev triggers tick --at <UTC time>` (deterministic clock) | Overlap skipped; missed-while-closed recorded; DST cases |
+| P15a/P15b | No new commands; **parity test**: the same scripted command sequence through the CLI and through the TUI reducer produces the same event sequence | — |
+| P16 | `provider set --model <id>`, `chat send` with `--mock-provider` (real provider only after owner approval of a real-API check) | No-route fail-closed; key absent; typed failures |
+| P17 | `chat context set …`, `chat send` with citations | Cross-repo isolation; invalid citation flagged; injection fixtures inert |
+| P19/P20 | Hardening of CLI paths; owner decision whether the CLI ships in the release or stays development-only | Full regression includes all CLI scenarios |
+
+**Specification follow-up.** A short amendment is needed: Tech §4 (crate list), Architecture §3/§4 (the CLI as a second presentation adapter) and UI Schema §17 (CLI/TUI parity). It will be proposed in the P02 request for owner approval. Until then this section is plan-level only.
 
 ## 5. P00 — decisions, protocols and spikes
 
@@ -275,6 +343,8 @@ Unit: hands-on hours (Opus orchestration + Sonnet implementation + Opus review/v
 | P08 | 12–18 | P19 | 10–16 |
 | P09 | 8–14 | P20 | 8–12 |
 | P10 | 6–10 | | |
+
+**CLI increments (D-17), not yet in the figures above:** about +2–3 h in P02 (crate, skeleton, scenario harness) and +1–2 h per later feature phase (~14 phases), so roughly **+16–31 h** hands-on in total. To be folded into each phase's estimate in its request.
 
 Separately estimated, not in the pilot total: P18 Figma translation 8–16 h (timing unknown); X1–X6 ≈ 54–96 h combined.
 
