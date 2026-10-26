@@ -1,0 +1,27 @@
+== proc-macro2-1.0.107
+    38: // https://github.com/dtolnay/proc-macro2/issues/147
+   155: //     https://github.com/rust-lang/cargo/issues/11138
+   156: //     https://github.com/rust-lang/rust/issues/114839
+   176: if let Err(err) = fs::create_dir(&out_subdir) {
+   190: let mut cmd = Command::new(rustc.next().unwrap());
+   229: if let Err(err) = fs::remove_dir_all(&out_subdir) {
+   233: // probe command completes, breaking remove_dir_all.
+   250: let output = Command::new(rustc).arg("--version").output().ok()?;
+== quote-1.0.47
+    17: // https://blog.rust-lang.org/2024/05/02/Rust-1.78.0.html#diagnostic-attributes
+    25: let output = Command::new(rustc).arg("--version").output().ok()?;
+== serde-1.0.229
+    27: fs::write(out_dir.join("private.rs"), module).unwrap();
+    54: // https://blog.rust-lang.org/2024/05/02/Rust-1.78.0.html#diagnostic-attributes
+    62: let output = Command::new(rustc).arg("--version").output().ok()?;
+== serde_core-1.0.229
+    24: fs::write(out_dir.join("private.rs"), module).unwrap();
+    69: // https://blog.rust-lang.org/2022/09/22/Rust-1.64.0.html#c-compatible-ffi-types-in-core-and-alloc
+    80: // https://blog.rust-lang.org/2023/11/16/Rust-1.74.0.html#stabilized-apis
+    86: // https://blog.rust-lang.org/2024/03/21/Rust-1.77.0.html
+    92: // https://blog.rust-lang.org/2024/05/02/Rust-1.78.0.html#diagnostic-attributes
+    98: // https://blog.rust-lang.org/2024/09/05/Rust-1.81.0.html#coreerrorerror
+   106: let output = Command::new(rustc).arg("--version").output().ok()?;
+== zmij-1.0.23
+    18: // https://doc.rust-lang.org/std/hint/fn.select_unpredictable.html
+    31: let output = Command::new(rustc).arg("--version").output().ok()?;

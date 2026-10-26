@@ -1,0 +1,30 @@
+PASS store v1.4 file exists, v1.3 file absent
+PASS store: valid Draft 2020-12
+PASS wrapper-request: valid Draft 2020-12
+PASS wrapper-control: valid Draft 2020-12
+PASS all 10 store root types have schema_version const 1.4
+PASS no store const 1.3/1.2 left in $defs
+PASS protocol_version const unchanged 1.1
+PASS ToolManifest.availability == canonical CA-03 list
+PASS titles: store v1.4, wrappers v1.1
+PASS wrapper $defs identical to store
+PASS $comment names CA-03 in all three files
+PASS Data Schema §7 embedded schema identical to canonical
+PASS store example 'repositories' is 1.4 and validates
+PASS same example labelled 1.3 rejected
+PASS store example 'workflows' is 1.4 and validates
+PASS same example labelled 1.3 rejected
+PASS store example 'log' is 1.4 and validates
+PASS same example labelled 1.3 rejected
+PASS §23 WrapperControl example still 1.1 and validates
+PASS three store examples checked
+PASS ToolManifest availability accepts every canonical value and rejects 'denied'
+PASS CA-01 allow_fallbacks const false retained
+PASS CA-02 fields retained
+PASS UI Schema tools.states == store availability
+PASS UI Schema ui_schema_version "1.1"
+PASS Data Schema §24 CA-03 section present
+PASS all five spec headers at 0.3.4 / store 1.4 / UI 1.1
+FAIL no stale current-contract references in current docs (['handover.md:36', 'P01-T01-request.md:145', 'P01-T01-request.md:206', 'P01-execution-plan.md:31', 'status.md:16', 'status.md:33'])
+PASS historical CA-02 evidence present (not rewritten)
+SUMMARY pass=28 fail=1 skip=0

@@ -13,7 +13,7 @@ Read status.md, handover.md and the active plan.md section; inspect actual Git/d
 ## Sub-agents
 - `sonnet-implementer`: `.claude/agents/sonnet-implementer.md`, `model: claude-sonnet-5-5` (pinned ID, not the `sonnet` alias). Opus spawns it via the Agent tool with `subagent_type: "sonnet-implementer"` for implementation work inside an owner-approved phase/debug cycle only.
 - Every spawn carries an assignment packet (plan.md §3.2): task ID, base commit/branch, exclusively owned files, frozen contracts, tests to add, permitted commands/network (default none), stop condition, report format. Missing packet items → do not spawn.
-- One mutating worker at a time; at most two with disjoint files once stable. Use `isolation: "worktree"` when a worker's edits must not touch the main tree before review. Workers never commit, push, install, fetch or use real APIs unless the packet grants it.
+- From P01 (owner, plan.md §3.8; amended 2026-10-26): up to three mutating workers, only where the dependency graph allows, each with disjoint owned files, its own worktree/branch and a common baseline; otherwise one at a time. Use `isolation: "worktree"` when a worker's edits must not touch the main tree before review. Workers never commit, push, install, fetch or use real APIs unless the packet grants it.
 - Opus owns shared contracts (`crates/domain` DTOs, schemas, `Cargo.lock`, specs, plan/status/handover, CLAUDE.md) and runs all verification itself; a worker's report is not evidence.
 - At first spawn record in status.md the configured `model:` value, any observable resolution or substitution, and that the worker's self-report is unverified.
 - `haiku-docs` remains a proposal (`proposals/agents/`); until installed, Opus writes status.md/handover.md and says so.

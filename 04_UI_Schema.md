@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.3 (amendments CA-01, CA-02; store contract 1.3, wrapper protocol 1.1) | Date: 2026-10-23 | Status: Proposed UI design
+Version: 0.3.4 (amendments CA-01, CA-02, CA-03; store contract 1.4, wrapper protocol 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed UI design
 Foundation: dashboard-first terminal with mouse-responsive panels and expandable chat. UI team supplies Figma designs; developer implements the demo/final terminal UI. Exact visual design remains subject to review.
 
 ## 1. Experience principles
@@ -89,10 +89,10 @@ Draggable splits are deferred for the pilot; always offer keyboard/configuration
 
 ## 5. Declarative UI schema
 
-The following YAML is a proposed implementation configuration/contract, not repository content to execute or a Ratatui-native format. Its version line is `ui_schema_version` (1.0), independent of the store contract (`schema_version` 1.3), wrapper protocol 1.1 and app command/event contract 1.0 (CA-01, resolves C6).
+The following YAML is a proposed implementation configuration/contract, not repository content to execute or a Ratatui-native format. Its version line is `ui_schema_version` (1.1), independent of the store contract (`schema_version` 1.4), wrapper protocol 1.1 and app command/event contract 1.0 (CA-01, resolves C6; 1.0 → 1.1 by CA-03, Data Schema §24).
 
 ```yaml
-ui_schema_version: "1.0"
+ui_schema_version: "1.1"
 ui:
   id: pwt-workbench
   initial_view: scan
@@ -160,7 +160,7 @@ ui:
     independent_status: true
   tools:
     diagnostic_fields: [tool, version, capability, availability, release_tier, network, license_review]
-    states: [ready, missing, incompatible, unavailable, denied, deferred]
+    states: [ready, missing, incompatible, unconfigured, unavailable, deferred]   # = store ToolManifest.availability (CA-03)
     auto_install: forbidden
 ```
 
@@ -313,7 +313,7 @@ Invocation (owner D-03, CA-01): the Linux pilot invokes every tool through an ap
 
 ### Dependency diagnostics
 
-A settings/diagnostics panel shows installed versus required tool/adapter version, role, supported platform, binary origin, availability, capability/release tier, network requirement and provisional/verified licensing status. An uninstalled optional tool is not an application crash. A missing selected capability is a visible gap; no silent installation or paid-service activation.
+A settings/diagnostics panel shows installed versus required tool/adapter version, role, supported platform, binary origin, availability, capability/release tier, network requirement and provisional/verified licensing status. Tool states are exactly the store `ToolManifest.availability` values (`ready`, `missing`, `incompatible`, `unconfigured`, `unavailable`, `deferred`; CA-03). A denied permission for a tool's operation is shown as a separate permission badge derived from approval and coverage records, never as a tool state; a tool can be both `unavailable` and denied. An uninstalled optional tool is not an application crash. A missing selected capability is a visible gap; no silent installation or paid-service activation.
 
 ### Scan-plan review
 

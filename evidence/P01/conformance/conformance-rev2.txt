@@ -1,0 +1,28 @@
+PASS [Arch §6] command set equals Arch table :: code 29 arch 29; diff []
+PASS [Arch §6] event set equals Arch table :: code 34 arch 34; diff []
+PASS [Arch §6] command pilot/reserved status equals Arch :: mismatch []; classified 29
+PASS [Arch §6] event pilot/reserved status equals Arch :: mismatch []
+PASS [Arch §6] event delivery class equals Arch (reserved '—' -> MustDeliver by documented choice) :: mismatch []
+PASS [Arch §6] reserved -> OperationFailed{code=deferred}
+PASS [Arch §6] ChatFailed reasons: Arch list (+ owner-accepted provider outage) == ChatFailure
+PASS [Arch §6] no event field type String/&str (allowlist)
+PASS [Arch §7] every Arch run transition is allowed in code :: missing []
+PASS [Arch §7] code run transitions beyond Arch are exactly owner decision T01-D1 :: extra [('cancelling', 'interrupted')]
+PASS [Arch §7] check transitions = Arch + T01-D2 (pending -> skipped/unsupported/cancelled/incomplete) :: code [('pending', 'cancelled'), ('pending', 'incomplete'), ('pending', 'skipped'), ('pending', 'unsupported')]
+PASS [Arch §7] approval: pending->approved|denied|cancelled; approved->revoked|expired
+PASS [Arch §4] core domain types present or mapped
+PASS [Tech §4] workspace crates == Tech §4 crates :: tech ['domain', 'application', 'repositories', 'scanning', 'retrieval', 'persistence', 'terminal-ui']
+NOTE [Tech §4] tests/{fixtures,contracts,integration} present :: deferred by approved T01 §1 (created when first used)
+PASS [Tech §2/§22] dependencies limited to Serde stack (D-01: others via later phases/spikes) :: serde, serde_json only
+PASS [Data §7] DataCategory values == schema
+PASS [Data §7] ApprovalLifetime values == schema :: code ['once', 'run', 'workflow_revision'] schema ['once', 'run', 'workflow_revision']
+PASS [Data §7] SelectorMode values == schema :: code ['all_yaml', 'explicit', 'patterns'] schema ['all_yaml', 'explicit', 'patterns']
+PASS [Data §7] ExportFormat values == schema :: code ['json', 'md', 'pdf'] schema ['json', 'md', 'pdf']
+PASS [Data §7] Severity values == schema :: code ['critical', 'high', 'medium', 'low', 'info', 'unknown'] schema ['critical', 'high', 'medium', 'low', 'info', 'unknown']
+PASS [UI §5] ToolAvailability == UI Schema tools.states :: ['ready', 'missing', 'incompatible', 'unconfigured', 'unavailable', 'deferred']
+PASS [Data §7 vs UI §5] store ToolManifest.availability == UI tools.states (spec consistency)
+PASS [PRD §16] every reserved command maps to a deferred PRD capability
+PASS [Data §18.6a] deferred capabilities == {documentation_fetch, embedding_transmission, non_mutating_verification}
+PASS [PRD KEY-01] credential has no plaintext/serde path (no Serialize/Clone/Display on CredentialSecret)
+PASS [Arch A-11] versions.rs == Arch A-11 line (store 1.4 / protocol 1.1 / app 1.0 / UI 1.1, CA-03) :: Independent version lines: document 0.3.x, store 1.4, wrapper protocol 1.1, app command/event contract 1.0, UI schema 1.1 (CA-03)
+pass 26 / 27

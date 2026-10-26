@@ -1,0 +1,19 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+    Checking itoa v1.0.18
+    Checking memchr v2.8.3
+    Checking application v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a42c588fa51a30633/workbench/crates/application)
+    Checking scanning v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a42c588fa51a30633/workbench/crates/scanning)
+    Checking retrieval v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a42c588fa51a30633/workbench/crates/retrieval)
+    Checking terminal-ui v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a42c588fa51a30633/workbench/crates/terminal-ui)
+    Checking persistence v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a42c588fa51a30633/workbench/crates/persistence)
+    Checking repositories v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a42c588fa51a30633/workbench/crates/repositories)
+   Compiling syn v3.0.9
+   Compiling serde_derive v1.0.229
+    Checking domain v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a42c588fa51a30633/workbench/crates/domain)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.35s

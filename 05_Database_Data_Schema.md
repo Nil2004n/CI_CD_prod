@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.3 (amendments CA-01, CA-02; store contract 1.3, wrapper protocol 1.1) | Date: 2026-10-23 | Status: Proposed implementation contract
+Version: 0.3.4 (amendments CA-01, CA-02, CA-03; store contract 1.4, wrapper protocol 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed implementation contract
 
 ## 1. Storage decision
 
@@ -110,8 +110,8 @@ This single schema validates all proposed root store types via `oneOf` and `$def
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Store contract 1.3 / wrapper protocol 1.1 = store 1.2 / protocol 1.0 plus pre-implementation amendment CA-01 (2026-10-23, identifiers retained) plus amendment CA-02 (2026-10-24, versioned by owner decision Q-03). See 05_Database_Data_Schema.md sections 22-23 and 19 (records under 1.2/1.0 are not valid 1.3/1.1 records).",
-  "title": "PWT Workbench Store Contract v1.3",
+  "$comment": "Store contract 1.4 / wrapper protocol 1.1 = store 1.2 / protocol 1.0 plus pre-implementation amendment CA-01 (2026-10-23, identifiers retained) plus amendment CA-02 (2026-10-24, store 1.3 / protocol 1.1) plus amendment CA-03 (2026-10-26, canonical tool availability; store 1.4, protocol unchanged). See 05_Database_Data_Schema.md sections 19 and 22-24.",
+  "title": "PWT Workbench Store Contract v1.4",
   "description": "Proposed shared contract; semantic and referential constraints are enforced by application code.",
   "oneOf": [
     {
@@ -2292,7 +2292,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "config"
@@ -2316,7 +2316,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "repositories"
@@ -2343,7 +2343,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "workflows"
@@ -2370,7 +2370,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "approvals"
@@ -2397,7 +2397,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "log"
@@ -2438,7 +2438,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "suppressions"
@@ -2465,7 +2465,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "rag_index"
@@ -2492,7 +2492,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "conversations"
@@ -2519,7 +2519,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "report"
@@ -3071,8 +3071,9 @@ This single schema validates all proposed root store types via `oneOf` and `$def
             "ready",
             "missing",
             "incompatible",
-            "deferred",
-            "unconfigured"
+            "unconfigured",
+            "unavailable",
+            "deferred"
           ]
         },
         "capabilities": {
@@ -3240,7 +3241,7 @@ This single schema validates all proposed root store types via `oneOf` and `$def
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "1.3"
+          "const": "1.4"
         },
         "store_type": {
           "const": "tool_manifest"
@@ -3641,7 +3642,7 @@ Synthetic registration before acquisition. No credentials are embedded.
 
 ```json
 {
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "store_type": "repositories",
   "updated_at": "2026-10-16T05:25:00Z",
   "repositories": [
@@ -3673,7 +3674,7 @@ The example is disabled until targets, installed capability support and approval
 
 ```json
 {
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "store_type": "workflows",
   "updated_at": "2026-10-16T05:25:00Z",
   "workflows": [
@@ -3740,7 +3741,7 @@ This is ordinary JSON. Do not append newline-delimited events directly to this o
 
 ```json
 {
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "store_type": "log",
   "updated_at": "2026-10-16T05:25:00Z",
   "runs": [],
@@ -3837,7 +3838,7 @@ Retention durations, maximum store/index sizes, provider credential backend, fin
 
 ## 17. Contract versions and new entities
 
-This document is v0.3.3; machine store schema is v1.3; wrapper control protocol is v1.1; the app command/event contract (Architecture §6) is v1.0; the declarative UI schema (UI Schema §5, `ui_schema_version`) is v1.0. Keep these independent; the UI schema version is not the storage-contract version. Pre-implementation amendment CA-01 is recorded in §22. Original stores used v1.0 and the previous specification defined v1.1. Migration is explicit and historical evidence is never silently rewritten.
+This document is v0.3.4; machine store schema is v1.4; wrapper control protocol is v1.1; the app command/event contract (Architecture §6) is v1.0; the declarative UI schema (UI Schema §5, `ui_schema_version`) is v1.1 (CA-03, §24). Keep these independent; the UI schema version is not the storage-contract version. Pre-implementation amendment CA-01 is recorded in §22. Original stores used v1.0 and the previous specification defined v1.1. Migration is explicit and historical evidence is never silently rewritten.
 
 | Entity | Role / important fields |
 |---|---|
@@ -3881,7 +3882,8 @@ Root schema `oneOf` covers store files. WrapperRequest and WrapperControl are `$
 ## 19. Migration guidance
 
 - Validate the actual old schema and back up before changing mutable app stores.
-- Do not relabel old JSON with a newer `schema_version` (1.2 or 1.3) while omitting required fields.
+- Do not relabel old JSON with a newer `schema_version` (1.2, 1.3 or 1.4) while omitting required fields.
+- 1.3 → 1.4 (CA-03): additive only — `ToolManifest.availability` gains `unavailable`; no field added or removed. A valid 1.3 record becomes a valid 1.4 record by changing only `schema_version`, and no 1.3 records existed when CA-03 was applied (no persistence code). Readers must still reject unknown newer versions.
 - 1.2 → 1.3 / 1.0 → 1.1 (CA-02): new required fields (`TerminationRecord.descendant_cleanup`, `WrapperControl.tool_term_signal` and `output_streams`, `Check.term_signal`) have no truthful default for already-recorded runs (e.g. there is no "unknown" stream state). Records under 1.2/1.0 are therefore **not** valid 1.3/1.1 records and are not migrated automatically: keep them read-only under the 1.2/1.0 reader, or define an explicit, owner-approved migration that marks unavailable data rather than inventing it. No 1.2/1.0 records existed when CA-02 was versioned (no application code).
 - Derive new manifests only from inspected/pinned tool data; never populate fake current versions.
 - PDF metadata defaults to not written/null; no prior renderer/version is invented.
@@ -3941,7 +3943,7 @@ Synchronisation: `schemas/workbench-store-v1.2.schema.json` is canonical. The §
 
 Version handling (historical, as decided for CA-01): identifiers `schema_version="1.2"` and `protocol_version="1.0"` are retained because no implementation, persisted store, report or wrapper existed under the pre-amendment text, so no reader or record can observe two meanings. This exception closes at the first implementation commit that reads or writes these contracts (planned P01/P02): after that any shape change requires a new version, migration notes (§19) and owner approval. Copies of the pre-amendment v1.2/v1.0 files distributed outside this repository (for example the original specification ZIP) are superseded and must not be used to produce records. If the owner prefers explicit new identifiers (for example store 1.3 / protocol 1.1), that is a mechanical follow-up before P01.
 
-Superseded identifiers (note added 2026-10-24, CA-01 text above unchanged): versioned amendment CA-02 (§23) moved the current contract to store **1.3** / wrapper protocol **1.1**; the canonical file is now `schemas/workbench-store-v1.3.schema.json`.
+Superseded identifiers (note added 2026-10-24, CA-01 text above unchanged): versioned amendment CA-02 (§23) moved the current contract to store **1.3** / wrapper protocol **1.1**; the canonical file is now `schemas/workbench-store-v1.3.schema.json`. (Note added 2026-10-26: CA-03, §24, moved the current store contract to **1.4**; canonical file `schemas/workbench-store-v1.4.schema.json`.)
 
 ## 23. Contract amendment CA-02 (descendant cleanup, child signal, stream state)
 
@@ -4007,3 +4009,21 @@ Example `WrapperControl` after an output-limit termination with descendant clean
   "elapsed_ms": 418
 }
 ```
+
+## 24. Contract amendment CA-03 (canonical tool availability)
+
+Date: 2026-10-26. Authority: owner approval of the P01 conformance-check recommendation (`evidence/P01/conformance/record.md`), applied before the P01 merge so that no inconsistent contract reaches `main`. CA-01 and CA-02 are unchanged.
+
+Problem: `ToolManifest.availability` (store) was `ready, missing, incompatible, deferred, unconfigured`, while UI Schema §5 `tools.states` was `ready, missing, incompatible, unavailable, denied, deferred`. The two lists mixed two questions: whether a tool is usable on this machine (a preflight fact, persisted in `tools.json`) and whether a particular operation may use it (a permission outcome, which belongs to approval and coverage records).
+
+| Item | Change |
+|---|---|
+| `ToolManifest.availability` | `ready, missing, incompatible, unconfigured, unavailable, deferred` — adds `unavailable` (installed but not usable, e.g. preflight self-test failed or a required cache is absent) |
+| UI Schema §5 `tools.states` | equal to the store list: `denied` removed, `unconfigured` added; `ui_schema_version` 1.0 → **1.1** |
+| Permission denial | shown as a separate permission badge from approval/coverage records (`ApprovalState` `denied`, check outcome `skipped` with reason), never as a tool state |
+| Application contract | `DependencyStatusChanged` carries the store vocabulary (`ToolAvailability`); app contract stays **1.0** because no implementation had been published (first published with the P01 merge) |
+
+Version handling: store contract `schema_version` 1.3 → **1.4** (all ten store root types); wrapper protocol unchanged at **1.1** (no wrapper type changed; the wrapper bundle files embed the regenerated `$defs`). File renamed `schemas/workbench-store-v1.3.schema.json` → `schemas/workbench-store-v1.4.schema.json`. Migration: §19.
+
+Synchronisation: canonical `schemas/workbench-store-v1.4.schema.json`; the §7 embedded copy, the §8–§10 examples and both wrapper schemas regenerated by `evidence/P01/CA-03/apply_ca03.py`; check `evidence/P01/CA-03/check.md`. Earlier checks (`evidence/P00-planning/`, `evidence/P00/CA-02/`, `evidence/P00/CA-02-versioning/`) are historical and are not re-run or edited.
+

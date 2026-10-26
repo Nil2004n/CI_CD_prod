@@ -1,0 +1,142 @@
+{
+  "phase": "P01",
+  "date": "2026-10-26",
+  "status": "inventory at P01 completion (after CA-03); not adoption or build permission for later phases",
+  "toolchain": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "pin_method": "direct toolchain binaries + exact 1.97.1 gate in dev/p01_check.py (A5=5a); rust-version=1.97 metadata"
+  },
+  "workspace": {
+    "path": "workbench/",
+    "resolver": "3",
+    "edition": "2024",
+    "members": [
+      "crates/domain",
+      "crates/application",
+      "crates/repositories",
+      "crates/scanning",
+      "crates/retrieval",
+      "crates/persistence",
+      "crates/terminal-ui"
+    ]
+  },
+  "direct_dependencies": {
+    "serde": {
+      "version": "=1.0.229",
+      "default-features": false,
+      "features": [
+        "std",
+        "derive"
+      ]
+    },
+    "serde_json": {
+      "version": "=1.0.154"
+    }
+  },
+  "lockfile": {
+    "path": "workbench/Cargo.lock",
+    "sha256": "fb8b7d076ccf7f79c94128c24d84e88bee763dc7fabfbf95befb5af361a71258",
+    "registry_crates": [
+      {
+        "name": "itoa",
+        "version": "1.0.18",
+        "checksum": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+      },
+      {
+        "name": "memchr",
+        "version": "2.8.3",
+        "checksum": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+      },
+      {
+        "name": "proc-macro2",
+        "version": "1.0.107",
+        "checksum": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
+      },
+      {
+        "name": "quote",
+        "version": "1.0.47",
+        "checksum": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
+      },
+      {
+        "name": "serde",
+        "version": "1.0.229",
+        "checksum": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
+      },
+      {
+        "name": "serde_core",
+        "version": "1.0.229",
+        "checksum": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
+      },
+      {
+        "name": "serde_derive",
+        "version": "1.0.229",
+        "checksum": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
+      },
+      {
+        "name": "serde_json",
+        "version": "1.0.154",
+        "checksum": "e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6"
+      },
+      {
+        "name": "syn",
+        "version": "3.0.9",
+        "checksum": "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b"
+      },
+      {
+        "name": "unicode-ident",
+        "version": "1.0.27",
+        "checksum": "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
+      },
+      {
+        "name": "zmij",
+        "version": "1.0.23",
+        "checksum": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+      }
+    ],
+    "sha256_now": "fb8b7d076ccf7f79c94128c24d84e88bee763dc7fabfbf95befb5af361a71258"
+  },
+  "build_code_exposure": {
+    "build_scripts": [
+      "proc-macro2 1.0.107",
+      "quote 1.0.47",
+      "serde 1.0.229",
+      "serde_core 1.0.229",
+      "serde_json 1.0.154",
+      "zmij 1.0.23"
+    ],
+    "proc_macros": [
+      "serde_derive 1.0.229"
+    ],
+    "source": "evidence/P01/T02/record.md \u00a74"
+  },
+  "advisory_status": "cargo-audit not run (install deferred, A4=4a); last RustSec screen = P00 direct-candidate screen 2026-10-24",
+  "contract_versions": {
+    "store": "1.4",
+    "wrapper_protocol": "1.1",
+    "app_contract": "1.0",
+    "ui_schema": "1.1",
+    "amendments": [
+      "CA-01",
+      "CA-02",
+      "CA-03"
+    ],
+    "spec_revision": "0.3.4"
+  },
+  "dev_tooling": {
+    "runner": {
+      "path": "dev/p01_check.py",
+      "sha256": "3d83fa37c025860567260437b3366a6bdf8fee48dae084a07ac79fe8b2a31d9a"
+    },
+    "baseline": {
+      "path": "dev/p01_baseline.json",
+      "sha256": "cfa80eafe2f74f03f2858fa0e00f6b5d29c4580fb5987533c2733ef79f9f050f",
+      "min_passed": 416,
+      "min_compile_fail": 32
+    }
+  },
+  "canonical_schema": {
+    "path": "schemas/workbench-store-v1.4.schema.json",
+    "sha256": "909e2a55c315ca07096f9123e6986b637a83b1bcdfc4eb6ff88d9d06daa80e2e"
+  }
+}

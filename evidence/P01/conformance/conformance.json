@@ -1,0 +1,164 @@
+[
+  {
+    "area": "Arch \u00a76",
+    "check": "command set equals Arch table",
+    "ok": true,
+    "detail": "code 29 arch 29; diff []"
+  },
+  {
+    "area": "Arch \u00a76",
+    "check": "event set equals Arch table",
+    "ok": true,
+    "detail": "code 34 arch 34; diff []"
+  },
+  {
+    "area": "Arch \u00a76",
+    "check": "command pilot/reserved status equals Arch",
+    "ok": true,
+    "detail": "mismatch []; classified 29"
+  },
+  {
+    "area": "Arch \u00a76",
+    "check": "event pilot/reserved status equals Arch",
+    "ok": true,
+    "detail": "mismatch []"
+  },
+  {
+    "area": "Arch \u00a76",
+    "check": "event delivery class equals Arch (reserved '\u2014' -> MustDeliver by documented choice)",
+    "ok": true,
+    "detail": "mismatch []"
+  },
+  {
+    "area": "Arch \u00a76",
+    "check": "reserved -> OperationFailed{code=deferred}",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "Arch \u00a76",
+    "check": "ChatFailed reasons: Arch list (+ owner-accepted provider outage) == ChatFailure",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "Arch \u00a76",
+    "check": "no event field type String/&str (allowlist)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "Arch \u00a77",
+    "check": "every Arch run transition is allowed in code",
+    "ok": true,
+    "detail": "missing []"
+  },
+  {
+    "area": "Arch \u00a77",
+    "check": "code run transitions beyond Arch are exactly owner decision T01-D1",
+    "ok": true,
+    "detail": "extra [('cancelling', 'interrupted')]"
+  },
+  {
+    "area": "Arch \u00a77",
+    "check": "check transitions = Arch + T01-D2 (pending -> skipped/unsupported/cancelled/incomplete)",
+    "ok": true,
+    "detail": "code [('pending', 'cancelled'), ('pending', 'incomplete'), ('pending', 'skipped'), ('pending', 'unsupported')]"
+  },
+  {
+    "area": "Arch \u00a77",
+    "check": "approval: pending->approved|denied|cancelled; approved->revoked|expired",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "Arch \u00a74",
+    "check": "core domain types present or mapped",
+    "ok": true,
+    "detail": "{\"RepoId\": true, \"FileId\": true, \"WorkflowId\": true, \"RunId\": true, \"TaskId\": true, \"FindingId\": true, \"ApprovalId\": true, \"ConversationId\": true, \"ChunkId\": true, \"SourceRef\": \"SourceId only; SourceRef is a record (P02 store models)\", \"CheckOutcome\": true, \"ExecutionStatus\": \"RunState (schema `Execution`)\"}"
+  },
+  {
+    "area": "Tech \u00a74",
+    "check": "workspace crates == Tech \u00a74 crates",
+    "ok": true,
+    "detail": "tech ['domain', 'application', 'repositories', 'scanning', 'retrieval', 'persistence', 'terminal-ui']"
+  },
+  {
+    "area": "Tech \u00a74",
+    "check": "tests/{fixtures,contracts,integration} present",
+    "ok": false,
+    "detail": "deferred by approved T01 \u00a71 (created when first used)"
+  },
+  {
+    "area": "Tech \u00a72/\u00a722",
+    "check": "dependencies limited to Serde stack (D-01: others via later phases/spikes)",
+    "ok": true,
+    "detail": "serde, serde_json only"
+  },
+  {
+    "area": "Data \u00a77",
+    "check": "DataCategory values == schema",
+    "ok": true,
+    "detail": "code ['repository_metadata', 'redacted_source', 'redacted_findings', 'schema_documents', 'public_artifact_identifiers', 'redacted_chat_context', 'app_metadata'] schema ['repository_metadata', 'redacted_source', 'redacted_findings', 'schema_documents', 'public_artifact_identifiers', 'redacted_chat_context', 'app_metadata']"
+  },
+  {
+    "area": "Data \u00a77",
+    "check": "ApprovalLifetime values == schema",
+    "ok": true,
+    "detail": "code ['once', 'run', 'workflow_revision'] schema ['once', 'run', 'workflow_revision']"
+  },
+  {
+    "area": "Data \u00a77",
+    "check": "SelectorMode values == schema",
+    "ok": true,
+    "detail": "code ['all_yaml', 'explicit', 'patterns'] schema ['all_yaml', 'explicit', 'patterns']"
+  },
+  {
+    "area": "Data \u00a77",
+    "check": "ExportFormat values == schema",
+    "ok": true,
+    "detail": "code ['json', 'md', 'pdf'] schema ['json', 'md', 'pdf']"
+  },
+  {
+    "area": "Data \u00a77",
+    "check": "Severity values == schema",
+    "ok": true,
+    "detail": "code ['critical', 'high', 'medium', 'low', 'info', 'unknown'] schema ['critical', 'high', 'medium', 'low', 'info', 'unknown']"
+  },
+  {
+    "area": "UI \u00a75",
+    "check": "ToolAvailability == UI Schema tools.states",
+    "ok": true,
+    "detail": "['ready', 'missing', 'incompatible', 'unconfigured', 'unavailable', 'deferred']"
+  },
+  {
+    "area": "Data \u00a77 vs UI \u00a75",
+    "check": "store ToolManifest.availability == UI tools.states (spec consistency)",
+    "ok": true,
+    "detail": "store ['ready', 'missing', 'incompatible', 'unconfigured', 'unavailable', 'deferred'] vs UI ['ready', 'missing', 'incompatible', 'unconfigured', 'unavailable', 'deferred']"
+  },
+  {
+    "area": "PRD \u00a716",
+    "check": "every reserved command maps to a deferred PRD capability",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "Data \u00a718.6a",
+    "check": "deferred capabilities == {documentation_fetch, embedding_transmission, non_mutating_verification}",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "PRD KEY-01",
+    "check": "credential has no plaintext/serde path (no Serialize/Clone/Display on CredentialSecret)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "area": "Arch A-11",
+    "check": "versions.rs == Arch A-11 line (store 1.4 / protocol 1.1 / app 1.0 / UI 1.1, CA-03)",
+    "ok": true,
+    "detail": "Independent version lines: document 0.3.x, store 1.4, wrapper protocol 1.1, app command/event contract 1.0, UI schema 1.1 (CA-03)"
+  }
+]

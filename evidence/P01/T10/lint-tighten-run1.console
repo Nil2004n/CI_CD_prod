@@ -1,0 +1,3 @@
+PASS env exit=-
+FAIL clippy exit=101
+OVERALL FAIL

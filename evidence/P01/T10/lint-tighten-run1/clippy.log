@@ -1,0 +1,52 @@
+    Checking scanning v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/scanning)
+    Checking terminal-ui v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/terminal-ui)
+    Checking retrieval v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/retrieval)
+    Checking domain v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/domain)
+    Checking repositories v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/repositories)
+    Checking persistence v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/persistence)
+    Checking application v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/application)
+error: `allow` attribute without specifying a reason
+ --> crates/domain/tests/versions.rs:7:1
+  |
+7 | #![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: try adding a reason at the end with `, reason = ".."`
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#allow_attributes_without_reason
+  = note: requested on the command line with `-D clippy::allow-attributes-without-reason`
+
+error: `allow` attribute without specifying a reason
+  --> crates/domain/tests/contract.rs:12:1
+   |
+12 | #![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: try adding a reason at the end with `, reason = ".."`
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#allow_attributes_without_reason
+   = note: requested on the command line with `-D clippy::allow-attributes-without-reason`
+
+error: `allow` attribute without specifying a reason
+ --> crates/domain/tests/states.rs:8:1
+  |
+8 | #![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: try adding a reason at the end with `, reason = ".."`
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#allow_attributes_without_reason
+  = note: requested on the command line with `-D clippy::allow-attributes-without-reason`
+
+error: could not compile `domain` (test "versions") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: `allow` attribute without specifying a reason
+   --> crates/domain/tests/ids_time.rs:276:1
+    |
+276 | #[allow(clippy::unwrap_used)]
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: try adding a reason at the end with `, reason = ".."`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#allow_attributes_without_reason
+    = note: requested on the command line with `-D clippy::allow-attributes-without-reason`
+
+error: could not compile `domain` (test "states") due to 1 previous error
+error: could not compile `domain` (test "contract") due to 1 previous error
+error: could not compile `domain` (test "ids_time") due to 1 previous error

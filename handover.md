@@ -1,14 +1,20 @@
 # Handover
 
-Checkpoint: 2026-10-24, **P00 accepted by the owner with qualifications and merged to `main`** (`--no-ff` merge commit `5888826` of `phase/P00-decisions-spikes` at `f32ba7e`; `main` pushed to `origin/main` with this handover update). **Resume point: P01 planning** — needs owner approval; P01 execution separate. Start from `evidence/P00/P00-report.md` §11, `spikes/p00-freeze/` (freeze is an inventory, not build/adopt permission) and `plan.md` §5.2 FR-01–FR-30. Earlier checkpoint text (historical): 2026-10-24, P00-T09 in progress after recovery from an HTTP 429 interruption (no formal T09 result). P00-T08 accepted with qualifications at `ac4cf67` (pushed). T09 work is untracked (not committed). Earlier header (historical): P00-T06 accepted; resume at P00-T07. Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-26, **P01 accepted by the owner (2026-10-26)** and pushed on `phase/P01-foundation`; **not merged to `main`**. Report `evidence/P01/P01-report.md`, freeze `evidence/P01/P01-freeze.json`. CA-03 applied (store contract **1.4**, UI schema **1.1**, canonical file `schemas/workbench-store-v1.4.schema.json`, `ToolAvailability`); FR-31 for P02; readiness audit 33/33 (`evidence/P01/readiness/`). **Resume point: owner approval of the `--no-ff` merge into `main` + push**, then cargo-audit stage C-A and P02 planning (each needs approval). B1 decisions recorded in `status.md`. Written by Opus directly; no Haiku documentation agent is installed.
+
+Lessons (P01 wave 1): never share a Cargo target dir between checkouts (runner now keys it by repo path; verify worktrees with `--repo`); loop over pairs in `bash`, not zsh; read doctest pairs as control-then-case; production-code static checks ignore `#[cfg(test)] mod`; cross-check worker test counts per suite (P01-D03).
+
+Earlier checkpoint (historical): 2026-10-24, P00 accepted with qualifications and merged to `main` (`5888826`).
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`, `git status -sb`. Expect branch `phase/P00-decisions-spikes` equal to `origin/phase/P00-decisions-spikes`, clean tree; `main` = `origin/main` = `008e80c` (not merged).
-2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
-3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
+1. `git status -sb`, `git log --oneline -3`, `git worktree list`. Expect `phase/P01-foundation` = `origin/phase/P01-foundation` at the T10 commit, clean tree, no worker worktrees; `main` = `origin/main` = `485b3a8`.
+2. Read `status.md`, `planning/P01-T01-request.md` (frozen interfaces §5, test plan §6.3, packets §7, debug bounds §9), `evidence/P01/T04/record.md`.
+3. Checks: `python3 -I -B dev/p01_check.py all --slot lead --final (floors from dev/p01_baseline.json, 416/32) --out <dir>` (add `--repo <worktree>` to verify a worker branch) (all Cargo via direct 1.97.1 binaries, `env -i`, isolated CARGO_HOME, `unshare -rn`, `--frozen`). `static --final` must pass only at T09.
+4. Worker packets: step 0 `git merge --ff-only <B0>` (harness creates worktrees from `main`); per-slot target dirs `p01-w1..w3`; workers commit only on their own branch.
 
 ## Facts
-- No application code, tests, fixtures, generators, Cargo workspace or CI exist.
+- P01 (2026-10-26): `workbench/` Cargo workspace exists (7 crates; only `domain` has stubbed content), lockfile `fb8b7d07…` (11 registry crates, = P00 entries; serde_derive uses syn 3.0.9), runner `dev/p01_check.py`. No CI.
+- (Historical, P00:) No application code, tests, fixtures, generators, Cargo workspace or CI existed.
 - P00-T01 deliverables are documentation. Tool flags, file names and exit codes in them are unverified candidates for the spikes to confirm.
 - Main design point from T01: inline suppression directives (H-INL) and repository-loaded custom checks (H-EXE) are repository-controlled channels in addition to config files. Fake secrets are generated at build time and never committed (to keep them out of Git history and avoid host push-protection blocks).
 - Evidence: `evidence/P00/P00-T01/check.md` (10/0/0; one checker pattern narrowed after a confirmed prose false positive, disclosed there).
@@ -27,7 +33,7 @@ Checkpoint: 2026-10-24, **P00 accepted by the owner with qualifications and merg
 - P00-T05: harness `spikes/rust/t05-process/src/main.rs`, fixtures `spikes/rust/t05-process/fixtures/`. Run only via `timeout -s KILL 300 unshare -rn --pid --fork --mount-proc --kill-child env -i …` (harness refuses unless PID 1). Findings F-1–F-4 in `evidence/P00/P00-T05/record.md`.
 
 - P00-T04: harness `spikes/t04-git/run_t04.sh` (D01 version); run only via the verified namespace setup (env check first). Run 1 failed, D01 re-run passed; both in `evidence/P00/P00-T04/record.md`.
-- CA-02: Data Schema §23, versioned store 1.3 / protocol 1.1; canonical `schemas/workbench-store-v1.3.schema.json`; follow-ups FR-01–FR-04 in `plan.md` §5.2.
+- CA-02: Data Schema §23, versioned store 1.3 / protocol 1.1; canonical `schemas/workbench-store-v1.3.schema.json`; follow-ups FR-01–FR-04 in `plan.md` §5.2. *(Superseded 2026-10-26 by CA-03: store 1.4, UI schema 1.1, canonical file `schemas/workbench-store-v1.4.schema.json`; Data Schema §24.)*
 
 - P00-T06: `spikes/P00-T06-request-and-fixtures.md` — layers (parser vs spike composer vs projection vs validator), limits, cases Y01–Y21 / J01–J16, request §5, failure criteria §6, open questions §7. Nothing resolved/fetched/built yet.
 

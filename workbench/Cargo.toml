@@ -1,0 +1,46 @@
+# PWT YAML Security Workbench — Cargo workspace (P01, planning/P01-T01-request.md §1, §4, §6.1).
+# Lead-owned: manifests, Cargo.lock, clippy.toml and rustfmt.toml are changed only by the lead.
+[workspace]
+resolver = "3"
+members = [
+    "crates/domain",
+    "crates/application",
+    "crates/repositories",
+    "crates/scanning",
+    "crates/retrieval",
+    "crates/persistence",
+    "crates/terminal-ui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "UNLICENSED"
+publish = false
+
+[workspace.dependencies]
+serde = { version = "=1.0.229", default-features = false, features = ["std", "derive"] }
+serde_json = { version = "=1.0.154" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+# Tightened 2026-10-26 (owner approval at P01-T09/T10): deny levels, so a plain `cargo clippy` fails too
+# (previously enforced only through `-D warnings`), and every `#[allow]` must carry a reason.
+all = { level = "warn", priority = -1 }
+dbg_macro = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+exit = "deny"
+mem_forget = "deny"
+allow_attributes_without_reason = "deny"
