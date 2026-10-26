@@ -15,7 +15,7 @@ use domain::versions::{
 };
 use serde_json::Value;
 
-const STORE_SCHEMA: &str = include_str!("../../../../schemas/workbench-store-v1.3.schema.json");
+const STORE_SCHEMA: &str = include_str!("../../../../schemas/workbench-store-v1.4.schema.json");
 const WRAPPER_REQUEST_SCHEMA: &str =
     include_str!("../../../../schemas/wrapper-request-v1.1.schema.json");
 
@@ -68,9 +68,9 @@ fn assert_all_const(found: &[(String, Option<Value>)], expected: &str, at_least:
 
 #[test]
 fn version_constants_have_the_expected_literal_values() {
-    assert_eq!(STORE_SCHEMA_VERSION, "1.3");
+    assert_eq!(STORE_SCHEMA_VERSION, "1.4");
     assert_eq!(WRAPPER_PROTOCOL_VERSION, "1.1");
-    assert_eq!(UI_SCHEMA_VERSION, "1.0");
+    assert_eq!(UI_SCHEMA_VERSION, "1.1");
     assert_eq!(APP_CONTRACT_VERSION, "1.0");
 }
 
