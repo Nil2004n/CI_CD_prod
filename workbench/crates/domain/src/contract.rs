@@ -666,20 +666,21 @@ pub enum AdapterId {
     RustSchema,
 }
 
-/// Tool availability as shown in diagnostics (UI Schema §5 `tools.states`).
+/// Tool availability (store `ToolManifest.availability`, UI Schema §5 `tools.states`; CA-03,
+/// Data Schema §24). Permission denial is not a tool state.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ToolStatus {
+pub enum ToolAvailability {
     /// Installed, compatible and verified.
     Ready,
     /// Not installed.
     Missing,
     /// Installed version not compatible.
     Incompatible,
+    /// Installed but requires configuration before use.
+    Unconfigured,
     /// Present but not usable.
     Unavailable,
-    /// Use not permitted.
-    Denied,
     /// Capability deferred.
     Deferred,
 }
@@ -961,7 +962,7 @@ pub enum AppEvent {
     /// A tool's availability changed.
     DependencyStatusChanged {
         adapter_id: AdapterId,
-        status: ToolStatus,
+        availability: ToolAvailability,
     },
     /// Credential state changed; never key material.
     CredentialStatusChanged { status: CredentialStatus },

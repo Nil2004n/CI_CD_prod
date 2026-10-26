@@ -1,6 +1,6 @@
 //! Assessment vocabulary (P01-T07; frozen surface `planning/P01-T01-request.md` §5.4).
 //!
-//! String values equal the enums of `schemas/workbench-store-v1.3.schema.json`.
+//! String values equal the enums of `schemas/workbench-store-v1.4.schema.json`.
 
 use serde::{Deserialize, Serialize};
 

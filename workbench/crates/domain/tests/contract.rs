@@ -19,7 +19,7 @@ use domain::contract::{
     APP_CONTRACT_VERSION, AdapterId, AppCommand, AppEvent, ApprovalDecision, ApprovalLifetime,
     ChatFailure, ChatOutcome, ContractStatus, CredentialAction, CredentialMode, CredentialSecret,
     CredentialStatus, DataCategory, DeliveryClass, ExportFormat, ExportStatus, FailureCode,
-    RawInput, RepoOperation, RepoOperationStatus, SelectionChange, SelectorMode, ToolStatus,
+    RawInput, RepoOperation, RepoOperationStatus, SelectionChange, SelectorMode, ToolAvailability,
     TriggerSkipReason, dispatch_guard,
 };
 use domain::ids::{
@@ -599,9 +599,9 @@ fn golden_cases() -> Vec<(AppEvent, Value)> {
         (
             AppEvent::DependencyStatusChanged {
                 adapter_id: AdapterId::DockerCompose,
-                status: ToolStatus::Missing,
+                availability: ToolAvailability::Unconfigured,
             },
-            json!({"event_type": "DependencyStatusChanged", "adapter_id": "docker-compose", "status": "missing"}),
+            json!({"event_type": "DependencyStatusChanged", "adapter_id": "docker-compose", "availability": "unconfigured"}),
         ),
         (
             AppEvent::CredentialStatusChanged {
@@ -999,12 +999,12 @@ fn contract_enums_serialise_to_snake_case_strings() {
         ApprovalLifetime::Once => "once",
         ApprovalLifetime::Run => "run",
         ApprovalLifetime::WorkflowRevision => "workflow_revision",
-        ToolStatus::Ready => "ready",
-        ToolStatus::Missing => "missing",
-        ToolStatus::Incompatible => "incompatible",
-        ToolStatus::Unavailable => "unavailable",
-        ToolStatus::Denied => "denied",
-        ToolStatus::Deferred => "deferred",
+        ToolAvailability::Ready => "ready",
+        ToolAvailability::Missing => "missing",
+        ToolAvailability::Incompatible => "incompatible",
+        ToolAvailability::Unconfigured => "unconfigured",
+        ToolAvailability::Unavailable => "unavailable",
+        ToolAvailability::Deferred => "deferred",
         CredentialStatus::Absent => "absent",
         CredentialStatus::SessionOnly => "session_only",
         CredentialStatus::Stored => "stored",
@@ -1201,4 +1201,51 @@ fn a_redactor_keeps_markers_out_of_serialised_events() {
             "{name}: redactor was applied"
         );
     }
+}
+
+#[test]
+fn tool_availability_values_equal_the_store_schema_enum_in_order() {
+    const STORE_SCHEMA: &str = include_str!("../../../../schemas/workbench-store-v1.4.schema.json");
+    let schema: Value = serde_json::from_str(STORE_SCHEMA).expect("store schema parses");
+    let schema_enum: Vec<&str> =
+        schema["$defs"]["ToolManifest"]["properties"]["availability"]["enum"]
+            .as_array()
+            .expect("availability.enum is an array")
+            .iter()
+            .map(|v| v.as_str().expect("enum member is a string"))
+            .collect();
+
+    let all = [
+        ToolAvailability::Ready,
+        ToolAvailability::Missing,
+        ToolAvailability::Incompatible,
+        ToolAvailability::Unconfigured,
+        ToolAvailability::Unavailable,
+        ToolAvailability::Deferred,
+    ];
+    // Exhaustive guard: adding a variant without updating `all` fails to compile here.
+    for value in all {
+        match value {
+            ToolAvailability::Ready
+            | ToolAvailability::Missing
+            | ToolAvailability::Incompatible
+            | ToolAvailability::Unconfigured
+            | ToolAvailability::Unavailable
+            | ToolAvailability::Deferred => {}
+        }
+    }
+    let code: Vec<String> = all
+        .iter()
+        .map(|v| {
+            serialised(*v)
+                .as_str()
+                .expect("serialises to a string")
+                .to_owned()
+        })
+        .collect();
+    assert_eq!(code, schema_enum);
+    assert!(
+        !schema_enum.contains(&"denied"),
+        "denied is not a tool state"
+    );
 }

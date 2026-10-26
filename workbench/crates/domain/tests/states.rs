@@ -2,7 +2,7 @@
 //! (`planning/P01-T01-request.md` §5.4 and §6.3 row T07).
 //!
 //! The expected transition tables below are written out literally and are not derived from the
-//! implementation. The schema cross-check loads `schemas/workbench-store-v1.3.schema.json`.
+//! implementation. The schema cross-check loads `schemas/workbench-store-v1.4.schema.json`.
 
 #![allow(
     clippy::expect_used,
@@ -18,7 +18,7 @@ use serde::de::DeserializeOwned;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 
-const SCHEMA: &str = include_str!("../../../../schemas/workbench-store-v1.3.schema.json");
+const SCHEMA: &str = include_str!("../../../../schemas/workbench-store-v1.4.schema.json");
 
 // ---------------------------------------------------------------------------------------------
 // Independent expected tables (literal).
