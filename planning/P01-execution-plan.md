@@ -28,7 +28,7 @@ Status: **planning only**, prepared by Opus 2026-10-24 at owner request ("start 
 **Inputs from P00 (binding):**
 - `spikes/p00-freeze/` is an inventory and grants **no build or adoption permission**.
 - FR-01–FR-30 stay with their phases. None is assigned to P01, but the P01 types must not block them, for example FR-04 cleanup records and FR-29 containment.
-- CA-01/CA-02: app contract v1.0, store 1.3, wrapper protocol 1.1.
+- CA-01/CA-02: app contract v1.0, store 1.3, wrapper protocol 1.1. *(Superseded 2026-10-26 by CA-03: store 1.4, UI schema 1.1, canonical file `schemas/workbench-store-v1.4.schema.json`; Data Schema §24.)*
 - D-01 (Rust, Serde; Ratatui/Crossterm/Tokio added only in the phases that need them).
 - B-02 is open for P01 crates. R-4: cargo-audit is due in P01.
 

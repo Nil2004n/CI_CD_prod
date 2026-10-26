@@ -33,7 +33,7 @@ Earlier checkpoint (historical): 2026-10-24, P00 accepted with qualifications an
 - P00-T05: harness `spikes/rust/t05-process/src/main.rs`, fixtures `spikes/rust/t05-process/fixtures/`. Run only via `timeout -s KILL 300 unshare -rn --pid --fork --mount-proc --kill-child env -i …` (harness refuses unless PID 1). Findings F-1–F-4 in `evidence/P00/P00-T05/record.md`.
 
 - P00-T04: harness `spikes/t04-git/run_t04.sh` (D01 version); run only via the verified namespace setup (env check first). Run 1 failed, D01 re-run passed; both in `evidence/P00/P00-T04/record.md`.
-- CA-02: Data Schema §23, versioned store 1.3 / protocol 1.1; canonical `schemas/workbench-store-v1.3.schema.json`; follow-ups FR-01–FR-04 in `plan.md` §5.2.
+- CA-02: Data Schema §23, versioned store 1.3 / protocol 1.1; canonical `schemas/workbench-store-v1.3.schema.json`; follow-ups FR-01–FR-04 in `plan.md` §5.2. *(Superseded 2026-10-26 by CA-03: store 1.4, UI schema 1.1, canonical file `schemas/workbench-store-v1.4.schema.json`; Data Schema §24.)*
 
 - P00-T06: `spikes/P00-T06-request-and-fixtures.md` — layers (parser vs spike composer vs projection vs validator), limits, cases Y01–Y21 / J01–J16, request §5, failure criteria §6, open questions §7. Nothing resolved/fetched/built yet.
 

@@ -1,0 +1,1 @@
+store consts updated=10 availability enum=['ready', 'missing', 'incompatible', 'unconfigured', 'unavailable', 'deferred'] store examples=3

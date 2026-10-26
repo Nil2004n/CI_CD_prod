@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.3 (amendments CA-01, CA-02; store contract 1.3, wrapper protocol 1.1) | Date: 2026-10-23 | Status: Proposed design for review
+Version: 0.3.4 (amendments CA-01, CA-02, CA-03; store contract 1.4, wrapper protocol 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed design for review
 Related document: PRD v0.3. Requirement IDs refer to that PRD.
 
 ## 1. Technical decision
@@ -266,7 +266,7 @@ Clone first; fast-forward-only update on existing checkouts. Do not `git pull` i
 
 ## 18. Wrapper protocol and tool-output mapping
 
-Wrapper protocol v1.1 (v1.0 + pre-implementation amendment CA-01 + versioned amendment CA-02), distinct from store schema v1.3. Native adapters use the same `WrapperRequest`/`WrapperControl` DTOs in-process; stdin or an app-owned request file is the transport only for the optional `.sh` extension.
+Wrapper protocol v1.1 (v1.0 + pre-implementation amendment CA-01 + versioned amendment CA-02), distinct from store schema v1.4 (CA-03, Data Schema §24). Native adapters use the same `WrapperRequest`/`WrapperControl` DTOs in-process; stdin or an app-owned request file is the transport only for the optional `.sh` extension.
 
 Requested scope (CA-01, resolves C3): every request carries `category` (the single assessment `Category` the task is asked to produce, e.g. `secrets`) and `required_capabilities` (the permission `Capability` values the task may exercise; empty means local-only with no network). The core must hold a valid grant in `approval_ids` covering each listed capability before launch; the adapter rejects work outside `category`.
 
