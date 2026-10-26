@@ -30,14 +30,17 @@ unreachable_pub = "warn"
 unused_must_use = "deny"
 
 [workspace.lints.clippy]
+# Tightened 2026-10-26 (owner approval at P01-T09/T10): deny levels, so a plain `cargo clippy` fails too
+# (previously enforced only through `-D warnings`), and every `#[allow]` must carry a reason.
 all = { level = "warn", priority = -1 }
-dbg_macro = "warn"
-print_stdout = "warn"
-print_stderr = "warn"
-todo = "warn"
-unimplemented = "warn"
-unwrap_used = "warn"
-expect_used = "warn"
-panic = "warn"
-exit = "warn"
-mem_forget = "warn"
+dbg_macro = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+exit = "deny"
+mem_forget = "deny"
+allow_attributes_without_reason = "deny"
