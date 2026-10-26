@@ -1,0 +1,3 @@
+FAIL static exit=-
+OVERALL FAIL
+exit=1 (expected 1)

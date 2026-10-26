@@ -1,0 +1,19 @@
+domain v0.1.0 (/home/kali/.local/share/pwt-dev-tools/_p01/t02-resolve/crates/domain) []
+serde v1.0.229 [derive,serde_derive,std]
+serde_core v1.0.229 [result,std]
+serde_derive v1.0.229 (proc-macro) [default]
+proc-macro2 v1.0.107 [proc-macro]
+unicode-ident v1.0.27 []
+quote v1.0.47 [proc-macro]
+proc-macro2 v1.0.107 [proc-macro] (*)
+syn v3.0.9 [clone-impls,derive,parsing,printing,proc-macro]
+proc-macro2 v1.0.107 [proc-macro] (*)
+quote v1.0.47 [proc-macro] (*)
+unicode-ident v1.0.27 []
+serde_derive v1.0.229 (proc-macro) [default] (*)
+serde_json v1.0.154 [default,std]
+itoa v1.0.18 []
+memchr v2.8.3 [alloc,std]
+serde v1.0.229 [derive,serde_derive,std] (*)
+serde_core v1.0.229 [result,std] (*)
+zmij v1.0.23 []

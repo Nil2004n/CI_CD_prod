@@ -1,0 +1,43 @@
+# PWT YAML Security Workbench — Cargo workspace (P01, planning/P01-T01-request.md §1, §4, §6.1).
+# Lead-owned: manifests, Cargo.lock, clippy.toml and rustfmt.toml are changed only by the lead.
+[workspace]
+resolver = "3"
+members = [
+    "crates/domain",
+    "crates/application",
+    "crates/repositories",
+    "crates/scanning",
+    "crates/retrieval",
+    "crates/persistence",
+    "crates/terminal-ui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "UNLICENSED"
+publish = false
+
+[workspace.dependencies]
+serde = { version = "=1.0.229", default-features = false, features = ["std", "derive"] }
+serde_json = { version = "=1.0.154" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+todo = "warn"
+unimplemented = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+exit = "warn"
+mem_forget = "warn"

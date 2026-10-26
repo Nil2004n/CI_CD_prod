@@ -36,7 +36,7 @@ Status: **planning only**, prepared by Opus 2026-10-24 at owner request ("start 
 | Fact | Basis |
 |---|---|
 | Toolchain `stable-x86_64-unknown-linux-gnu` = rustc 1.97.1, cargo 1.97.1; `rustfmt`, `cargo-fmt`, `clippy-driver`, `cargo-clippy` present | `ls` of the toolchain bin dir; `--version` |
-| `serde`/`serde_core`/`serde_derive` 1.0.229, `syn` 2.0.119, `proc-macro2` 1.0.107, `quote` 1.0.47, `unicode-ident` 1.0.27, `itoa` 1.0.18, `memchr` 2.8.3 are in the P00 spike lockfile (checksums verified at P00 fetches); `serde_json` 1.0.154 accepted-qualified in T06 | `spikes/rust/Cargo.lock`; `spikes/p00-freeze/crates.json` |
+| `serde`/`serde_core`/`serde_derive` 1.0.229, `syn` ~~2.0.119~~ **3.0.9** (corrected 2026-10-26 by P01-T02: `serde_derive 1.0.229` depends on syn 3.0.9 in the P00 lock; `evidence/P01/T02/record.md` §5), `proc-macro2` 1.0.107, `quote` 1.0.47, `unicode-ident` 1.0.27, `itoa` 1.0.18, `memchr` 2.8.3 are in the P00 spike lockfile (checksums verified at P00 fetches); `serde_json` 1.0.154 accepted-qualified in T06 | `spikes/rust/Cargo.lock`; `spikes/p00-freeze/crates.json` |
 | Worker agents (`sonnet-implementer`, `implementer`) have Read/Grep/Glob/Edit/Write/Bash — **no messaging tool**; read-only `reviewer`/`security-reviewer` have Read/Grep/Glob | `.claude/agents/*.md` |
 | The lead has `SendMessage` to subagents; worktree isolation works, but the harness creates worktrees **from the default branch**, so each packet's step 0 must fast-forward to the phase baseline | P00-T10/T11 records |
 

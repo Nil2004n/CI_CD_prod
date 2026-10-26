@@ -1,0 +1,13 @@
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/domain/src/states.rs:17:
+ 
+ impl<S: fmt::Debug> fmt::Display for TransitionError<S> {
+     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+-        write!(f, "transition not allowed: {:?} -> {:?}", self.from, self.to)
++        write!(
++            f,
++            "transition not allowed: {:?} -> {:?}",
++            self.from, self.to
++        )
+     }
+ }
+ 

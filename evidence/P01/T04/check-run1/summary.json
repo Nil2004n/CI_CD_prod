@@ -1,0 +1,151 @@
+{
+  "tool": "dev/p01_check.py",
+  "mode": "all",
+  "slot": "lead",
+  "package": null,
+  "final": false,
+  "repo_head": "2667a31b0750fe770d47a768c52d1337cc7cdc9b",
+  "dirty": [
+    " M CLAUDE.md",
+    " M plan.md",
+    " M planning/P01-execution-plan.md",
+    " M status.md",
+    "?? dev/",
+    "?? evidence/P01/",
+    "?? planning/P01-T01-request.md",
+    "?? planning/P01-T03-cargo-audit-request.md",
+    "?? workbench/"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.97.1 (c980f4866 2026-06-30)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.97 (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "errno 101",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "fmt",
+      "command": "cargo fmt --all -- --check",
+      "exit": 1,
+      "log": "fmt.log",
+      "seconds": 0.07,
+      "protected_files_unchanged": true,
+      "ok": false
+    },
+    {
+      "step": "clippy",
+      "command": "cargo clippy --workspace --all-targets --frozen -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log",
+      "seconds": 5.53,
+      "protected_files_unchanged": true,
+      "ok": true
+    },
+    {
+      "step": "test",
+      "command": "cargo test --workspace --frozen",
+      "exit": 0,
+      "log": "test.log",
+      "seconds": 2.8,
+      "protected_files_unchanged": true,
+      "ok": true,
+      "counts": {
+        "suites": 14,
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    },
+    {
+      "step": "build",
+      "command": "cargo build --workspace --frozen",
+      "exit": 0,
+      "log": "build.log",
+      "seconds": 0.02,
+      "protected_files_unchanged": true,
+      "ok": true
+    },
+    {
+      "step": "static",
+      "checks": [
+        {
+          "check": "no unsafe blocks/fns/impls",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "no print/dbg macros in src",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "no todo!/unimplemented!/allow(clippy::todo) (informational before T09)",
+          "hits": 34,
+          "ok": true
+        },
+        {
+          "check": "AppEvent has no raw string field types",
+          "ok": true,
+          "note": "AppEvent not present yet"
+        },
+        {
+          "check": "Cargo.lock registry set == approved exact versions",
+          "extra": [],
+          "missing": [],
+          "ok": true
+        },
+        {
+          "check": "Cargo.lock members == 7 workspace crates",
+          "ok": true
+        },
+        {
+          "check": "manifest dependencies within {serde, serde_json}",
+          "found": [
+            "serde",
+            "serde_json"
+          ],
+          "ok": true
+        }
+      ],
+      "ok": true
+    }
+  ],
+  "ok": false
+}

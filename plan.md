@@ -74,7 +74,7 @@ Proposed: one branch per phase, `phase/Pxx-<slug>`, created from the approved ba
 
 ### 3.8 Bounded parallel execution (owner policy, 2026-10-24, from P01 onward)
 
-**Lead (Opus) role:** coordinator, reviewer and integrator. Each phase gets a proposed bounded parallel plan, with **up to three workers** only where the dependency graph supports independent work. This supersedes the earlier "one, at most two" rule in §3.2 for P01 onward. CLAUDE.md still states the old rule; an amendment is proposed, not applied.
+**Lead (Opus) role:** coordinator, reviewer and integrator. Each phase gets a proposed bounded parallel plan, with **up to three workers** only where the dependency graph supports independent work. This supersedes the earlier "one, at most two" rule in §3.2 for P01 onward. CLAUDE.md was amended to match on 2026-10-26 (owner approval A6 = 6a).
 
 **Before spawning, the lead:**
 - reads the plan, acceptance criteria and approvals;

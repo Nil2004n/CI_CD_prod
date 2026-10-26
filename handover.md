@@ -1,14 +1,18 @@
 # Handover
 
-Checkpoint: 2026-10-24, **P00 accepted by the owner with qualifications and merged to `main`** (`--no-ff` merge commit `5888826` of `phase/P00-decisions-spikes` at `f32ba7e`; `main` pushed to `origin/main` with this handover update). **P01 planning drafted and committed on `phase/P01-foundation`** (created from `main` `485b3a8`, pushed): `planning/P01-execution-plan.md`, `plan.md` §5A and §3.8 (owner's bounded-parallel policy). **Resume point: owner decisions A1–A7**, then P01-T01 on `phase/P01-foundation`. Worker agents have no messaging tool — route via lead + board file. Worker branches from P00 deleted. Start from `evidence/P00/P00-report.md` §11, `spikes/p00-freeze/` (freeze is an inventory, not build/adopt permission) and `plan.md` §5.2 FR-01–FR-30. Earlier checkpoint text (historical): 2026-10-24, P00-T09 in progress after recovery from an HTTP 429 interruption (no formal T09 result). P00-T08 accepted with qualifications at `ac4cf67` (pushed). T09 work is untracked (not committed). Earlier header (historical): P00-T06 accepted; resume at P00-T07. Written by Opus directly; no Haiku documentation agent is configured, none ran.
+Checkpoint: 2026-10-26, **P01 in progress on `phase/P01-foundation`: T01 (request), T02 (offline resolution), T03 (cargo-audit request, documents only) and T04 (B0 scaffold) done; baseline B0 committed and pushed.** Owner approved A1–A7 (recommended set), T01 with D1–D6, and T02; bounded debug cycles pre-authorised (`planning/P01-T01-request.md` §9). **Resume point: owner approval to start wave 1** (W1 T05 ids/time, W2 T06 text, W3 T07 states/vocab — `sonnet-implementer` in worktrees per T01 §7). Written by Opus directly; no Haiku documentation agent is installed.
+
+Earlier checkpoint (historical): 2026-10-24, P00 accepted with qualifications and merged to `main` (`5888826`).
 
 ## Resume steps
-1. `git status --short`, `git branch --show-current`, `git log --oneline -3`, `git status -sb`. Expect branch `phase/P00-decisions-spikes` equal to `origin/phase/P00-decisions-spikes`, clean tree; `main` = `origin/main` = `008e80c` (not merged).
-2. Read `status.md`, then `plan.md` §1 (decisions, Q-01–Q-06) and §5 (P00 tasks).
-3. For P00 spike work, use `spikes/P00-T01-spike-protocols.md` (common protocol §1, hypotheses §2, per-tool §3) and `spikes/P00-T01-fixture-specifications.md` (rules §1, catalogue §2).
+1. `git status -sb`, `git log --oneline -3`, `git worktree list`. Expect `phase/P01-foundation` = `origin/phase/P01-foundation` at the B0 commit, clean tree, no worker worktrees; `main` = `origin/main` = `485b3a8`.
+2. Read `status.md`, `planning/P01-T01-request.md` (frozen interfaces §5, test plan §6.3, packets §7, debug bounds §9), `evidence/P01/T04/record.md`.
+3. Checks: `python3 -I -B dev/p01_check.py all --slot lead --out <dir>` (all Cargo via direct 1.97.1 binaries, `env -i`, isolated CARGO_HOME, `unshare -rn`, `--frozen`). `static --final` must pass only at T09.
+4. Worker packets: step 0 `git merge --ff-only <B0>` (harness creates worktrees from `main`); per-slot target dirs `p01-w1..w3`; workers commit only on their own branch.
 
 ## Facts
-- No application code, tests, fixtures, generators, Cargo workspace or CI exist.
+- P01 (2026-10-26): `workbench/` Cargo workspace exists (7 crates; only `domain` has stubbed content), lockfile `fb8b7d07…` (11 registry crates, = P00 entries; serde_derive uses syn 3.0.9), runner `dev/p01_check.py`. No CI.
+- (Historical, P00:) No application code, tests, fixtures, generators, Cargo workspace or CI existed.
 - P00-T01 deliverables are documentation. Tool flags, file names and exit codes in them are unverified candidates for the spikes to confirm.
 - Main design point from T01: inline suppression directives (H-INL) and repository-loaded custom checks (H-EXE) are repository-controlled channels in addition to config files. Fake secrets are generated at build time and never committed (to keep them out of Git history and avoid host push-protection blocks).
 - Evidence: `evidence/P00/P00-T01/check.md` (10/0/0; one checker pattern narrowed after a confirmed prose false positive, disclosed there).

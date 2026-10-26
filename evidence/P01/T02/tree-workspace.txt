@@ -1,0 +1,32 @@
+application v0.1.0 (/home/kali/.local/share/pwt-dev-tools/_p01/t02-resolve/crates/application)
+
+domain v0.1.0 (/home/kali/.local/share/pwt-dev-tools/_p01/t02-resolve/crates/domain)
+└── serde v1.0.229
+    ├── serde_core v1.0.229
+    │   └── serde_derive v1.0.229 (proc-macro)
+    │       ├── proc-macro2 v1.0.107
+    │       │   └── unicode-ident v1.0.27
+    │       ├── quote v1.0.47
+    │       │   └── proc-macro2 v1.0.107 (*)
+    │       └── syn v3.0.9
+    │           ├── proc-macro2 v1.0.107 (*)
+    │           ├── quote v1.0.47 (*)
+    │           └── unicode-ident v1.0.27
+    └── serde_derive v1.0.229 (proc-macro) (*)
+[dev-dependencies]
+└── serde_json v1.0.154
+    ├── itoa v1.0.18
+    ├── memchr v2.8.3
+    ├── serde v1.0.229 (*)
+    ├── serde_core v1.0.229 (*)
+    └── zmij v1.0.23
+
+persistence v0.1.0 (/home/kali/.local/share/pwt-dev-tools/_p01/t02-resolve/crates/persistence)
+
+repositories v0.1.0 (/home/kali/.local/share/pwt-dev-tools/_p01/t02-resolve/crates/repositories)
+
+retrieval v0.1.0 (/home/kali/.local/share/pwt-dev-tools/_p01/t02-resolve/crates/retrieval)
+
+scanning v0.1.0 (/home/kali/.local/share/pwt-dev-tools/_p01/t02-resolve/crates/scanning)
+
+terminal-ui v0.1.0 (/home/kali/.local/share/pwt-dev-tools/_p01/t02-resolve/crates/terminal-ui)
