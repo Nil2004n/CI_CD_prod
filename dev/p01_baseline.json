@@ -1,0 +1,5 @@
+{
+  "comment": "Committed regression floors for dev/p01_check.py --final (P01-T09, reviewer M2). Raise when tests are added; never lower without owner approval.",
+  "min_passed": 379,
+  "min_compile_fail": 17
+}

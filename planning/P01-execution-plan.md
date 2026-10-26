@@ -103,8 +103,8 @@ T01 ─► T02 ─► T04 (baseline commit B0 on phase/P01-foundation)
 ## 6. Acceptance criteria (proposed)
 1. Workspace layout matches Tech §4. The toolchain pin is verified, and the build is offline and locked in the isolated `CARGO_HOME`.
 2. fmt, clippy `-D warnings`, test and build all exit 0, with recorded counts.
-3. Every Arch §6 pilot command and event is present, and every reserved name returns `OperationNotAvailable`.
-4. The round-trip test covers each DTO variant.
+3. Every Arch §6 pilot command and event is present, and every reserved name returns `OperationNotAvailable`. *(Superseded by `planning/P01-T01-request.md` §5.5 / A1 = 1a: reserved commands return `OperationFailed{code="deferred"}` per Arch §6.)*
+4. The round-trip test covers each DTO variant. *(Amended by owner decision T01-D3: golden serialisation for every event variant; full round-trip for every type with a read path; commands have no serde.)*
 5. `compile_fail` doctests prove raw text cannot reach safe-text-typed fields. Events carry no `String` payload fields for free text.
 6. State-machine tests cover every allowed transition and reject every disallowed one.
 7. Dependencies are exactly `serde` (derive) and `serde_json` at the approved versions.

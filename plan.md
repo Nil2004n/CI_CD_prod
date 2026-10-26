@@ -238,7 +238,7 @@ Detail, interfaces, parallel waves and approvals A1–A7: `planning/P01-executio
 | P01-T05 | Typed IDs + UTC timestamp newtypes, validation, serde, tests | W1 (wave 1) | None | 1–1.5 |
 | P01-T06 | `RedactedText`/`SanitisedText` newtypes; no raw construction/deserialisation; `compile_fail` doctests | W2 (wave 1) | None | 1–1.5 |
 | P01-T07 | Run/check/approval state machines (Arch §7) with exhaustive transition tests | W3 (wave 1) | None | 1–1.5 |
-| P01-T08 | App contract v1.0 command/event DTOs (Arch §6), reserved → `OperationNotAvailable`, delivery classes, round-trip tests | W1 (wave 2) | None | 1.5–2 |
+| P01-T08 | App contract v1.0 command/event DTOs (Arch §6), reserved → `OperationFailed{code="deferred"}` (T01 §5.5 supersedes `OperationNotAvailable`), delivery classes, round-trip tests | W1 (wave 2) | None | 1.5–2 |
 | P01-T09 | Integration; fmt/clippy `-D warnings`/test/build; cargo-audit if installed; reviewer + security-reviewer; evidence | Lead | None | 1–1.5 |
 | P01-T10 | P01 report, freeze update, status/handover; stop for acceptance | Lead | None | 0.5–1 |
 

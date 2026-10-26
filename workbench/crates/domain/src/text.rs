@@ -226,7 +226,6 @@ fn needs_escape(c: char) -> bool {
 /// Only for compile-time literal, application-authored text containing no secrets or user, child or
 /// provider content. Never pass `format!`-built or runtime data: a `&'static str` can still be leaked
 /// from a `String` with `Box::leak`, so this is a discipline rule backed by review.
-#[cfg_attr(not(test), allow(dead_code))] // used by contract.rs from P01-T08
 pub(crate) fn redact_static(text: &'static str) -> RedactedText {
     RedactedText(escape(text))
 }

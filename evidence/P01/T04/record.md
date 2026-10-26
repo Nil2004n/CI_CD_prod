@@ -57,6 +57,6 @@ All Cargo commands ran with direct 1.97.1 binaries, `env -i`, the isolated `CARG
 ## 4. Controls and limitations
 - **`--final` control:** on B0, `static --final` exits 1 as designed: 34 `todo!`/allow markers, and `AppEvent` absent. The other static checks pass.
 - **Not separately controlled:** the protected-file change detector (no deliberate manifest change was injected). Its correctness rests on review of `protected_hashes()`.
-- **Static source scan:** regex-based. It strips `//` comments and does not parse string literals. The clippy `print_*`/`todo` lints and `forbid(unsafe_code)` are the primary enforcement.
+- **Static source scan:** regex-based. It strips `//` comments and does not parse string literals. *(Superseded at B1 and T09: comment/string-aware scanner, type allowlist, self-test and negative controls; see `evidence/P01/B1/record.md` §4, `evidence/P01/T09/`.)* The clippy `print_*`/`todo` lints and `forbid(unsafe_code)` are the primary enforcement.
 - **No filesystem sandbox** for build scripts. The limited review is in `evidence/P01/T02/record.md` §4.
 - **Clean-up:** the T02 scratch workspace `~/.local/share/pwt-dev-tools/_p01/t02-resolve/` was removed after the lock was reproduced.

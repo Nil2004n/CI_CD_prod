@@ -65,7 +65,8 @@ def cargo_env(slot):
 
 
 def protected_hashes():
-    files = [WS / "Cargo.lock", WS / "Cargo.toml", *sorted((WS / "crates").glob("*/Cargo.toml"))]
+    files = [WS / "Cargo.lock", WS / "Cargo.toml", WS / "clippy.toml", WS / "rustfmt.toml",
+             *sorted((WS / "crates").glob("*/Cargo.toml"))]
     return {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None for p in files}
 
 
@@ -227,7 +228,7 @@ def enum_variants(code, name):
 ID_TYPES = {"ApprovalId", "ArtifactId", "CheckId", "ChunkId", "ConversationId", "EventId", "FileId", "FindingId",
             "MessageId", "RepoId", "ReportId", "RequestId", "RunId", "SourceId", "SuppressionId", "TaskId", "WorkflowId"}
 DOMAIN_ENUMS = {"RunState", "CheckOutcome", "ApprovalState", "Capability", "Category", "Severity", "Assessment", "Coverage"}
-EVENT_FIELD_TYPES = {"Option", "Vec", "u32", "bool", "UtcTimestamp", "RedactedText", "SanitisedText"} | ID_TYPES | DOMAIN_ENUMS
+EVENT_FIELD_TYPES = {"Option", "Vec", "u32", "bool", "UtcTimestamp", "RedactedText"} | ID_TYPES | DOMAIN_ENUMS
 COMMAND_FIELD_TYPES = EVENT_FIELD_TYPES | {"RawInput"}
 COMMAND_DATA_ENUMS = {"SelectionChange": COMMAND_FIELD_TYPES, "CredentialAction": {"CredentialSecret", "CredentialMode"}}
 
@@ -288,6 +289,9 @@ def static_selftest():
         "brace in doc comment": "pub enum AppEvent {\n /// see }\n A { a: u32 },\n /// {\n B { b: String },\n}",
         "local enum with data": "pub enum Leak { X(String) }\npub enum AppEvent { A { m: Leak } }",
         "raw string in command": "pub enum AppCommand { A { url: String } }\npub enum AppEvent { B }",
+        "SanitisedText in event": "pub enum AppEvent { A { m: SanitisedText } }",
+        "tuple variant in SelectionChange": "pub enum SelectionChange { X(String) }\npub enum AppCommand { A { c: SelectionChange } }\npub enum AppEvent { B }",
+        "CredentialSecret outside CredentialAction": "pub enum AppCommand { A { s: CredentialSecret } }\npub enum AppEvent { B }",
     }
     results = []
     for name, src in must_fail.items():
@@ -308,9 +312,20 @@ def static_selftest():
     results.append({"case": "Redactor impl inside #[cfg(test)] mod is ignored", "ok": not rd.search(drop_test_modules(strip_comments(in_test)))})
     results.append({"case": "Redactor impl outside test module is caught",
                     "ok": bool(rd.search(drop_test_modules(strip_comments(in_test + "impl Redactor for Leak {}\n"))))})
+    wrapped = "impl\n    Redactor\n    for Leak {}"
+    results.append({"case": "wrapped Redactor impl header is caught", "ok": bool(re.search(REDACTOR_IMPL_RE, wrapped, re.S))})
     results.append({"case": "lifetime is not a char literal", "ok": "unsafe" in strip_comments("fn f<'a>(x: &'a str) { unsafe {} }")})
     return results
 
+
+# Lock file hash resolved and accepted in P01-T02 (evidence/P01/T02/record.md).
+EXPECTED_LOCK_SHA256 = "fb8b7d076ccf7f79c94128c24d84e88bee763dc7fabfbf95befb5af361a71258"
+# The only `#[allow(...)]` attributes permitted in production code (file, lint) — planning/P01-T01-request.md §6.1.
+SRC_ALLOWS = {("crates/domain/src/contract.rs", "clippy::result_large_err")}
+# The only production call sites of `redact_static` (file); argument must be a literal or ALL_CAPS const.
+REDACT_STATIC_CALLERS = {"crates/domain/src/contract.rs"}
+EXPOSE_EXEMPT = "crates/domain/src/contract.rs"
+REDACTOR_IMPL_RE = r"\bimpl\b[^{;]*?\bRedactor\b[^{;]*?\bfor\b"
 
 PRINT_RE = r"\b(e?print(ln)?|dbg)\s*!|\bio::std(out|err)\s*\(|\bstd(out|err)\s*\(\s*\)"
 
@@ -327,12 +342,60 @@ def step_static(final, out):
             if re.search(r"\btodo\s*!|\bunimplemented\s*!|clippy::todo", l)]
     checks.append({"check": "no todo!/unimplemented!/allow(clippy::todo)" + ("" if final else " (informational before T09)"),
                    "hits": len(hits), "ok": (not hits) if final else True})
-    hits = [f"{p.relative_to(REPO)}:{i}" for p in src if p.name != "contract.rs" for i, l in code_lines(p, production=True)
-            if re.search(r"\.\s*expose\s*\(", l)]
-    checks.append({"check": "CredentialSecret::expose() not called in src outside contract.rs", "hits": hits, "ok": not hits})
-    hits = [f"{p.relative_to(REPO)}:{i}" for p in src for i, l in code_lines(p, production=True)
-            if re.search(r"\bimpl\b[^{;]*\bRedactor\s+for\b", l)]
-    checks.append({"check": "no Redactor impl in src outside #[cfg(test)] modules (until P06)", "hits": hits, "ok": not hits})
+    def rel(p):
+        return str(p.relative_to(WS))
+
+    prod = {p: drop_test_modules(strip_comments(p.read_text())) for p in src}
+
+    def line_of(code, pos):
+        return code.count("\n", 0, pos) + 1
+
+    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() if rel(p) != EXPOSE_EXEMPT
+            for m in re.finditer(r"\bexpose\b(?!_)", c)]
+    checks.append({"check": "CredentialSecret::expose not referenced in src outside domain/src/contract.rs", "hits": hits, "ok": not hits})
+    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items()
+            for m in re.finditer(REDACTOR_IMPL_RE + r"|\bRedactor\s+as\b", c, re.S)]
+    checks.append({"check": "no Redactor impl or alias in src outside #[cfg(test)] modules (until P06)", "hits": hits, "ok": not hits})
+    hits = []
+    for p, c in prod.items():
+        masked = drop_test_modules(strip_comments(p.read_text(), mask_strings=False))
+        for m in re.finditer(r"\bredact_static\s*\(\s*([^)]*)\)", masked):
+            arg = m.group(1).strip()
+            if rel(p) == "crates/domain/src/text.rs" and arg.startswith("text:"):
+                continue  # the definition itself
+            if rel(p) not in REDACT_STATIC_CALLERS or not re.fullmatch(r'"[^"{}\\]*"|[A-Z][A-Z0-9_]*', arg):
+                hits.append(f"{rel(p)}:{line_of(c, m.start())}: {arg[:60]}")
+    checks.append({"check": "redact_static called only from allowlisted files with a literal or ALL_CAPS const", "hits": hits, "ok": not hits})
+    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() for m in re.finditer(r"\bBox\s*::\s*leak\b|\.leak\s*\(", c)]
+    checks.append({"check": "no Box::leak / .leak() in src", "hits": hits, "ok": not hits})
+    found = set()
+    for p, c in prod.items():
+        for m in re.finditer(r"#!?\s*\[\s*allow\s*\(([^)]*)", strip_comments(p.read_text(), mask_strings=True)):
+            for lint in re.findall(r"[\w:]+", m.group(1)):
+                if lint != "reason":
+                    found.add((rel(p), lint))
+    checks.append({"check": "#[allow] in src limited to the approved list", "found": sorted(map(list, found)),
+                   "unapproved": sorted(map(list, found - SRC_ALLOWS)), "ok": found <= SRC_ALLOWS})
+    # Closed construction of RedactedText (reviewer M1): trait impls for it anywhere in src must be exactly
+    # the approved set, and its derive list is fixed.
+    impls = set()
+    for p, c in prod.items():
+        for m in re.finditer(r"\bimpl\b(?:\s*<[^>]*>)?\s*([\w:]+(?:\s*<[^>]*>)?)\s+for\s+(?:[\w:]*::)?RedactedText\b", c):
+            impls.add((rel(p), re.sub(r"\s+", "", m.group(1))))
+    approved = {("crates/domain/src/text.rs", "fmt::Display"), ("crates/domain/src/text.rs", "serde::Serialize")}
+    derive = re.search(r"#\[derive\(([^)]*)\)\]\s*pub\s+struct\s+RedactedText\b", strip_comments((WS / "crates/domain/src/text.rs").read_text()))
+    derives = sorted(d.strip() for d in derive.group(1).split(",")) if derive else None
+    checks.append({"check": "RedactedText trait impls == {Display, Serialize}; derives == {Clone, Debug, Eq, Hash, PartialEq}",
+                   "impls": sorted(map(list, impls)), "derives": derives,
+                   "ok": impls == approved and derives == ["Clone", "Debug", "Eq", "Hash", "PartialEq"]})
+    build_code = [str(x.relative_to(REPO)) for x in sorted(WS.rglob("build.rs"))]
+    proc_macro = [rel(m) for m in sorted((WS / "crates").glob("*/Cargo.toml"))
+                  if tomllib.loads(m.read_text()).get("lib", {}).get("proc-macro")]
+    cfgs = [str(d) for base in [REPO, *REPO.parents] for d in [base / ".cargo" / "config", base / ".cargo" / "config.toml",
+            base / "rust-toolchain", base / "rust-toolchain.toml"] if d.exists()]
+    cfgs += [str(x) for x in WS.rglob(".cargo") if x.is_dir()]
+    checks.append({"check": "no workspace build.rs, proc-macro crate, .cargo/config or rust-toolchain file (repo and ancestors)",
+                   "build_rs": build_code, "proc_macro": proc_macro, "config": cfgs, "ok": not (build_code or proc_macro or cfgs)})
     contract = WS / "crates/domain/src/contract.rs"
     checks += check_contract(contract.read_text() if contract.exists() else "", final)
     st = static_selftest()
@@ -345,6 +408,8 @@ def step_static(final, out):
                    "missing": sorted(map(list, set(EXPECTED_REGISTRY.items()) - reg)),
                    "ok": reg == set(EXPECTED_REGISTRY.items())})
     checks.append({"check": "Cargo.lock members == 7 workspace crates", "ok": mem == MEMBERS})
+    lock_sha = hashlib.sha256((WS / "Cargo.lock").read_bytes()).hexdigest()
+    checks.append({"check": "Cargo.lock sha256 == T02-accepted lock", "value": lock_sha, "ok": lock_sha == EXPECTED_LOCK_SHA256})
     direct = set()
     for man in [WS / "Cargo.toml", *sorted((WS / "crates").glob("*/Cargo.toml"))]:
         t = tomllib.loads(man.read_text())
@@ -387,6 +452,10 @@ def main():
     if not (WS / "Cargo.toml").is_file():
         print(f"no workspace at {WS}")
         return 2
+    if a.final:
+        base = json.loads((Path(__file__).resolve().parent / "p01_baseline.json").read_text())
+        a.min_passed = max(a.min_passed, int(base["min_passed"]))
+        a.min_compile_fail = max(a.min_compile_fail, int(base["min_compile_fail"]))
     out = a.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     scope = ["-p", a.package] if a.package else ["--workspace"]
