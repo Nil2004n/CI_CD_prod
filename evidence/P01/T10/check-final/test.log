@@ -1,0 +1,543 @@
+   Compiling retrieval v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/retrieval)
+   Compiling application v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/application)
+   Compiling repositories v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/repositories)
+   Compiling scanning v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/scanning)
+   Compiling domain v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/domain)
+   Compiling terminal-ui v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/terminal-ui)
+   Compiling persistence v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/persistence)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.08s
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/application-22e3c0ac66c99d8c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/domain-b048e81a656f2923)
+
+running 3 tests
+test text::tests::redact_static_equals_redact_with_identity ... ok
+test text::tests::redact_static_escapes_control_characters ... ok
+test text::tests::redact_static_passes_literal_through_unchanged ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contract.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/contract-d90787c56a314932)
+
+running 22 tests
+test adapter_ids_serialise_to_the_data_registry_ids ... ok
+test command_status_matches_the_literal_table ... ok
+test constructed_commands_cover_the_architecture_names_exactly ... ok
+test a_redactor_keeps_markers_out_of_serialised_events ... ok
+test contract_version_is_1_0 ... ok
+test contract_enums_serialise_to_snake_case_strings ... ok
+test credential_commands_debug_hides_the_key ... ok
+test dispatch_guard_accepts_every_pilot_command ... ok
+test dispatch_guard_agrees_with_status_for_every_command ... ok
+test delivery_classes_are_pinned ... ok
+test credential_secret_debug_hides_the_key ... ok
+test dispatch_guard_is_repeatable_and_does_not_consume_the_command ... ok
+test events_with_control_characters_serialise_escaped_text ... ok
+test dispatch_guard_rejects_every_reserved_command_with_deferred ... ok
+test event_status_and_delivery_match_the_literal_table ... ok
+test constructed_events_cover_the_architecture_names_exactly ... ok
+test every_event_variant_serialises_to_its_golden_json ... ok
+test event_clone_and_equality_hold ... ok
+test literal_tables_have_expected_sizes_and_unique_names ... ok
+test raw_input_debug_shows_only_the_length ... ok
+test raw_input_commands_debug_hides_the_text ... ok
+test optional_fields_serialise_when_present ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ids_time.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/ids_time-cafe57739e5d10c9)
+
+running 279 tests
+test approval_id::all_digits_round_trip ... ok
+test accessors ... ok
+test approval_id::ordering_and_hash_follow_bytes ... ok
+test approval_id::rejects_braces_and_urn ... ok
+test approval_id::debug_prints_type_and_canonical ... ok
+test approval_id::rejects_misplaced_hyphens ... ok
+test approval_id::rejects_multibyte_input_of_36_bytes ... ok
+test approval_id::rejects_nil ... ok
+test approval_id::deserialize_goes_through_parse ... ok
+test approval_id::rejects_non_hex ... ok
+test approval_id::rejects_uppercase ... ok
+test approval_id::rejects_wrong_lengths ... ok
+test approval_id::rejects_whitespace ... ok
+test approval_id::serde_round_trip ... ok
+test approval_id::valid_parse_and_display_round_trip ... ok
+test approval_id::version_and_variant_bits_are_not_enforced ... ok
+test artifact_id::all_digits_round_trip ... ok
+test artifact_id::deserialize_goes_through_parse ... ok
+test artifact_id::ordering_and_hash_follow_bytes ... ok
+test artifact_id::rejects_braces_and_urn ... ok
+test artifact_id::rejects_misplaced_hyphens ... ok
+test artifact_id::rejects_multibyte_input_of_36_bytes ... ok
+test artifact_id::rejects_nil ... ok
+test artifact_id::rejects_non_hex ... ok
+test artifact_id::rejects_uppercase ... ok
+test artifact_id::rejects_whitespace ... ok
+test artifact_id::rejects_wrong_lengths ... ok
+test artifact_id::serde_round_trip ... ok
+test artifact_id::debug_prints_type_and_canonical ... ok
+test artifact_id::version_and_variant_bits_are_not_enforced ... ok
+test check_id::all_digits_round_trip ... ok
+test check_id::debug_prints_type_and_canonical ... ok
+test artifact_id::valid_parse_and_display_round_trip ... ok
+test check_id::deserialize_goes_through_parse ... ok
+test check_id::ordering_and_hash_follow_bytes ... ok
+test check_id::rejects_braces_and_urn ... ok
+test check_id::rejects_misplaced_hyphens ... ok
+test check_id::rejects_multibyte_input_of_36_bytes ... ok
+test check_id::rejects_nil ... ok
+test check_id::rejects_non_hex ... ok
+test check_id::rejects_uppercase ... ok
+test check_id::rejects_whitespace ... ok
+test check_id::rejects_wrong_lengths ... ok
+test check_id::serde_round_trip ... ok
+test check_id::valid_parse_and_display_round_trip ... ok
+test check_id::version_and_variant_bits_are_not_enforced ... ok
+test chunk_id::all_digits_round_trip ... ok
+test chunk_id::debug_prints_type_and_canonical ... ok
+test chunk_id::deserialize_goes_through_parse ... ok
+test chunk_id::ordering_and_hash_follow_bytes ... ok
+test chunk_id::rejects_braces_and_urn ... ok
+test chunk_id::rejects_misplaced_hyphens ... ok
+test chunk_id::rejects_multibyte_input_of_36_bytes ... ok
+test chunk_id::rejects_nil ... ok
+test chunk_id::rejects_non_hex ... ok
+test chunk_id::rejects_uppercase ... ok
+test chunk_id::rejects_whitespace ... ok
+test chunk_id::rejects_wrong_lengths ... ok
+test chunk_id::serde_round_trip ... ok
+test chunk_id::valid_parse_and_display_round_trip ... ok
+test chunk_id::version_and_variant_bits_are_not_enforced ... ok
+test conversation_id::all_digits_round_trip ... ok
+test conversation_id::debug_prints_type_and_canonical ... ok
+test conversation_id::ordering_and_hash_follow_bytes ... ok
+test conversation_id::deserialize_goes_through_parse ... ok
+test conversation_id::rejects_braces_and_urn ... ok
+test conversation_id::rejects_misplaced_hyphens ... ok
+test conversation_id::rejects_multibyte_input_of_36_bytes ... ok
+test conversation_id::rejects_nil ... ok
+test conversation_id::rejects_non_hex ... ok
+test conversation_id::rejects_uppercase ... ok
+test conversation_id::rejects_whitespace ... ok
+test conversation_id::rejects_wrong_lengths ... ok
+test conversation_id::serde_round_trip ... ok
+test conversation_id::valid_parse_and_display_round_trip ... ok
+test conversation_id::version_and_variant_bits_are_not_enforced ... ok
+test day_of_month_limits ... ok
+test distinct_id_types_share_bytes_but_are_separate_types ... ok
+test epoch ... ok
+test event_id::all_digits_round_trip ... ok
+test event_id::debug_prints_type_and_canonical ... ok
+test event_id::deserialize_goes_through_parse ... ok
+test event_id::ordering_and_hash_follow_bytes ... ok
+test event_id::rejects_braces_and_urn ... ok
+test event_id::rejects_misplaced_hyphens ... ok
+test event_id::rejects_multibyte_input_of_36_bytes ... ok
+test event_id::rejects_nil ... ok
+test event_id::rejects_non_hex ... ok
+test event_id::rejects_uppercase ... ok
+test event_id::rejects_whitespace ... ok
+test event_id::rejects_wrong_lengths ... ok
+test event_id::serde_round_trip ... ok
+test event_id::valid_parse_and_display_round_trip ... ok
+test event_id::version_and_variant_bits_are_not_enforced ... ok
+test file_id::all_digits_round_trip ... ok
+test file_id::debug_prints_type_and_canonical ... ok
+test file_id::deserialize_goes_through_parse ... ok
+test file_id::rejects_braces_and_urn ... ok
+test file_id::rejects_misplaced_hyphens ... ok
+test file_id::rejects_multibyte_input_of_36_bytes ... ok
+test file_id::rejects_nil ... ok
+test file_id::rejects_non_hex ... ok
+test file_id::rejects_uppercase ... ok
+test file_id::rejects_whitespace ... ok
+test file_id::ordering_and_hash_follow_bytes ... ok
+test file_id::rejects_wrong_lengths ... ok
+test file_id::serde_round_trip ... ok
+test file_id::valid_parse_and_display_round_trip ... ok
+test file_id::version_and_variant_bits_are_not_enforced ... ok
+test finding_id::all_digits_round_trip ... ok
+test finding_id::debug_prints_type_and_canonical ... ok
+test finding_id::ordering_and_hash_follow_bytes ... ok
+test finding_id::rejects_braces_and_urn ... ok
+test finding_id::rejects_multibyte_input_of_36_bytes ... ok
+test finding_id::deserialize_goes_through_parse ... ok
+test finding_id::rejects_nil ... ok
+test finding_id::rejects_misplaced_hyphens ... ok
+test finding_id::rejects_non_hex ... ok
+test finding_id::rejects_uppercase ... ok
+test finding_id::rejects_whitespace ... ok
+test finding_id::rejects_wrong_lengths ... ok
+test finding_id::serde_round_trip ... ok
+test finding_id::valid_parse_and_display_round_trip ... ok
+test finding_id::version_and_variant_bits_are_not_enforced ... ok
+test fraction_normalisation ... ok
+test from_unix_range_edges ... ok
+test fraction_digit_limits ... ok
+test id_deserialize_error_does_not_echo_input ... ok
+test id_error_display_never_contains_input ... ok
+test known_instants ... ok
+test maximum_instant ... ok
+test message_id::all_digits_round_trip ... ok
+test leap_day_valid_and_invalid ... ok
+test message_id::deserialize_goes_through_parse ... ok
+test message_id::ordering_and_hash_follow_bytes ... ok
+test message_id::debug_prints_type_and_canonical ... ok
+test message_id::rejects_braces_and_urn ... ok
+test message_id::rejects_misplaced_hyphens ... ok
+test message_id::rejects_multibyte_input_of_36_bytes ... ok
+test message_id::rejects_nil ... ok
+test message_id::rejects_non_hex ... ok
+test message_id::rejects_whitespace ... ok
+test message_id::rejects_wrong_lengths ... ok
+test message_id::valid_parse_and_display_round_trip ... ok
+test message_id::rejects_uppercase ... ok
+test message_id::version_and_variant_bits_are_not_enforced ... ok
+test message_id::serde_round_trip ... ok
+test minimum_instant ... ok
+test now_is_within_supported_range_and_close_to_system_clock ... ok
+test ordering ... ok
+test rejects_bad_shape ... ok
+test parse_then_format_is_identity_on_canonical_strings ... ok
+test rejects_offsets_and_wrong_case ... ok
+test rejects_whitespace ... ok
+test rejects_out_of_range_fields ... ok
+test repo_id::all_digits_round_trip ... ok
+test repo_id::debug_prints_type_and_canonical ... ok
+test repo_id::rejects_braces_and_urn ... ok
+test repo_id::ordering_and_hash_follow_bytes ... ok
+test repo_id::rejects_misplaced_hyphens ... ok
+test repo_id::deserialize_goes_through_parse ... ok
+test repo_id::rejects_multibyte_input_of_36_bytes ... ok
+test repo_id::rejects_non_hex ... ok
+test repo_id::rejects_uppercase ... ok
+test repo_id::rejects_wrong_lengths ... ok
+test repo_id::rejects_nil ... ok
+test repo_id::rejects_whitespace ... ok
+test repo_id::valid_parse_and_display_round_trip ... ok
+test repo_id::serde_round_trip ... ok
+test repo_id::version_and_variant_bits_are_not_enforced ... ok
+test report_id::debug_prints_type_and_canonical ... ok
+test report_id::ordering_and_hash_follow_bytes ... ok
+test report_id::all_digits_round_trip ... ok
+test report_id::rejects_braces_and_urn ... ok
+test report_id::deserialize_goes_through_parse ... ok
+test report_id::rejects_misplaced_hyphens ... ok
+test report_id::rejects_nil ... ok
+test report_id::rejects_uppercase ... ok
+test report_id::rejects_multibyte_input_of_36_bytes ... ok
+test report_id::rejects_non_hex ... ok
+test report_id::rejects_whitespace ... ok
+test report_id::rejects_wrong_lengths ... ok
+test report_id::serde_round_trip ... ok
+test report_id::version_and_variant_bits_are_not_enforced ... ok
+test report_id::valid_parse_and_display_round_trip ... ok
+test request_id::all_digits_round_trip ... ok
+test request_id::debug_prints_type_and_canonical ... ok
+test request_id::ordering_and_hash_follow_bytes ... ok
+test request_id::deserialize_goes_through_parse ... ok
+test request_id::rejects_misplaced_hyphens ... ok
+test request_id::rejects_braces_and_urn ... ok
+test request_id::rejects_multibyte_input_of_36_bytes ... ok
+test request_id::rejects_nil ... ok
+test request_id::rejects_uppercase ... ok
+test request_id::rejects_whitespace ... ok
+test request_id::rejects_wrong_lengths ... ok
+test request_id::serde_round_trip ... ok
+test request_id::rejects_non_hex ... ok
+test request_id::valid_parse_and_display_round_trip ... ok
+test request_id::version_and_variant_bits_are_not_enforced ... ok
+test run_id::all_digits_round_trip ... ok
+test run_id::deserialize_goes_through_parse ... ok
+test run_id::ordering_and_hash_follow_bytes ... ok
+test run_id::rejects_braces_and_urn ... ok
+test run_id::rejects_misplaced_hyphens ... ok
+test run_id::debug_prints_type_and_canonical ... ok
+test run_id::rejects_multibyte_input_of_36_bytes ... ok
+test run_id::rejects_nil ... ok
+test run_id::rejects_non_hex ... ok
+test run_id::rejects_whitespace ... ok
+test run_id::rejects_wrong_lengths ... ok
+test run_id::serde_round_trip ... ok
+test run_id::valid_parse_and_display_round_trip ... ok
+test run_id::version_and_variant_bits_are_not_enforced ... ok
+test run_id::rejects_uppercase ... ok
+test serde_round_trip ... ok
+test source_id::all_digits_round_trip ... ok
+test source_id::debug_prints_type_and_canonical ... ok
+test source_id::deserialize_goes_through_parse ... ok
+test source_id::rejects_misplaced_hyphens ... ok
+test source_id::rejects_multibyte_input_of_36_bytes ... ok
+test source_id::ordering_and_hash_follow_bytes ... ok
+test source_id::rejects_nil ... ok
+test source_id::rejects_non_hex ... ok
+test source_id::rejects_uppercase ... ok
+test source_id::rejects_wrong_lengths ... ok
+test source_id::rejects_whitespace ... ok
+test source_id::serde_round_trip ... ok
+test source_id::valid_parse_and_display_round_trip ... ok
+test source_id::version_and_variant_bits_are_not_enforced ... ok
+test suppression_id::all_digits_round_trip ... ok
+test suppression_id::debug_prints_type_and_canonical ... ok
+test suppression_id::deserialize_goes_through_parse ... ok
+test suppression_id::ordering_and_hash_follow_bytes ... ok
+test suppression_id::rejects_braces_and_urn ... ok
+test suppression_id::rejects_misplaced_hyphens ... ok
+test suppression_id::rejects_multibyte_input_of_36_bytes ... ok
+test source_id::rejects_braces_and_urn ... ok
+test suppression_id::rejects_nil ... ok
+test suppression_id::rejects_non_hex ... ok
+test suppression_id::rejects_uppercase ... ok
+test suppression_id::rejects_wrong_lengths ... ok
+test suppression_id::rejects_whitespace ... ok
+test suppression_id::serde_round_trip ... ok
+test suppression_id::valid_parse_and_display_round_trip ... ok
+test suppression_id::version_and_variant_bits_are_not_enforced ... ok
+test task_id::all_digits_round_trip ... ok
+test task_id::deserialize_goes_through_parse ... ok
+test task_id::ordering_and_hash_follow_bytes ... ok
+test task_id::debug_prints_type_and_canonical ... ok
+test task_id::rejects_braces_and_urn ... ok
+test task_id::rejects_misplaced_hyphens ... ok
+test task_id::rejects_multibyte_input_of_36_bytes ... ok
+test task_id::rejects_nil ... ok
+test task_id::rejects_non_hex ... ok
+test task_id::rejects_uppercase ... ok
+test task_id::rejects_wrong_lengths ... ok
+test task_id::serde_round_trip ... ok
+test task_id::rejects_whitespace ... ok
+test task_id::valid_parse_and_display_round_trip ... ok
+test task_id::version_and_variant_bits_are_not_enforced ... ok
+test workflow_id::all_digits_round_trip ... ok
+test time_error_display_never_contains_input ... ok
+test workflow_id::debug_prints_type_and_canonical ... ok
+test workflow_id::ordering_and_hash_follow_bytes ... ok
+test workflow_id::rejects_braces_and_urn ... ok
+test workflow_id::deserialize_goes_through_parse ... ok
+test workflow_id::rejects_misplaced_hyphens ... ok
+test workflow_id::rejects_multibyte_input_of_36_bytes ... ok
+test workflow_id::rejects_nil ... ok
+test workflow_id::rejects_non_hex ... ok
+test workflow_id::rejects_uppercase ... ok
+test workflow_id::rejects_wrong_lengths ... ok
+test workflow_id::rejects_whitespace ... ok
+test workflow_id::serde_round_trip ... ok
+test workflow_id::valid_parse_and_display_round_trip ... ok
+test workflow_id::version_and_variant_bits_are_not_enforced ... ok
+test seeded_from_unix_round_trips ... ok
+test every_day_boundary_round_trips_across_all_years ... ok
+
+test result: ok. 279 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/states.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/states-74c208cb7dc11fca)
+
+running 23 tests
+test approval_state_full_pair_table ... ok
+test approval_state_terminals ... ok
+test check_outcome_terminals ... ok
+test check_outcome_full_pair_table ... ok
+test owner_decided_transitions_are_present ... ok
+test capability_is_deferred_exact_set ... ok
+test capability_as_str_literals ... ok
+test run_state_full_pair_table ... ok
+test run_state_terminals ... ok
+test schema_approval_status_matches_approval_state ... ok
+test schema_coverage_matches ... ok
+test schema_assessment_matches ... ok
+test schema_capability_matches ... ok
+test schema_category_matches ... ok
+test self_transitions_are_rejected ... ok
+test state_serde_round_trip_and_unknown_strings ... ok
+test schema_severity_matches ... ok
+test schema_outcome_matches_check_outcome ... ok
+test schema_execution_matches_run_state ... ok
+test transition_error_carries_from_and_to_and_displays_both ... ok
+test transition_ok_returns_target ... ok
+test vocab_expected_counts ... ok
+test vocab_serde_round_trip_and_unknown_strings ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/text.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/text-3da0d62d717eacfb)
+
+running 19 tests
+test escape_form_is_uppercase_hex_four_digits ... ok
+test accessors_and_display ... ok
+test deserialize_rejects_non_string ... ok
+test idempotent_over_hand_corpus ... ok
+test every_escape_set_code_point_is_escaped ... ok
+test neighbours_are_not_escaped ... ok
+test hangul_cjk_emoji_unchanged ... ok
+test redacted_to_sanitised_and_accessors ... ok
+test redactor_sees_raw_unescaped_text_and_output_is_escaped ... ok
+test redactor_injected_controls_are_escaped ... ok
+test sanitised_deserialize_resanitises ... ok
+test sanitised_serde_round_trip_is_exact ... ok
+test seeded_fake_marker_never_appears ... ok
+test tab_and_newline_survive ... ok
+test serialises_as_plain_json_string ... ok
+test zwj_emoji_sequence_is_escaped_per_frozen_set ... ok
+test terminal_sequences_contain_no_raw_control ... ok
+test idempotent_over_seeded_generator ... ok
+test every_unicode_scalar_value_matches_frozen_escape_set ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/versions.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/versions-19a9508222b75974)
+
+running 5 tests
+test app_contract_version_is_the_same_value_through_both_paths ... ok
+test version_constants_have_the_expected_literal_values ... ok
+test store_schema_version_matches_every_schema_version_const_in_the_wrapper_request_schema ... ok
+test store_schema_version_matches_every_schema_version_const_in_the_store_schema ... ok
+test wrapper_protocol_version_matches_every_protocol_version_const_in_both_schemas ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/persistence-86b3fdd64b12347d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/repositories-e2095ef8e02c6359)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/retrieval-d62c969caef74b2c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/scanning-3fd93630be63d62b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p01-lead-47835b267e4c/debug/deps/terminal_ui-821c553aea8c71a0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests application
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests domain
+
+running 32 tests
+test crates/domain/src/contract.rs - contract::AppCommand (line 429) ... ok
+test crates/domain/src/contract.rs - contract::AppCommand (line 413) ... ok
+test crates/domain/src/contract.rs - contract::AppCommand (line 397) ... ok
+test crates/domain/src/contract.rs - contract::AppEvent (line 759) ... ok
+test crates/domain/src/contract.rs - contract::AppEvent (line 771) ... ok
+test crates/domain/src/contract.rs - contract::AppEvent (line 797) ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 100) ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 52) ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 68) ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 118) ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 84) ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 186) ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 170) ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 218) ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 202) ... ok
+test crates/domain/src/ids.rs - ids (line 20) ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 236) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 126) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 102) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 150) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 174) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 198) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 248) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 224) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 296) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 272) ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 22) ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 322) ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 50) ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 66) ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 36) ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 80) ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 32 tests
+test crates/domain/src/contract.rs - contract::AppCommand (line 436) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::AppCommand (line 421) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::AppEvent (line 765) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::AppEvent (line 784) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::AppCommand (line 405) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::AppEvent (line 810) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 109) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 127) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 76) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 60) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::CredentialSecret (line 92) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 178) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 194) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 210) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 227) - compile fail ... ok
+test crates/domain/src/contract.rs - contract::RawInput (line 245) - compile fail ... ok
+test crates/domain/src/ids.rs - ids (line 10) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 114) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 162) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 138) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 211) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 186) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 236) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 260) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 284) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 309) - compile fail ... ok
+test crates/domain/src/text.rs - text::RedactedText (line 335) - compile fail ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 29) - compile fail ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 43) - compile fail ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 73) - compile fail ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 58) - compile fail ... ok
+test crates/domain/src/text.rs - text::SanitisedText (line 88) - compile fail ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+all doctests ran in 0.48s; merged doctests compilation took 0.19s
+   Doc-tests persistence
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests repositories
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests retrieval
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests scanning
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests terminal_ui
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

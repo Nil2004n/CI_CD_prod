@@ -198,7 +198,7 @@ Status: **pilot** = command/event is implemented in the pilot. **reserved (defer
 | ChatRetrievalCompleted | pilot | must-deliver; selected source IDs only (replaces ChatRetrievalStarted) |
 | ChatResponseStarted, ChatResponseFinished | pilot | must-deliver; finish carries completed/cancelled/incomplete (replaces ChatCompleted) |
 | ChatResponseChunk | pilot | coalescible by merging text, never dropping it (replaces ChatTokenReceived) |
-| ChatFailed | pilot | must-deliver; typed reason (invalid key, credits, rate limit, no compliant route, timeout, truncation) |
+| ChatFailed | pilot | must-deliver; typed reason (invalid key, credits, rate limit, no compliant route, timeout, truncation, provider outage — the last added 2026-10-26 by owner acceptance at P01-T09, from UI Schema §15; app contract 1.0 unchanged as no implementation had been released) |
 | StorageFailure, OperationFailed | pilot | must-deliver |
 | SuppressionChanged, RunComparisonReady | reserved (deferred) | — |
 

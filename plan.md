@@ -242,6 +242,8 @@ Detail, interfaces, parallel waves and approvals A1–A7: `planning/P01-executio
 | P01-T09 | Integration; fmt/clippy `-D warnings`/test/build; cargo-audit if installed; reviewer + security-reviewer; evidence | Lead | None | 1–1.5 |
 | P01-T10 | P01 report, freeze update, status/handover; stop for acceptance | Lead | None | 0.5–1 |
 
+**Progress (2026-10-26):** T01–T10 done; P01 lead-verified, awaiting owner acceptance (`evidence/P01/P01-report.md`). Debug cycles P01-D01–D05 (§9).
+
 P01 total about 10–15 h hands-on, against the §7.1 estimate of 6–10 h. The difference is the request, dependency and cargo-audit work. Confidence is low.
 
 ## 6. Pilot acceptance anchors
@@ -320,3 +322,4 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 | P01-D02 | Review findings on `text.rs`: no static constructor for app-authored `RedactedText`; deserialise doctest control could pass vacuously | Completed 2026-10-26: `pub(crate) redact_static` + serde_json in control (`3b1547e`); integrated run 5 PASS |
 | P01-D03 | T08 hand-back claimed 33 tests in `tests/contract.rs`; 22 exist and run | Completed 2026-10-26: report correction only (W1′); no code change |
 | P01-D04 | Final-review guards: RedactedText/SanitisedText construction routes, weak doctest controls, unguarded traits, untested versions, over-escaping sampled, private doc link | Completed 2026-10-26: D04a (`e5d7ba5`, `9c47fcd`) + D04b (`6694b34`), fresh `sonnet-implementer` instances in W2/W1′ scopes; integrated run 415/0/0, 32 compile_fail |
+| P01-D05 | Four test-file `#[allow]` without `reason` after owner-approved lint tightening (`deny` + `allow_attributes_without_reason`) | Completed 2026-10-26: reasons added (`38851f3`); integrated `--final` run 415/0/0, 32 compile_fail |
