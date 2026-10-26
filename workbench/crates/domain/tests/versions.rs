@@ -3,8 +3,12 @@
 //!
 //! The schema files are read with `include_str!` at compile time; nothing is fetched or executed.
 
-// clippy.toml's allow-*-in-tests covers only `#[test]` functions, not the shared helpers below.
-#![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
+#![allow(
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unwrap_used,
+    reason = "shared helpers outside #[test] fns are not covered by clippy.toml allow-*-in-tests"
+)]
 
 use domain::versions::{
     APP_CONTRACT_VERSION, STORE_SCHEMA_VERSION, UI_SCHEMA_VERSION, WRAPPER_PROTOCOL_VERSION,

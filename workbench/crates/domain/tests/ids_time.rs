@@ -273,7 +273,10 @@ fn distinct_id_types_share_bytes_but_are_separate_types() {
 // ---------------------------------------------------------------------------------------------
 
 /// Test helper (not a `#[test]` fn, so the clippy.toml test allowance does not apply to it).
-#[allow(clippy::unwrap_used)]
+#[allow(
+    clippy::unwrap_used,
+    reason = "test helper outside a #[test] fn is not covered by the clippy.toml test allowance"
+)]
 fn ts(s: &str) -> UtcTimestamp {
     UtcTimestamp::parse_rfc3339(s).unwrap()
 }

@@ -4,8 +4,12 @@
 //! The expected transition tables below are written out literally and are not derived from the
 //! implementation. The schema cross-check loads `schemas/workbench-store-v1.3.schema.json`.
 
-// clippy.toml's allow-*-in-tests covers only `#[test]` functions, not the shared helpers below.
-#![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
+#![allow(
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unwrap_used,
+    reason = "shared helpers outside #[test] fns are not covered by clippy.toml allow-*-in-tests"
+)]
 
 use domain::states::{ApprovalState, CheckOutcome, RunState, TransitionError};
 use domain::vocab::{Assessment, Capability, Category, Coverage, Severity};
