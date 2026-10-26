@@ -94,7 +94,11 @@ pub enum ApprovalState {
 }
 
 macro_rules! state_machine_api {
-    ($name:ident, $task:literal) => {
+    (
+        $name:ident,
+        terminal: [$($terminal:ident),+ $(,)?],
+        allowed: { $($from:ident => [$($to:ident),+ $(,)?]),+ $(,)? }
+    ) => {
         impl $name {
             /// Moves to `next` if the transition is allowed.
             pub fn transition(self, next: Self) -> Result<Self, TransitionError<Self>> {
@@ -109,15 +113,19 @@ macro_rules! state_machine_api {
             }
 
             /// Whether `self -> next` is an allowed transition.
-            #[allow(clippy::todo, unused_variables)]
+            ///
+            /// Anything not listed in the table is rejected, including every
+            /// self-transition.
             pub fn can_transition(self, next: Self) -> bool {
-                todo!($task)
+                match self {
+                    $(Self::$from => matches!(next, $(Self::$to)|+),)+
+                    $(Self::$terminal)|+ => false,
+                }
             }
 
             /// Whether no transition leaves this state.
-            #[allow(clippy::todo, unused_variables)]
             pub fn is_terminal(self) -> bool {
-                todo!($task)
+                matches!(self, $(Self::$terminal)|+)
             }
         }
     };
@@ -165,6 +173,31 @@ impl ApprovalState {
     ];
 }
 
-state_machine_api!(RunState, "P01-T07");
-state_machine_api!(CheckOutcome, "P01-T07");
-state_machine_api!(ApprovalState, "P01-T07");
+state_machine_api!(
+    RunState,
+    terminal: [Completed, Partial, Failed, Cancelled, Interrupted],
+    allowed: {
+        Queued => [AwaitingApproval, Running, Cancelled, Interrupted],
+        AwaitingApproval => [Running, Cancelling, Interrupted],
+        Running => [AwaitingApproval, Cancelling, Completed, Partial, Failed, Interrupted],
+        Cancelling => [Cancelled, Interrupted],
+    }
+);
+
+state_machine_api!(
+    CheckOutcome,
+    terminal: [Passed, Findings, Failed, Unsupported, Skipped, Incomplete, Cancelled],
+    allowed: {
+        Pending => [Running, Skipped, Unsupported, Cancelled, Incomplete],
+        Running => [Passed, Findings, Failed, Unsupported, Skipped, Incomplete, Cancelled],
+    }
+);
+
+state_machine_api!(
+    ApprovalState,
+    terminal: [Denied, Cancelled, Revoked, Expired],
+    allowed: {
+        Pending => [Approved, Denied, Cancelled],
+        Approved => [Revoked, Expired],
+    }
+);

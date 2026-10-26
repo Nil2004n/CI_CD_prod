@@ -49,15 +49,28 @@ impl Capability {
     ];
 
     /// The schema string value.
-    #[allow(clippy::todo, unused_variables)]
     pub fn as_str(self) -> &'static str {
-        todo!("P01-T07")
+        match self {
+            Self::GitAcquire => "git_acquire",
+            Self::GitUpdate => "git_update",
+            Self::ExternalReference => "external_reference",
+            Self::SchemaFetch => "schema_fetch",
+            Self::VulnerabilityLookup => "vulnerability_lookup",
+            Self::DocumentationFetch => "documentation_fetch",
+            Self::ModelTransmission => "model_transmission",
+            Self::EmbeddingTransmission => "embedding_transmission",
+            Self::LocalRender => "local_render",
+            Self::NonMutatingVerification => "non_mutating_verification",
+            Self::AppStorage => "app_storage",
+        }
     }
 
     /// Whether pilot semantic validation rejects this capability as deferred (Data §18.6a).
-    #[allow(clippy::todo, unused_variables)]
     pub fn is_deferred(self) -> bool {
-        todo!("P01-T07")
+        matches!(
+            self,
+            Self::DocumentationFetch | Self::EmbeddingTransmission | Self::NonMutatingVerification
+        )
     }
 }
 
@@ -100,9 +113,18 @@ impl Category {
     ];
 
     /// The schema string value.
-    #[allow(clippy::todo, unused_variables)]
     pub fn as_str(self) -> &'static str {
-        todo!("P01-T07")
+        match self {
+            Self::Syntax => "syntax",
+            Self::Schema => "schema",
+            Self::Secrets => "secrets",
+            Self::Misconfiguration => "misconfiguration",
+            Self::Vulnerability => "vulnerability",
+            Self::ExternalVerification => "external_verification",
+            Self::Style => "style",
+            Self::WorkflowValidation => "workflow_validation",
+            Self::Rendering => "rendering",
+        }
     }
 }
 
@@ -136,9 +158,15 @@ impl Severity {
     ];
 
     /// The schema string value.
-    #[allow(clippy::todo, unused_variables)]
     pub fn as_str(self) -> &'static str {
-        todo!("P01-T07")
+        match self {
+            Self::Critical => "critical",
+            Self::High => "high",
+            Self::Medium => "medium",
+            Self::Low => "low",
+            Self::Info => "info",
+            Self::Unknown => "unknown",
+        }
     }
 }
 
@@ -159,9 +187,12 @@ impl Assessment {
     pub const ALL: [Self; 3] = [Self::Findings, Self::NoFindings, Self::Unknown];
 
     /// The schema string value.
-    #[allow(clippy::todo, unused_variables)]
     pub fn as_str(self) -> &'static str {
-        todo!("P01-T07")
+        match self {
+            Self::Findings => "findings",
+            Self::NoFindings => "no_findings",
+            Self::Unknown => "unknown",
+        }
     }
 }
 
@@ -182,8 +213,11 @@ impl Coverage {
     pub const ALL: [Self; 3] = [Self::Complete, Self::Partial, Self::None];
 
     /// The schema string value.
-    #[allow(clippy::todo, unused_variables)]
     pub fn as_str(self) -> &'static str {
-        todo!("P01-T07")
+        match self {
+            Self::Complete => "complete",
+            Self::Partial => "partial",
+            Self::None => "none",
+        }
     }
 }
