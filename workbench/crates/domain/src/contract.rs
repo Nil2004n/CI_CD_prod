@@ -44,6 +44,40 @@ pub enum DeliveryClass {
 /// The BYOK key as typed by the user. No serde, no `Clone`; `Debug` never shows the value; the buffer
 /// is overwritten on drop as a best effort only (earlier reallocations are not covered; not a
 /// secure-erase guarantee — KEY-01 hardening is P03).
+///
+/// # Compile-time guards
+///
+/// Positive control for the next case (compiles) - `CredentialSecret` is not `Clone`:
+///
+/// ```
+/// use domain::contract::CredentialSecret;
+/// let secret = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// let _ = secret.expose();
+/// ```
+///
+/// Compile-fail case: `CredentialSecret` is not `Clone` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::CredentialSecret;
+/// let secret = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// let _ = Clone::clone(&secret);
+/// ```
+///
+/// Positive control for the next case (compiles) - `CredentialSecret` is not `Serialize`:
+///
+/// ```
+/// use domain::contract::CredentialSecret;
+/// let secret = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// let _ = serde_json::to_string(secret.expose());
+/// ```
+///
+/// Compile-fail case: `CredentialSecret` is not `Serialize` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::CredentialSecret;
+/// let secret = CredentialSecret::new(String::from("FAKE-SECRET-0000"));
+/// let _ = serde_json::to_string(&secret);
+/// ```
 pub struct CredentialSecret(String);
 
 impl CredentialSecret {
@@ -76,6 +110,40 @@ impl Drop for CredentialSecret {
 
 /// Raw text typed by the user (URL, names, chat message). Validated, sanitised or redacted by the
 /// subsystem that consumes it; never logged: `Debug` shows only the length. No serde, no `Display`.
+///
+/// # Compile-time guards
+///
+/// Positive control for the next case (compiles) - `RawInput` is not `Display`:
+///
+/// ```
+/// use domain::contract::RawInput;
+/// let raw = RawInput::new(String::from("x"));
+/// let _ = format!("{}", raw.as_str());
+/// ```
+///
+/// Compile-fail case: `RawInput` is not `Display` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::RawInput;
+/// let raw = RawInput::new(String::from("x"));
+/// let _ = format!("{}", raw);
+/// ```
+///
+/// Positive control for the next case (compiles) - `RawInput` is not `Serialize`:
+///
+/// ```
+/// use domain::contract::RawInput;
+/// let raw = RawInput::new(String::from("x"));
+/// let _ = serde_json::to_string(raw.as_str());
+/// ```
+///
+/// Compile-fail case: `RawInput` is not `Serialize` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::RawInput;
+/// let raw = RawInput::new(String::from("x"));
+/// let _ = serde_json::to_string(&raw);
+/// ```
 pub struct RawInput(String);
 
 impl RawInput {
@@ -217,6 +285,40 @@ pub enum ExportFormat {
 }
 
 /// Commands from the UI reducer to the coordinator (Architecture §6). In-process only; no serde.
+///
+/// # Compile-time guards
+///
+/// Positive control for the next case (compiles) - `AppCommand` is not `Serialize`:
+///
+/// ```
+/// use domain::contract::AppCommand;
+/// let cmd = AppCommand::InspectDependencies;
+/// let _ = format!("{cmd:?}");
+/// ```
+///
+/// Compile-fail case: `AppCommand` is not `Serialize` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::AppCommand;
+/// let cmd = AppCommand::InspectDependencies;
+/// let _ = serde_json::to_string(&cmd);
+/// ```
+///
+/// Positive control for the next case (compiles) - `AppCommand` is not `Clone`:
+///
+/// ```
+/// use domain::contract::AppCommand;
+/// let cmd = AppCommand::InspectDependencies;
+/// let _ = &cmd;
+/// ```
+///
+/// Compile-fail case: `AppCommand` is not `Clone` (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::AppCommand;
+/// let cmd = AppCommand::InspectDependencies;
+/// let _ = Clone::clone(&cmd);
+/// ```
 #[derive(Debug)]
 pub enum AppCommand {
     /// Validate a URL, register it and request acquisition approval (REP-01).
@@ -531,6 +633,46 @@ pub enum FailureCode {
 }
 
 /// Events from the coordinator to the UI and activity log (Architecture §6).
+///
+/// # Compile-time guards
+///
+/// Positive control for the next case (compiles) - `AppEvent` is not `Deserialize`:
+///
+/// ```
+/// let _ = serde_json::from_str::<serde_json::Value>("{}");
+/// ```
+///
+/// Compile-fail case: `AppEvent` is not `Deserialize` (does not compile):
+///
+/// ```compile_fail
+/// let _ = serde_json::from_str::<domain::contract::AppEvent>("{}");
+/// ```
+///
+/// Positive control for the next case (compiles) - a `String` is not `RedactedText` in an event field:
+///
+/// ```
+/// use domain::contract::AppEvent;
+/// use domain::text::{redact, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = AppEvent::StorageFailure { detail: redact("x", &Id) };
+/// ```
+///
+/// Compile-fail case: a `String` is not `RedactedText` in an event field (does not compile):
+///
+/// ```compile_fail
+/// use domain::contract::AppEvent;
+/// use domain::text::{redact, Redactor};
+/// use std::borrow::Cow;
+/// struct Id;
+/// impl Redactor for Id {
+///     fn redact<'a>(&self, raw: &'a str) -> Cow<'a, str> { Cow::Borrowed(raw) }
+/// }
+/// let _ = AppEvent::StorageFailure { detail: String::from("x") };
+/// ```
 #[derive(Clone, PartialEq, Debug, Serialize)]
 #[serde(tag = "event_type")]
 pub enum AppEvent {
@@ -720,33 +862,147 @@ pub enum AppEvent {
 }
 
 impl AppCommand {
-    /// Pilot or reserved (Architecture §6).
-    #[allow(clippy::todo)]
+    /// Pilot or reserved (Architecture §6). Exhaustive: a new variant fails to compile until classified.
     pub fn status(&self) -> ContractStatus {
-        todo!("P01-T08")
+        match self {
+            Self::AddRepository { .. }
+            | Self::RefreshRepository { .. }
+            | Self::RemoveRepository { .. }
+            | Self::DiscoverFiles { .. }
+            | Self::UpdateSelection { .. }
+            | Self::ReviewScanPlan { .. }
+            | Self::StartScan { .. }
+            | Self::CancelRun { .. }
+            | Self::SaveWorkflow { .. }
+            | Self::DeleteWorkflow { .. }
+            | Self::SetWorkflowEnabled { .. }
+            | Self::RunWorkflow { .. }
+            | Self::ResolveApproval { .. }
+            | Self::RevokeApproval { .. }
+            | Self::ConfigureCredential { .. }
+            | Self::ConfigureProvider { .. }
+            | Self::SetChatContext { .. }
+            | Self::SendChatMessage { .. }
+            | Self::CancelChatResponse { .. }
+            | Self::ExportReport { .. }
+            | Self::RegenerateExport { .. }
+            | Self::InspectDependencies
+            | Self::RequestShutdown => ContractStatus::Pilot,
+            Self::SuppressFinding
+            | Self::UpdateSuppression
+            | Self::CompareRuns
+            | Self::GenerateReportNarrative
+            | Self::PersistConversation
+            | Self::StartLiveVerification => ContractStatus::Reserved,
+        }
     }
 }
 
 impl AppEvent {
-    /// Pilot or reserved (Architecture §6).
-    #[allow(clippy::todo)]
+    /// Pilot or reserved (Architecture §6). Exhaustive: a new variant fails to compile until classified.
     pub fn status(&self) -> ContractStatus {
-        todo!("P01-T08")
+        match self {
+            Self::RepositoryRegistered { .. }
+            | Self::RepositoryRemoved { .. }
+            | Self::RepositoryStatusChanged { .. }
+            | Self::InventoryUpdated { .. }
+            | Self::SelectionChanged { .. }
+            | Self::WorkflowSaved { .. }
+            | Self::WorkflowDeleted { .. }
+            | Self::WorkflowStateChanged { .. }
+            | Self::TriggerFired { .. }
+            | Self::TriggerSkipped { .. }
+            | Self::RunPlanned { .. }
+            | Self::RunStarted { .. }
+            | Self::RunStateChanged { .. }
+            | Self::TaskStarted { .. }
+            | Self::CheckCompleted { .. }
+            | Self::TaskProgress { .. }
+            | Self::FindingObserved { .. }
+            | Self::RunFinished { .. }
+            | Self::ApprovalRequested { .. }
+            | Self::ApprovalResolved { .. }
+            | Self::ApprovalRevoked { .. }
+            | Self::ReportWritten { .. }
+            | Self::ExportStatusChanged { .. }
+            | Self::DependencyStatusChanged { .. }
+            | Self::CredentialStatusChanged { .. }
+            | Self::ChatRetrievalCompleted { .. }
+            | Self::ChatResponseStarted { .. }
+            | Self::ChatResponseFinished { .. }
+            | Self::ChatResponseChunk { .. }
+            | Self::ChatFailed { .. }
+            | Self::StorageFailure { .. }
+            | Self::OperationFailed { .. } => ContractStatus::Pilot,
+            Self::SuppressionChanged | Self::RunComparisonReady => ContractStatus::Reserved,
+        }
     }
 
-    /// Delivery rule (Architecture §6).
-    #[allow(clippy::todo)]
+    /// Delivery rule (Architecture §6). Exhaustive: a new variant fails to compile until classified.
+    ///
+    /// `ChatResponseChunk` is coalescible by merging its text, never by dropping it.
     pub fn delivery(&self) -> DeliveryClass {
-        todo!("P01-T08")
+        match self {
+            Self::SelectionChanged { .. } => DeliveryClass::LatestValue,
+            Self::TaskProgress { .. } | Self::ChatResponseChunk { .. } => {
+                DeliveryClass::Coalescible
+            }
+            Self::RepositoryRegistered { .. }
+            | Self::RepositoryRemoved { .. }
+            | Self::RepositoryStatusChanged { .. }
+            | Self::InventoryUpdated { .. }
+            | Self::WorkflowSaved { .. }
+            | Self::WorkflowDeleted { .. }
+            | Self::WorkflowStateChanged { .. }
+            | Self::TriggerFired { .. }
+            | Self::TriggerSkipped { .. }
+            | Self::RunPlanned { .. }
+            | Self::RunStarted { .. }
+            | Self::RunStateChanged { .. }
+            | Self::TaskStarted { .. }
+            | Self::CheckCompleted { .. }
+            | Self::FindingObserved { .. }
+            | Self::RunFinished { .. }
+            | Self::ApprovalRequested { .. }
+            | Self::ApprovalResolved { .. }
+            | Self::ApprovalRevoked { .. }
+            | Self::ReportWritten { .. }
+            | Self::ExportStatusChanged { .. }
+            | Self::DependencyStatusChanged { .. }
+            | Self::CredentialStatusChanged { .. }
+            | Self::ChatRetrievalCompleted { .. }
+            | Self::ChatResponseStarted { .. }
+            | Self::ChatResponseFinished { .. }
+            | Self::ChatFailed { .. }
+            | Self::StorageFailure { .. }
+            | Self::OperationFailed { .. } => DeliveryClass::MustDeliver,
+            // Reserved events are never emitted in the pilot; Architecture §6 gives them no delivery
+            // rule. The strictest class is chosen so that, if one is ever emitted, it cannot be dropped.
+            Self::SuppressionChanged | Self::RunComparisonReady => DeliveryClass::MustDeliver,
+        }
     }
 }
 
+/// `detail` of the `OperationFailed` returned for a reserved command: one application-authored
+/// literal, no interpolation, so no user input or command payload can reach the event.
+const DEFERRED_DETAIL: &str =
+    "command is reserved for deferred work and is not available in the pilot";
+
 /// Rejects reserved commands with `OperationFailed { code: Deferred }` (Architecture §6).
+///
+/// The decision is derived from [`AppCommand::status`] (single source of truth). The returned
+/// `detail` is the fixed literal [`DEFERRED_DETAIL`]; the command's name and payload are never
+/// formatted into it.
 #[allow(
     clippy::result_large_err,
     reason = "signature frozen by planning/P01-T01-request.md §5.5; called once per dispatched command"
 )]
-#[allow(clippy::todo, unused_variables)]
 pub fn dispatch_guard(cmd: &AppCommand) -> Result<(), AppEvent> {
-    todo!("P01-T08")
+    match cmd.status() {
+        ContractStatus::Pilot => Ok(()),
+        ContractStatus::Reserved => Err(AppEvent::OperationFailed {
+            code: FailureCode::Deferred,
+            detail: crate::text::redact_static(DEFERRED_DETAIL),
+        }),
+    }
 }
