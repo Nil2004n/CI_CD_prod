@@ -487,9 +487,9 @@ fn golden_cases() -> Vec<(AppEvent, Value)> {
         (
             AppEvent::RunStarted {
                 run_id: run(),
-                at: at(),
+                started_at: at(),
             },
-            json!({"event_type": "RunStarted", "run_id": U_RUN, "at": "2023-11-14T22:13:20Z"}),
+            json!({"event_type": "RunStarted", "run_id": U_RUN, "started_at": "2023-11-14T22:13:20Z"}),
         ),
         (
             AppEvent::RunStateChanged {

@@ -2,7 +2,8 @@
 unchanged as the P01 record). Development only; not shipped.
 
 Usage: python3 -I -B dev/p02_check.py <mode> --slot <lead|w1|w2|w3> --out <dir> [--package <crate>] [--final] [--repo <checkout>]
-Modes: env, fmt, clippy, test, build, static, cli, all (= env fmt clippy test build cli static).
+Modes: env, fmt, clippy, test, build, static, cli, all (= env fmt clippy test build cli static);
+fmt-fix applies rustfmt in place (never part of `all`).
 `cli` runs every scripted CLI scenario (`cargo test -p cli --tests`), headless.
 
 Every Cargo command runs the 1.97.1 toolchain binaries directly, with `env -i` and the isolated
@@ -31,7 +32,8 @@ SLOTS = ("lead", "w1", "w2", "w3")
 REGISTRY_FILE = Path(__file__).resolve().parent / "p02_registry.json"
 EXPECTED_REGISTRY = {k: tuple(v) for k, v in json.loads(REGISTRY_FILE.read_text())["registry"].items()}
 MEMBERS = {"domain", "application", "repositories", "scanning", "retrieval", "persistence", "terminal-ui", "cli"}
-ALLOWED_DIRECT_DEPS = {"serde", "serde_json", "jsonschema", "sha2", "domain", "persistence", "application"}
+# libc: P02-D03 O3 (owner 2026-10-27), constants only, already in the accepted graph.
+ALLOWED_DIRECT_DEPS = {"serde", "serde_json", "jsonschema", "sha2", "libc", "domain", "persistence", "application"}
 TEST_RESULT = re.compile(r"test result: (\w+)\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out")
 
 
@@ -310,7 +312,7 @@ def static_selftest():
 
 
 # Lock file hash resolved and accepted in P02-T02 (evidence/P02/T02/record.md).
-EXPECTED_LOCK_SHA256 = "b34cb529a79905546621573fef5de55b2be29884b2028715ef67e68bf0ef1c26"
+EXPECTED_LOCK_SHA256 = "6c9d4998d89e67d3b3c6598cbc266a6bbc7943766244e724402b26deb3877545"  # P02-D03 O3: persistence -> libc edge (was b34cb529…)
 # The only `#[allow(...)]` attributes permitted in production code (file, lint) — planning/P01-T01-request.md §6.1.
 SRC_ALLOWS = {("crates/domain/src/contract.rs", "clippy::result_large_err"),
               # Temporary (P02 B0 -> B1): store_read helpers unused until the wave-1b evidence-side models.
@@ -520,7 +522,7 @@ def test_counts(log):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["env", "fmt", "clippy", "test", "build", "static", "cli", "all"])
+    ap.add_argument("mode", choices=["env", "fmt", "fmt-fix", "clippy", "test", "build", "static", "cli", "all"])
     ap.add_argument("--slot", required=True, choices=SLOTS)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--package")
@@ -554,6 +556,10 @@ def main():
             r = step_env(a.slot, out)
         elif m == "fmt":
             r = run_cargo("fmt", ["fmt", "--all", "--", "--check"], a.slot, out)
+        elif m == "fmt-fix":
+            # Applies rustfmt in place (same pinned toolchain, env -i, netns). Not part of `all`: a check
+            # run must never rewrite sources. Replaces ad-hoc `unshare … cargo fmt` invocations.
+            r = run_cargo("fmt-fix", ["fmt", "--all"], a.slot, out)
         elif m == "clippy":
             r = run_cargo("clippy", ["clippy", *scope, "--all-targets", "--frozen", "--", "-D", "warnings"], a.slot, out)
         elif m == "test":

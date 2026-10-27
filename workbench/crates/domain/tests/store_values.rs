@@ -507,8 +507,8 @@ fn the_forbidden_character_set_equals_the_text_escape_set_plus_tab_and_lf() {
             rejected += 1;
         }
     }
-    // 82 escape-set code points + TAB + LF + backslash.
-    assert_eq!(rejected, 85);
+    // 224 escape-set code points (82 P01 + 142 P02-D03 O8) + TAB + LF + backslash.
+    assert_eq!(rejected, 227);
 }
 
 #[test]

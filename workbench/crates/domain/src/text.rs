@@ -355,8 +355,10 @@ pub fn redact(raw: &str, redactor: &dyn Redactor) -> RedactedText {
     RedactedText(escape(&redactor.redact(raw)))
 }
 
-/// Whether `c` belongs to the frozen escape set (`planning/P01-T01-request.md` §5.3).
-fn needs_escape(c: char) -> bool {
+/// Whether `c` belongs to the frozen escape set (`planning/P01-T01-request.md` §5.3, extended by P02-D03
+/// O8 with invisible fillers, invisible operators, interlinear annotation and tag characters). Shared with
+/// the store value newtypes so the two sets cannot diverge.
+pub(crate) fn needs_escape(c: char) -> bool {
     matches!(
         c,
         '\u{0000}'..='\u{0008}'
@@ -373,6 +375,17 @@ fn needs_escape(c: char) -> bool {
             | '\u{FEFF}'
             | '\u{2028}'
             | '\u{2029}'
+            // P02-D03 O8: invisible or default-ignorable code points that can hide or disguise text.
+            | '\u{00AD}'
+            | '\u{034F}'
+            | '\u{115F}'
+            | '\u{1160}'
+            | '\u{180E}'
+            | '\u{2061}'..='\u{2064}'
+            | '\u{3164}'
+            | '\u{FFA0}'
+            | '\u{FFF9}'..='\u{FFFB}'
+            | '\u{E0000}'..='\u{E007F}'
     )
 }
 

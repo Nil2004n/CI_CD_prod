@@ -25,6 +25,9 @@ serde = { version = "=1.0.229", default-features = false, features = ["std", "de
 serde_json = { version = "=1.0.154" }
 jsonschema = { version = "=0.60.1", default-features = false }
 sha2 = { version = "=0.11.1", default-features = false }
+# P02-D03 O3 (owner 2026-10-27): open-flag constants only (O_NOFOLLOW, O_NONBLOCK, O_DIRECTORY); already in the
+# accepted graph, no unsafe call.
+libc = { version = "=0.2.191", default-features = false }
 domain = { path = "crates/domain" }
 persistence = { path = "crates/persistence" }
 application = { path = "crates/application" }

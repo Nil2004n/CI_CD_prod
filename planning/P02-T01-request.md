@@ -249,6 +249,20 @@ pub fn to_store_event(env: &EventEnvelope) -> Option<domain::store::log::Event>;
 - Arguments are parsed with std only.
 - `main` is `fn main() -> ExitCode { cli::run(std::env::args_os(), stdin, stdout, stderr) }`, so `run` is testable in-process. The scenario tests run the built binary through `env!("CARGO_BIN_EXE_pwt-workbench-cli")` with temporary data dirs.
 
+### 5.10 P02-D03 amendments (owner 2026-10-27; record `evidence/debug/P02-D03/record.md`)
+These rows override §5.2/§5.5 where they differ. Packets: `planning/P02-packets/D03-W1.md`, `D03-W3.md`.
+- **Common rule (O8):** the `domain::text` escape set adds U+00AD, U+034F, U+115F, U+1160, U+180E, U+2061–2064, U+3164, U+FFA0, U+FFF9–FFFB, U+E0000–E007F (amends `planning/P01-T01-request.md` §5.3). `values` uses the same function.
+- **`CredentialRef` (O1):** additionally `^[a-z0-9][a-z0-9._-]{0,63}(:[a-z0-9._-]{1,64})*$`; the key-likeness check is a heuristic.
+- **Leading `-` (O4):** rejected for `RemoteUrl` (value, user, path) and every token-family type; tokens `.`/`..` rejected. Paths and patterns keep `-`; **acceptance check for P04/P05:** every path/pattern/URL passed to a child process follows `--` in an argv array.
+- **Hosts (O5):** lowercase only; a host whose last label is all digits or `0x`-prefixed must be a canonical `Ipv4Addr`. Loopback/link-local policy: P03/P16.
+- **ssh/scp user (O6):** ≤ 32 bytes, O1 run check, no leading `-`.
+- **URL paths (O7):** `%00`–`%1F`, `%7F`, `%2F`, `%5C`, `%3F`, `%23`, `%40` → `Forbidden`.
+- **`SpdxExpression` (O9):** ≥ 1 alphanumeric; no leading, trailing or double spaces.
+- **`PathPattern` (O10):** ≤ 16 wildcards (`*`-run, `?`, class each count 1); **acceptance check for P05:** the matcher is linear-time.
+- **Data directory (O2):** `DataDir::new` rejects `mode & 0o077 != 0`; `acquire` rejects a data directory, `rag/` or `backup/` not owned by the lock file's uid, or `rag/`/`backup/` that is not a private real directory → `PathRejected`. Added: `FileInfo.{uid, nlink}`, `PRIVATE_DIR_MODE`, `check_private_dir`, `StoreLock::owner_uid`.
+- **Opens (O3):** `RealFs` file opens use `O_NOFOLLOW|O_NONBLOCK` + fstat regular-file check (`InvalidInput`); `sync_dir` uses `O_NOFOLLOW|O_DIRECTORY`; the lock file must have `nlink == 1`. Direct dependency `libc =0.2.191` (constants only, no `unsafe`).
+- **App contract 1.1 (Q-T04-1):** `AppEvent::RunStarted { run_id, started_at }`.
+
 ## 6. Policies
 
 ### 6.1 Version (A4 = 4a)

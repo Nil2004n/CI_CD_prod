@@ -170,19 +170,10 @@ macro_rules! string_newtype {
 
 // --- common rule ----------------------------------------------------------------------------------------
 
-/// NUL, C0 (including TAB and LF), U+007F, C1 and every code point of the `domain::text` escape set.
+/// NUL, C0 (including TAB and LF), U+007F, C1 and every code point of the `domain::text` escape set
+/// (the same function, so the two sets cannot diverge; P02-D03 O8).
 fn forbidden_char(c: char) -> bool {
-    matches!(
-        c,
-        '\u{0000}'..='\u{001F}'
-            | '\u{007F}'..='\u{009F}'
-            | '\u{061C}'
-            | '\u{200B}'..='\u{200F}'
-            | '\u{2028}'..='\u{202E}'
-            | '\u{2060}'
-            | '\u{2066}'..='\u{2069}'
-            | '\u{FEFF}'
-    )
+    c == '\t' || c == '\n' || crate::text::needs_escape(c)
 }
 
 /// Empty, over-long and forbidden-character checks shared by every type.

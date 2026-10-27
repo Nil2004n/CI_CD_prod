@@ -18,10 +18,22 @@ const ESCAPE_RANGES: &[(u32, u32)] = &[
     (0x2060, 0x2060),
     (0xFEFF, 0xFEFF),
     (0x2028, 0x2029),
+    // P02-D03 O8 additions.
+    (0x00AD, 0x00AD),
+    (0x034F, 0x034F),
+    (0x115F, 0x1160),
+    (0x180E, 0x180E),
+    (0x2061, 0x2064),
+    (0x3164, 0x3164),
+    (0xFFA0, 0xFFA0),
+    (0xFFF9, 0xFFFB),
+    (0xE0000, 0xE007F),
 ];
 
 const NEIGHBOURS: &[u32] = &[
-    0x0009, 0x000A, 0x0020, 0x00A0, 0x061B, 0x202F, 0x2065, 0x206A, 0xFEFE, 0xFF00,
+    0x0009, 0x000A, 0x0020, 0x00A0, 0x061B, 0x202F, 0x2065, 0x206A, 0xFEFE, 0xFF00, // P01
+    0x00AC, 0x00AE, 0x034E, 0x0350, 0x115E, 0x1161, 0x180D, 0x180F, 0x3163, 0x3165, 0xFF9F, 0xFFA1,
+    0xFFF8, 0xFFFC, 0xDFFFF, 0xE0080, // P02-D03 O8 neighbours
 ];
 
 fn in_set(cp: u32) -> bool {
@@ -45,8 +57,8 @@ fn every_escape_set_code_point_is_escaped() {
             count += 1;
         }
     }
-    // 9 + 21 + 1 + 32 + 1 + 2 + 5 + 4 + 3 + 1 + 1 + 2
-    assert_eq!(count, 82);
+    // P01: 9 + 21 + 1 + 32 + 1 + 2 + 5 + 4 + 3 + 1 + 1 + 2 = 82; P02-D03 O8: 1 + 1 + 2 + 1 + 4 + 1 + 1 + 3 + 128.
+    assert_eq!(count, 224);
 }
 
 #[test]
@@ -365,6 +377,18 @@ fn every_unicode_scalar_value_matches_frozen_escape_set() {
             // Line and paragraph separators.
             || u == 0x2028
             || u == 0x2029
+            // P02-D03 O8: soft hyphen, combining grapheme joiner, Hangul fillers, Mongolian vowel
+            // separator, invisible operators, interlinear annotation, tag characters.
+            || u == 0x00AD
+            || u == 0x034F
+            || u == 0x115F
+            || u == 0x1160
+            || u == 0x180E
+            || (0x2061..=0x2064).contains(&u)
+            || u == 0x3164
+            || u == 0xFFA0
+            || (0xFFF9..=0xFFFB).contains(&u)
+            || (0xE0000..=0xE007F).contains(&u)
     }
 
     let mut scalars = 0_u32;
@@ -387,7 +411,8 @@ fn every_unicode_scalar_value_matches_frozen_escape_set() {
             assert_eq!(out.as_str(), input, "U+{cp:04X} must pass unchanged");
         }
     }
-    // 0x110000 code points minus 2048 surrogates; the independent oracle covers 82 escapes.
+    // 0x110000 code points minus 2048 surrogates; the independent oracle covers 224 escapes (82 from P01
+    // plus 142 from P02-D03 O8).
     assert_eq!(scalars, 0x11_0000 - 0x800);
-    assert_eq!(escaped, 82);
+    assert_eq!(escaped, 224);
 }

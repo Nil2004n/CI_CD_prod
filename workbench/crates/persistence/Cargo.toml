@@ -12,6 +12,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 jsonschema = { workspace = true }
 sha2 = { workspace = true }
+libc = { workspace = true }
 
 [lints]
 workspace = true

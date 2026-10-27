@@ -877,7 +877,10 @@ pub enum AppEvent {
         required_approval_ids: Vec<ApprovalId>,
     },
     /// A run started.
-    RunStarted { run_id: RunId, at: UtcTimestamp },
+    RunStarted {
+        run_id: RunId,
+        started_at: UtcTimestamp,
+    },
     /// A run changed state (includes cancelling and awaiting_approval).
     RunStateChanged {
         run_id: RunId,
