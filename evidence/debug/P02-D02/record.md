@@ -40,5 +40,10 @@ Each would change a frozen §5.2/§5.5 rule or contract, or add a dependency:
 2. The lead runs `all` on the worker branch.
 3. The lead runs `all` on the integrated branch (B1a check).
 
-## Result
-(filled in after the retest)
+## Result: closed, PASS on attempt 1 of 2 (2026-10-27)
+- **Worker.** A fresh `sonnet-implementer` (configured `claude-sonnet-5-5`, self-report unverified), packet `planning/P02-packets/D02-W1.md`, commit `3ab305a` on base `8043ebd`.
+  - Only the three owned files changed: the `ConstTrue` no-echo visitor, plus 5 tests (D02-3, D02-4, D02-5a, D02-5b, D02-6). No test or assertion was removed.
+  - The worker's first fmt run failed (its own formatting) and it fixed it by hand.
+- **Retest 2** (`lead-verify-worker/`): `all` PASS, 26 suites, **497 / 0 / 0**, 32 compile_fail.
+- **Merge.** `8e91df3`.
+- **Retest 3:** the integrated B1a check, `evidence/P02/wave1a/B1a-check/`, PASS with floors 497/32 enforced.
