@@ -865,7 +865,7 @@ fn nullable_keys_are_serialised_as_null_after_a_decode_encode_cycle() {
 
 #[test]
 fn renderer_parameter_text_is_sanitised_on_read() {
-    // `parameters_redacted` values are `SanitisedText`: control characters are escaped, not kept.
+    // `parameters_redacted` values are `RedactedText`: control characters are escaped, not kept.
     let inst = with(
         &renderer_min(),
         "parameters_redacted",
@@ -874,4 +874,91 @@ fn renderer_parameter_text_is_sanitised_on_read() {
     let typed: RendererSetting = serde_json::from_value(inst).expect("renderer");
     let back = serde_json::to_value(&typed).expect("serialise");
     assert_eq!(back["parameters_redacted"]["note"], json!("a<U+001B>[31mb"));
+}
+
+// --- P02-D01: RendererSetting.parameters_redacted is class R (`BTreeMap<Identifier, RedactedText>`) -----------
+
+#[test]
+fn renderer_parameter_value_with_esc_reads_back_escaped_and_reserialises_escaped() {
+    let inst = with(
+        &renderer_min(),
+        "parameters_redacted",
+        json!({"note": "a\u{1b}[31mb"}),
+    );
+    let typed: RendererSetting = serde_json::from_value(inst).expect("renderer");
+    let value = typed
+        .parameters_redacted
+        .iter()
+        .find(|(k, _)| k.as_str() == "note")
+        .map(|(_, v)| v)
+        .expect("note parameter");
+    assert_eq!(value.as_str(), "a<U+001B>[31mb");
+    assert!(!value.as_str().contains('\u{1b}'));
+    let back = serde_json::to_value(&typed).expect("serialise");
+    assert_eq!(back["parameters_redacted"]["note"], json!("a<U+001B>[31mb"));
+    let text = serde_json::to_string(&typed).expect("serialise");
+    assert!(!text.contains('\u{1b}'), "{text}");
+    assert!(text.contains("a<U+001B>[31mb"), "{text}");
+}
+
+#[test]
+fn renderer_parameter_key_with_control_character_or_invalid_identifier_is_rejected_without_echo() {
+    const MARKER: &str = "PLANTEDKEYMARKER";
+    for key in [
+        format!("{MARKER}\u{1b}"),
+        format!("{MARKER}\u{0}"),
+        format!("{MARKER}\n"),
+        format!("bad key {MARKER}"),
+        format!("{MARKER}$"),
+    ] {
+        let inst = with(
+            &renderer_min(),
+            "parameters_redacted",
+            json!({ key.clone(): "v" }),
+        );
+        let err = serde_json::from_value::<RendererSetting>(inst)
+            .expect_err("invalid parameter key accepted")
+            .to_string();
+        assert!(!err.contains(MARKER), "key echoed: {err}");
+
+        // The same through JSON text, where the error carries a position rather than the input.
+        let text = serde_json::to_string(&with(
+            &renderer_min(),
+            "parameters_redacted",
+            json!({ key: "v" }),
+        ))
+        .expect("text");
+        let err = serde_json::from_str::<RendererSetting>(&text)
+            .expect_err("invalid parameter key accepted from text")
+            .to_string();
+        assert!(!err.contains(MARKER), "key echoed from text: {err}");
+    }
+}
+
+#[test]
+fn renderer_parameters_clean_map_round_trips_to_an_equal_value() {
+    for params in [
+        json!({}),
+        json!({"namespace": "default", "release": "demo"}),
+        json!({"empty": "", "multi": "line one\nline two\tend", "unicode": "caf\u{e9}"}),
+    ] {
+        let inst = with(&renderer_min(), "parameters_redacted", params);
+        let typed: RendererSetting = serde_json::from_value(inst.clone()).expect("renderer");
+        assert_eq!(serde_json::to_value(&typed).expect("serialise"), inst);
+        let text = serde_json::to_string(&typed).expect("serialise");
+        let again: RendererSetting = serde_json::from_str(&text).expect("decode text");
+        assert_eq!(again, typed);
+    }
+}
+
+#[test]
+fn renderer_setting_schema_cross_check_holds_after_the_class_change() {
+    let typed: RendererSetting = serde_json::from_value(renderer_max()).expect("maximal");
+    let ser = serde_json::to_value(&typed).expect("serialise");
+    assert_eq!(keys(&ser), def_properties("RendererSetting"));
+    assert_eq!(
+        def_required("RendererSetting"),
+        def_properties("RendererSetting")
+    );
+    assert_eq!(ser, renderer_max());
 }
