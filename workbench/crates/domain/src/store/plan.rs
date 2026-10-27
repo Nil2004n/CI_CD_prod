@@ -13,7 +13,7 @@ use super::values::{
 };
 use crate::contract::{AdapterId, SelectorMode};
 use crate::ids::{ApprovalId, FileId, RepoId, WorkflowId};
-use crate::text::SanitisedText;
+use crate::text::{RedactedText, SanitisedText};
 use crate::time::UtcTimestamp;
 use crate::vocab::Category;
 
@@ -161,16 +161,16 @@ pub struct SchemaBinding {
 
 /// A template renderer and its redacted parameters (`$defs/RendererSetting`).
 ///
-/// `parameters_redacted` is an object of strings in the schema and is not a plain-string property, so
-/// Appendix A does not classify it. Keys are `Identifier`s; values are `SanitisedText` (provisional, see the
-/// T05a report: class R would need a lead-owned map helper in `domain::text::store_read`).
+/// `parameters_redacted` is an object of strings (FR-31 class R, P02-D01): keys are `Identifier`s and values
+/// are `RedactedText`, re-escaped on read like every other `RedactedText`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RendererSetting {
     pub framework: FrameworkId,
     pub renderer_id: RendererId,
     pub input_paths: Vec<RelPath>,
-    pub parameters_redacted: BTreeMap<Identifier, SanitisedText>,
+    #[serde(deserialize_with = "crate::text::store_read::redacted_map")]
+    pub parameters_redacted: BTreeMap<Identifier, RedactedText>,
 }
 
 /// What an assessment covers and how (`$defs/ScanSettings`).
