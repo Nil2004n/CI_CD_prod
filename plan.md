@@ -204,7 +204,7 @@ A test in the CLI crate checks that every index row names an existing command an
 | P17 | `chat context set …`, `chat send` with citations | Cross-repo isolation; invalid citation flagged; injection fixtures inert |
 | P19/P20 | Hardening of CLI paths; owner decision whether the CLI ships in the release or stays development-only | Full regression includes all CLI scenarios |
 
-**Specification follow-up.** A short amendment is needed: Tech §4 (crate list), Architecture §3/§4 (the CLI as a second presentation adapter) and UI Schema §17 (CLI/TUI parity). It will be proposed in the P02 request for owner approval. Until then this section is plan-level only.
+**Specification follow-up.** A short amendment is needed: Tech §4 (crate list), Architecture §3/§4 (the CLI as a second presentation adapter) and UI Schema §17 (CLI/TUI parity). It will be proposed in the P02 request for owner approval. Until then this section is plan-level only. **Done 2026-10-27:** amendment CA-04 approved by the owner and applied (Data Schema §25; app contract 1.1, document 0.3.5; record `evidence/P02/CA-04/check.md`).
 
 ## 5. P00 — decisions, protocols and spikes
 
@@ -323,11 +323,11 @@ P01 total about 10–15 h hands-on, against the §7.1 estimate of 6–10 h. The 
 
 ## 5B. P02 — JSON store v1.4, validation, writer, recovery and CLI skeleton (planned 2026-10-26; **approved for execution 2026-10-26**, A1–A10 = recommended options)
 
-Prepared by Opus at owner request from Arch §3/§4/§6/§11/§12, Tech §4/§13/§14/§22, Data §2/§4/§6/§11–§13/§15/§17–§19/§24, PRD RES-03/RES-04/RES-05, UI §17, this plan (§4, §4.1, §5.2) and `status.md`/`handover.md`. **Owner approval 2026-10-26:** "I approve all recommended options, commit and push in a new phase branch" — A1=1a, A2=2a, A3=3a, A4=4a, A5=5a, A6=6a, A7=7a, A8=8a, A9=9a, A10=10a. Phase branch `phase/P02-store` created from `main` (`4a300cb`). Network steps stay limited to what A2/A8 name (cargo-audit stage C-A; offline resolution); anything else still needs separate approval. Execution has not started.
+Prepared by Opus at owner request from Arch §3/§4/§6/§11/§12, Tech §4/§13/§14/§22, Data §2/§4/§6/§11–§13/§15/§17–§19/§24, PRD RES-03/RES-04/RES-05, UI §17, this plan (§4, §4.1, §5.2) and `status.md`/`handover.md`. **Owner approval 2026-10-26:** "I approve all recommended options, commit and push in a new phase branch" — A1=1a, A2=2a, A3=3a, A4=4a, A5=5a, A6=6a, A7=7a, A8=8a, A9=9a, A10=10a. Phase branch `phase/P02-store` created from `main` (`4a300cb`). Network steps stay limited to what A2/A8 name (cargo-audit stage C-A; offline resolution); anything else still needs separate approval. Execution has not started. **Progress (2026-10-27):** T01 approved with T01-D1–D12 = recommended (`planning/P02-T01-request.md`); cargo-audit C-A PASS; T02 PASS; T03 CA-04 approved and applied; T04 B0 PASS — `status.md`.
 
 ### 5B.1 Scope
 **In P02** (plan §4 P02 row, D-17, FR-15/FR-16/FR-31, P01 B1 decision 2):
-- Typed Rust models for all ten store roots of `schemas/workbench-store-v1.4.schema.json` (Config, Repository, Workflow, Approval, Log, Suppression (reserved; read/validate only, never written), RagIndex, Conversation, Report, ToolManifest) and their 63 `$defs`, with FR-31 safe-text field types.
+- Typed Rust models for all ten store roots of `schemas/workbench-store-v1.4.schema.json` (Config, Repository, Workflow, Approval, Log, Suppression (reserved; read/validate only, never written), RagIndex, Conversation, Report, ToolManifest) and their 63 `$defs`, with FR-31 safe-text field types. *(Corrected 2026-10-27, P02-T01-D2: only 57 of the 63 `$defs` are reachable from the store roots; the six wrapper-protocol defs (WrapperRequest, WrapperControl, TerminationRecord, StreamRecord, DescendantCleanup, TerminationPolicy) are modelled in P06, and `Check` references none of them. FR-31 covers 104 plain-string properties, Appendix A `planning/P02-T01-fr31-classification.md`.)*
 - Schema validation against the embedded canonical 1.4 schema (FR-15: `format` assertions on, external `$ref` compiled out, unavailable schema → `schema_unavailable`, never valid) and version gate (unknown/newer `schema_version` rejected).
 - Semantic validation of Data §11 rules 1–25 and §18 rules 1–18 as pure functions over the models, each rule with an ID and positive/negative tests.
 - Persistence protocol (Data §12, Arch §11): exclusive `.app.lock`, single serialised writer, validate → same-directory temp → flush → replace → directory sync, recovery copy; startup reconciliation (leftover temp files, log ↔ `backup/` report IDs, abandoned runs → `interrupted`, pending approvals stay pending).
@@ -343,7 +343,7 @@ Prepared by Opus at owner request from Arch §3/§4/§6/§11/§12, Tech §4/§13
 | Workspace has 7 crates; `persistence` and `application` are empty stubs; `domain` holds ids, time, text, vocab, states, contract v1.0, versions | `workbench/crates/*/src` |
 | Canonical schema has 10 roots in `oneOf` and 63 `$defs` | `schemas/workbench-store-v1.4.schema.json` |
 | The P00 T06 graph (jsonschema 0.60.1 defaults off + serde_json + saphyr-parser) is 88 packages incl. regex, fancy-regex, referencing, uuid-simd, getrandom, num-*; built in P00 from the isolated cache | `spikes/rust/Cargo.lock`, `evidence/P00/P00-T06/` |
-| `sha2` 0.11.1, `tempfile` 3.27.0, `uuid` 1.29.0, `getrandom` 0.4.3 are in the P00 lockfile; sha2/tempfile are **provisional** (no spike exercised them) | `spikes/p00-freeze/crates.md` §3 |
+| `sha2` 0.11.1, `tempfile` 3.27.0, `uuid` 1.29.0, `getrandom` 0.4.3 are in the P00 lockfile; sha2/tempfile are **provisional** (no spike exercised them) | `spikes/p00-freeze/crates.md` §3 | *(Corrected 2026-10-27, P02-T02: the sha2 0.11.1 chain was built as a dependency in the accepted T07/T08 graphs; no spike called its API.)*
 | Runner `dev/p01_check.py` modes: env, fmt, clippy, test, build, static, all; floors in `dev/p01_baseline.json` (416/32) | `dev/p01_check.py` |
 | Rust 1.97.1 std provides `File::lock`/`try_lock` (stable since 1.89) and `sync_all`; exclusive lock, temp+replace and directory sync need no extra crate on Linux | toolchain version; to be confirmed by a T04 build |
 | cargo-audit not installed; stage C-A recommended before P02, not yet approved | `status.md`, `planning/P01-T03-cargo-audit-request.md` |
@@ -369,9 +369,9 @@ Waves follow §3.8: up to three `sonnet-implementer` workers, disjoint owned fil
 | P02-T14 | Integration: merge waves, runner static extension with negative controls, fixtures (interrupted write, malformed JSON, ENOSPC, EACCES, stale lock, leftover temp, same-second reports, Unicode/hostile paths), full check, reviewer + security-reviewer, debug cycles | Lead | None | 2–3 |
 | P02-T15 | P02 report, freeze update, status/handover; stop for acceptance | Lead | None | 0.5–1 |
 
-Dependencies: T01 → T02, T03, T04; T04 → wave 1 (T05, T06, T07); wave 1 → wave 2 (T08 needs T05+T06; T09 needs T05+T06; T10 needs T07 + model stubs); wave 2 → wave 3 (T11 needs T06 Event; T12 needs T08–T10; T13 needs T05+T06); T14 → T15. Lead commits a baseline after each wave (B1 after wave 1, B2 after wave 2) as in P01.
+Dependencies: T01 → T02, T03, T04; T04 → wave 1 (T05, T06, T07); wave 1 → wave 2 (T08 needs T05+T06; T09 needs T05+T06; T10 needs T07 + model stubs); wave 2 → wave 3 (T11 needs T06 Event; T12 needs T08–T10; T13 needs T05+T06); T14 → T15. Lead commits a baseline after each wave (B1 after wave 1, B2 after wave 2) as in P01. *(Revised 2026-10-27, P02-T01-D3: wave 1 split into 1a — W1 values/plan/provider (T05a) ∥ W3 fs/lock/atomic (T07), baseline B1a — and 1b — W1 config-side roots (T05b) ∥ W2 evidence-side roots (T06), baseline B1; wave 3 ends with baseline B3. Packets and ownership: `planning/P02-T01-request.md` §10.)*
 
-**Estimate:** 22–34 h hands-on (§7.1 had 10–16 h + CLI 2–3 h; P01 ran 10–15 h against 6–10 h, and P02 covers 10 roots and 43 semantic rules). Confidence low; §7.1 to be updated at P02 approval.
+**Estimate:** 22–34 h hands-on (§7.1 had 10–16 h + CLI 2–3 h; P01 ran 10–15 h against 6–10 h, and P02 covers 10 roots and 43 semantic rules). Confidence low; §7.1 to be updated at P02 approval. *(Revised at T01, 2026-10-27: 23–35.5 h, low confidence — +0.5–1 h for B1a, +0.5 h for the domain additions.)*
 
 ### 5B.4 Acceptance criteria (proposed)
 1. fmt, clippy `-D warnings`, test, build PASS through `dev/p02_check.py all --final`; P01 floors not lowered; new P02 floors committed.

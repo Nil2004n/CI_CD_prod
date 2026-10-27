@@ -71,7 +71,8 @@ fn version_constants_have_the_expected_literal_values() {
     assert_eq!(STORE_SCHEMA_VERSION, "1.4");
     assert_eq!(WRAPPER_PROTOCOL_VERSION, "1.1");
     assert_eq!(UI_SCHEMA_VERSION, "1.1");
-    assert_eq!(APP_CONTRACT_VERSION, "1.0");
+    // 1.0 -> 1.1 by CA-04 (Data Schema §25), applied 2026-10-27.
+    assert_eq!(APP_CONTRACT_VERSION, "1.1");
 }
 
 #[test]

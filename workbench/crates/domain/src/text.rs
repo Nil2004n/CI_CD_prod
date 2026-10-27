@@ -385,6 +385,42 @@ pub(crate) fn redact_static(text: &'static str) -> RedactedText {
     RedactedText(escape(text))
 }
 
+/// Read-back of [`RedactedText`] from the application-owned JSON store (FR-31 (2), P02-T01 §5.1, §6.6).
+///
+/// `pub(crate)`: only `domain::store` models use these as `#[serde(deserialize_with = ...)]` helpers, so no
+/// other crate can deserialise a bare `RedactedText`. Text is re-escaped on read (not re-redacted): the store
+/// is trusted as application-owned (Architecture trust boundary 3).
+#[allow(
+    dead_code,
+    reason = "P02 B0: first used by the evidence-side store models in wave 1b; removed by the lead at B1"
+)]
+pub(crate) mod store_read {
+    use super::{RedactedText, escape};
+    use serde::{Deserialize, Deserializer};
+
+    /// One `RedactedText` field.
+    pub(crate) fn redacted<'de, D: Deserializer<'de>>(d: D) -> Result<RedactedText, D::Error> {
+        let s = String::deserialize(d)?;
+        Ok(RedactedText(escape(&s)))
+    }
+
+    /// One nullable `RedactedText` field.
+    pub(crate) fn redacted_opt<'de, D: Deserializer<'de>>(
+        d: D,
+    ) -> Result<Option<RedactedText>, D::Error> {
+        let s = Option::<String>::deserialize(d)?;
+        Ok(s.map(|s| RedactedText(escape(&s))))
+    }
+
+    /// An array of `RedactedText`.
+    pub(crate) fn redacted_vec<'de, D: Deserializer<'de>>(
+        d: D,
+    ) -> Result<Vec<RedactedText>, D::Error> {
+        let v = Vec::<String>::deserialize(d)?;
+        Ok(v.iter().map(|s| RedactedText(escape(s))).collect())
+    }
+}
+
 /// Escapes every code point of the frozen escape set as `<U+XXXX>` (uppercase hex, at least four digits).
 ///
 /// TAB (U+0009) and LF (U+000A) are kept. Disclosed ambiguity: literal input text such as `<U+001B>` is

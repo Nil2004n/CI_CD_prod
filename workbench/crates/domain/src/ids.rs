@@ -141,6 +141,15 @@ macro_rules! define_id {
             pub fn as_bytes(&self) -> &[u8; 16] {
                 &self.0
             }
+
+            /// Builds a version-4 identifier from 16 random bytes by setting the RFC 9562 version
+            /// (`0100`) and variant (`10`) bits (P02-T01 §5.7). The result is never nil. The caller
+            /// supplies the randomness; parsing still does not enforce the version.
+            pub fn from_random_bytes(mut bytes: [u8; 16]) -> Self {
+                bytes[6] = (bytes[6] & 0x0f) | 0x40;
+                bytes[8] = (bytes[8] & 0x3f) | 0x80;
+                Self(bytes)
+            }
         }
 
         impl fmt::Display for $name {

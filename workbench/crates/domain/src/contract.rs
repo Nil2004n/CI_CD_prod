@@ -1,4 +1,4 @@
-//! Application command/event contract v1.0 (Architecture §6; frozen surface
+//! Application command/event contract v1.1 (Architecture §6, CA-04; frozen surface
 //! `planning/P01-T01-request.md` §5.5). Payload field list frozen by the lead at baseline B1.
 //!
 //! Commands are in-process requests from the UI reducer to the coordinator: they may carry raw user
@@ -15,11 +15,11 @@ use crate::states::{ApprovalState, CheckOutcome, RunState};
 use crate::text::RedactedText;
 use crate::time::UtcTimestamp;
 use crate::vocab::{Assessment, Capability, Category, Coverage, Severity};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Application command/event contract version (Architecture §6, A-11).
-pub const APP_CONTRACT_VERSION: &str = "1.0";
+pub const APP_CONTRACT_VERSION: &str = "1.1";
 
 /// Whether a command or event is implemented in the pilot or only reserved.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -269,7 +269,7 @@ impl fmt::Debug for RawInput {
 }
 
 /// Credential storage mode (KEY-01; OS store is conditional on a verified backend).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialMode {
     /// Held in memory for this session only.
@@ -352,7 +352,7 @@ pub enum SelectionChange {
 }
 
 /// File selector mode (schema `Selector.mode`).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectorMode {
     /// Every eligible YAML file, including newly discovered ones.
@@ -364,7 +364,7 @@ pub enum SelectorMode {
 }
 
 /// Decision on a pending approval request (UI Schema §10).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ApprovalDecision {
     /// Allow this one operation.
@@ -376,7 +376,7 @@ pub enum ApprovalDecision {
 }
 
 /// Report export format (RES-04, RES-08).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ExportFormat {
     /// Authoritative JSON report.
@@ -544,7 +544,7 @@ pub enum AppCommand {
 }
 
 /// Repository operation reported by `RepositoryStatusChanged`.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RepoOperation {
     /// Initial clone.
@@ -554,7 +554,7 @@ pub enum RepoOperation {
 }
 
 /// Progress of a repository operation.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RepoOperationStatus {
     /// Started.
@@ -568,7 +568,7 @@ pub enum RepoOperationStatus {
 }
 
 /// Why a trigger did not start a run (WF-06).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TriggerSkipReason {
     /// The same workflow was already running.
@@ -582,7 +582,7 @@ pub enum TriggerSkipReason {
 }
 
 /// Per-format export status (Data §12.5).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ExportStatus {
     /// Written and verified.
@@ -597,7 +597,7 @@ pub enum ExportStatus {
 
 /// Data category an approval may disclose (schema `Approval.data_categories`). Raw secrets are never a
 /// category (Data §11.16).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DataCategory {
     /// Repository metadata.
@@ -617,7 +617,7 @@ pub enum DataCategory {
 }
 
 /// Grant lifetime (schema `Approval.lifetime`).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ApprovalLifetime {
     /// One operation.
@@ -629,7 +629,7 @@ pub enum ApprovalLifetime {
 }
 
 /// Planned adapter identifiers (Data Schema §21). A closed set: no free-text tool names in events.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum AdapterId {
     /// Git.
     #[serde(rename = "git")]
@@ -668,7 +668,7 @@ pub enum AdapterId {
 
 /// Tool availability (store `ToolManifest.availability`, UI Schema §5 `tools.states`; CA-03,
 /// Data Schema §24). Permission denial is not a tool state.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolAvailability {
     /// Installed, compatible and verified.
@@ -686,7 +686,7 @@ pub enum ToolAvailability {
 }
 
 /// Credential state; never key material (KEY-01).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialStatus {
     /// No key configured.
@@ -702,7 +702,7 @@ pub enum CredentialStatus {
 }
 
 /// How a chat response ended.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ChatOutcome {
     /// Completed normally.
@@ -714,7 +714,7 @@ pub enum ChatOutcome {
 }
 
 /// Typed chat failure (Tech §20).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ChatFailure {
     /// Invalid key.
@@ -734,7 +734,7 @@ pub enum ChatFailure {
 }
 
 /// Failure code of `OperationFailed`.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FailureCode {
     /// The command is reserved for deferred work (Architecture §6).
@@ -1149,5 +1149,103 @@ pub fn dispatch_guard(cmd: &AppCommand) -> Result<(), AppEvent> {
             code: FailureCode::Deferred,
             detail: crate::text::redact_static(DEFERRED_DETAIL),
         }),
+    }
+}
+
+impl AppEvent {
+    /// The Architecture §6 event name, equal to the serialised `event_type` (P02-T01 §5.7).
+    pub fn event_type(&self) -> &'static str {
+        match self {
+            Self::RepositoryRegistered { .. } => "RepositoryRegistered",
+            Self::RepositoryRemoved { .. } => "RepositoryRemoved",
+            Self::RepositoryStatusChanged { .. } => "RepositoryStatusChanged",
+            Self::InventoryUpdated { .. } => "InventoryUpdated",
+            Self::SelectionChanged { .. } => "SelectionChanged",
+            Self::WorkflowSaved { .. } => "WorkflowSaved",
+            Self::WorkflowDeleted { .. } => "WorkflowDeleted",
+            Self::WorkflowStateChanged { .. } => "WorkflowStateChanged",
+            Self::TriggerFired { .. } => "TriggerFired",
+            Self::TriggerSkipped { .. } => "TriggerSkipped",
+            Self::RunPlanned { .. } => "RunPlanned",
+            Self::RunStarted { .. } => "RunStarted",
+            Self::RunStateChanged { .. } => "RunStateChanged",
+            Self::TaskStarted { .. } => "TaskStarted",
+            Self::CheckCompleted { .. } => "CheckCompleted",
+            Self::TaskProgress { .. } => "TaskProgress",
+            Self::FindingObserved { .. } => "FindingObserved",
+            Self::RunFinished { .. } => "RunFinished",
+            Self::ApprovalRequested { .. } => "ApprovalRequested",
+            Self::ApprovalResolved { .. } => "ApprovalResolved",
+            Self::ApprovalRevoked { .. } => "ApprovalRevoked",
+            Self::ReportWritten { .. } => "ReportWritten",
+            Self::ExportStatusChanged { .. } => "ExportStatusChanged",
+            Self::DependencyStatusChanged { .. } => "DependencyStatusChanged",
+            Self::CredentialStatusChanged { .. } => "CredentialStatusChanged",
+            Self::ChatRetrievalCompleted { .. } => "ChatRetrievalCompleted",
+            Self::ChatResponseStarted { .. } => "ChatResponseStarted",
+            Self::ChatResponseFinished { .. } => "ChatResponseFinished",
+            Self::ChatResponseChunk { .. } => "ChatResponseChunk",
+            Self::ChatFailed { .. } => "ChatFailed",
+            Self::StorageFailure { .. } => "StorageFailure",
+            Self::OperationFailed { .. } => "OperationFailed",
+            Self::SuppressionChanged { .. } => "SuppressionChanged",
+            Self::RunComparisonReady { .. } => "RunComparisonReady",
+        }
+    }
+
+    /// Text for the store `Event.message_redacted` field (CA-04, P02-T01-D9): the event's own detail text
+    /// where it has one, otherwise a fixed application-authored summary.
+    pub fn store_message(&self) -> RedactedText {
+        match self {
+            Self::StorageFailure { detail } | Self::OperationFailed { detail, .. } => {
+                detail.clone()
+            }
+            Self::RepositoryRegistered { .. } => {
+                crate::text::redact_static("Repository registered")
+            }
+            Self::RepositoryRemoved { .. } => crate::text::redact_static("Repository removed"),
+            Self::RepositoryStatusChanged { .. } => {
+                crate::text::redact_static("Repository status changed")
+            }
+            Self::InventoryUpdated { .. } => crate::text::redact_static("Inventory updated"),
+            Self::SelectionChanged { .. } => crate::text::redact_static("Selection changed"),
+            Self::WorkflowSaved { .. } => crate::text::redact_static("Workflow saved"),
+            Self::WorkflowDeleted { .. } => crate::text::redact_static("Workflow deleted"),
+            Self::WorkflowStateChanged { .. } => {
+                crate::text::redact_static("Workflow state changed")
+            }
+            Self::TriggerFired { .. } => crate::text::redact_static("Trigger fired"),
+            Self::TriggerSkipped { .. } => crate::text::redact_static("Trigger skipped"),
+            Self::RunPlanned { .. } => crate::text::redact_static("Run planned"),
+            Self::RunStarted { .. } => crate::text::redact_static("Run started"),
+            Self::RunStateChanged { .. } => crate::text::redact_static("Run state changed"),
+            Self::TaskStarted { .. } => crate::text::redact_static("Task started"),
+            Self::CheckCompleted { .. } => crate::text::redact_static("Check completed"),
+            Self::TaskProgress { .. } => crate::text::redact_static("Task progress"),
+            Self::FindingObserved { .. } => crate::text::redact_static("Finding observed"),
+            Self::RunFinished { .. } => crate::text::redact_static("Run finished"),
+            Self::ApprovalRequested { .. } => crate::text::redact_static("Approval requested"),
+            Self::ApprovalResolved { .. } => crate::text::redact_static("Approval resolved"),
+            Self::ApprovalRevoked { .. } => crate::text::redact_static("Approval revoked"),
+            Self::ReportWritten { .. } => crate::text::redact_static("Report written"),
+            Self::ExportStatusChanged { .. } => crate::text::redact_static("Export status changed"),
+            Self::DependencyStatusChanged { .. } => {
+                crate::text::redact_static("Dependency status changed")
+            }
+            Self::CredentialStatusChanged { .. } => {
+                crate::text::redact_static("Credential status changed")
+            }
+            Self::ChatRetrievalCompleted { .. } => {
+                crate::text::redact_static("Chat retrieval completed")
+            }
+            Self::ChatResponseStarted { .. } => crate::text::redact_static("Chat response started"),
+            Self::ChatResponseFinished { .. } => {
+                crate::text::redact_static("Chat response finished")
+            }
+            Self::ChatResponseChunk { .. } => crate::text::redact_static("Chat response chunk"),
+            Self::ChatFailed { .. } => crate::text::redact_static("Chat failed"),
+            Self::SuppressionChanged { .. } => crate::text::redact_static("Suppression changed"),
+            Self::RunComparisonReady { .. } => crate::text::redact_static("Run comparison ready"),
+        }
     }
 }

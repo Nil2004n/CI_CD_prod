@@ -683,8 +683,9 @@ fn serialised<T: Serialize>(value: T) -> Value {
 // ---------------------------------------------------------------------------------------------
 
 #[test]
-fn contract_version_is_1_0() {
-    assert_eq!(APP_CONTRACT_VERSION, "1.0");
+fn contract_version_is_1_1() {
+    // 1.0 -> 1.1 by CA-04 (Data Schema §25), applied 2026-10-27.
+    assert_eq!(APP_CONTRACT_VERSION, "1.1");
 }
 
 #[test]

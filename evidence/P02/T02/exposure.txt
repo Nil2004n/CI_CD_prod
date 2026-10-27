@@ -1,0 +1,81 @@
+ahash 0.8.12 build=y proc=- links=- features=[default,getrandom,runtime-rng,serde,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+aho-corasick 1.1.5 build=- proc=- links=- features=[perf-literal,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+allocator-api2 0.2.21 build=- proc=- links=- features=[alloc] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+application 0.1.0: workspace member or not cached
+autocfg 1.5.1 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+bit-set 0.8.0 build=- proc=- links=- features=[std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+bit-vec 0.8.0 build=- proc=- links=- features=[std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+block-buffer 0.12.1 build=- proc=- links=- features=[] covered_by=B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t07-host-features.txt,B-t08-host-features.txt => ok
+borrow-or-share 0.2.4 build=- proc=- links=- features=[alloc] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+bytecount 0.6.9 build=- proc=- links=- features=[runtime-dispatch-simd] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+cfg-if 1.0.5 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+cli 0.1.0: workspace member or not cached
+cpufeatures 0.3.1 build=- proc=- links=- features=[] covered_by=B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t07-host-features.txt,B-t08-host-features.txt => ok
+crypto-common 0.2.2 build=- proc=- links=- features=[] covered_by=B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t07-host-features.txt,B-t08-host-features.txt => ok
+data-encoding 2.11.1 build=- proc=- links=- features=[alloc,default,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+digest 0.11.3 build=- proc=- links=- features=[block-api,default] covered_by=B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t07-host-features.txt,B-t08-host-features.txt => ok
+domain 0.1.0: workspace member or not cached
+email_address 0.2.9 build=- proc=- links=- features=[default,serde,serde_support] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+equivalent 1.0.3 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+fancy-regex 0.19.2 build=- proc=- links=- features=[default,perf,std,unicode,variable-lookbehinds] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+fluent-uri 0.4.1 build=- proc=- links=- features=[alloc,default,impl-error,serde,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+foldhash 0.2.0 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+fraction 0.17.0 build=- proc=- links=- features=[num-bigint,with-bigint] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+getrandom 0.3.4 build=y proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+hashbrown 0.17.1 build=- proc=- links=- features=[allocator-api2,default,default-hasher,equivalent,inline-more,raw-entry] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+heck 0.5.0 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+hybrid-array 0.4.15 build=- proc=- links=- features=[] covered_by=B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t07-host-features.txt,B-t08-host-features.txt => ok
+itoa 1.0.18 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t08-host-features.txt => ok
+jsonschema 0.60.1 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+jsonschema-regex 0.60.1 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+jsonschema-value 0.60.1 build=y proc=- links=- features=[default,serde_json] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+libc 0.2.191 build=y proc=- links=- features=[default,std] covered_by=B-t05-host-features-now.txt,B-t06-host-features-now.txt,B-t07-host-features.txt seen_in=B-t05-host-features-now.txt,B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+lock_api 0.4.14 build=- proc=- links=- features=[atomic_usize,default] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+memchr 2.8.3 build=- proc=- links=- features=[alloc,default,std] covered_by=B-t06-host-features-now.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t08-host-features.txt => ok
+micromap 0.3.0 build=- proc=- links=- features=[default] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+num 0.4.3 build=- proc=- links=- features=[num-bigint,std] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+num-bigint 0.4.8 build=- proc=- links=- features=[default,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+num-cmp 0.1.0 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+num-complex 0.4.6 build=- proc=- links=- features=[std] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+num-integer 0.1.47 build=- proc=- links=- features=[i128,std] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+num-iter 0.1.46 build=- proc=- links=- features=[i128,std] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+num-rational 0.4.2 build=- proc=- links=- features=[num-bigint,num-bigint-std,std] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+num-traits 0.2.19 build=y proc=- links=- features=[default,i128,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+once_cell 1.21.4 build=- proc=- links=- features=[alloc,race] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt => ok
+outref 0.5.2 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+parking_lot 0.12.5 build=- proc=- links=- features=[default] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+parking_lot_core 0.9.12 build=y proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+percent-encoding 2.3.2 build=- proc=- links=- features=[alloc,default,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+persistence 0.1.0: workspace member or not cached
+proc-macro2 1.0.107 build=y proc=- links=- features=[default,proc-macro] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+quote 1.0.47 build=y proc=- links=- features=[default,proc-macro] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+ref-cast 1.0.27 build=y proc=- links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+ref-cast-impl 1.0.27 build=- proc=y links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+referencing 0.60.1 build=- proc=- links=- features=[default] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+regex 1.13.1 build=- proc=- links=- features=[default,perf,perf-backtrack,perf-cache,perf-dfa,perf-inline,perf-literal,perf-onepass,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+regex-automata 0.4.18 build=- proc=- links=- features=[alloc,dfa-onepass,dfa-search,hybrid,meta,nfa,nfa-backtrack,nfa-pikevm,nfa-thompson,perf,perf-inline,perf-literal,perf-literal-multisubstring,perf-literal-substring,std,syntax,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment,unicode-word-boundary] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+regex-syntax 0.8.11 build=- proc=- links=- features=[default,std,unicode,unicode-age,unicode-bool,unicode-case,unicode-gencat,unicode-perl,unicode-script,unicode-segment] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+repositories 0.1.0: workspace member or not cached
+retrieval 0.1.0: workspace member or not cached
+scanning 0.1.0: workspace member or not cached
+scopeguard 1.2.0 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t08-host-features.txt => ok
+serde 1.0.229 build=y proc=- links=- features=[alloc,default,derive,serde_derive,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+serde_core 1.0.229 build=y proc=- links=- features=[alloc,result,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+serde_derive 1.0.229 build=- proc=y links=- features=[default] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+serde_json 1.0.154 build=y proc=- links=- features=[default,float_roundtrip,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt,B-t08-host-features.txt => ok
+sha2 0.11.1 build=- proc=- links=- features=[] covered_by=B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t07-host-features.txt,B-t08-host-features.txt => ok
+smallvec 1.16.4 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t08-host-features.txt => ok
+strum 0.28.0 build=- proc=- links=- features=[default,derive,std,strum_macros] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+strum_macros 0.28.0 build=- proc=y links=- features=[] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+syn 2.0.119 build=- proc=- links=- features=[clone-impls,default,derive,parsing,printing,proc-macro] covered_by=B-t06-host-features-now.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+syn 3.0.9 build=- proc=- links=- features=[clone-impls,default,derive,parsing,printing,proc-macro] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+terminal-ui 0.1.0: workspace member or not cached
+typenum 1.20.1 build=- proc=- links=- features=[const-generics] covered_by=B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t07-host-features.txt,B-t08-host-features.txt => ok
+unicode-general-category 1.1.0 build=y proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t08-host-features.txt => ok
+unicode-ident 1.0.27 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t07-host-features.txt,B-t08-host-features.txt => ok
+uuid-simd 0.8.0 build=- proc=- links=- features=[alloc,detect,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+version_check 0.9.5 build=- proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t08-host-features.txt => ok
+vsimd 0.8.0 build=- proc=- links=- features=[alloc,detect,std] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+zerocopy 0.8.63 build=y proc=- links=- features=[simd] covered_by=B-t06-host-features-now.txt seen_in=B-t06-host-features-now.txt => ok
+zmij 1.0.23 build=y proc=- links=- features=[] covered_by=B-t06-host-features-now.txt,B-t08-host-features.txt seen_in=B-t06-host-features-now.txt,B-t08-host-features.txt => ok
+summary packages=80 build_scripts=15 proc_macros=3 links=0 new_exposure=0 new_plain=0

@@ -1,0 +1,110 @@
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/cli/src/lib.rs:15:
+ 
+ /// Runs one CLI invocation. Exit codes (request §5.9): 0 executed (never "clean"), 2 usage error, 3 store
+ /// locked, 4 storage failure or halted writer, 5 operation failed, 6 approval required (reserved).
+-#[expect(clippy::todo, reason = "P02 B0 stub; implemented by W2 in wave 3 (T12)")]
++#[expect(
++    clippy::todo,
++    reason = "P02 B0 stub; implemented by W2 in wave 3 (T12)"
++)]
+ pub fn run<I, R, W, E>(_args: I, _stdin: R, _stdout: W, _stderr: E) -> ExitCode
+ where
+     I: IntoIterator<Item = OsString>,
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/domain/src/contract.rs:1197:
+     /// where it has one, otherwise a fixed application-authored summary.
+     pub fn store_message(&self) -> RedactedText {
+         match self {
+-            Self::StorageFailure { detail } | Self::OperationFailed { detail, .. } => detail.clone(),
+-            Self::RepositoryRegistered { .. } => crate::text::redact_static("Repository registered"),
++            Self::StorageFailure { detail } | Self::OperationFailed { detail, .. } => {
++                detail.clone()
++            }
++            Self::RepositoryRegistered { .. } => {
++                crate::text::redact_static("Repository registered")
++            }
+             Self::RepositoryRemoved { .. } => crate::text::redact_static("Repository removed"),
+-            Self::RepositoryStatusChanged { .. } => crate::text::redact_static("Repository status changed"),
++            Self::RepositoryStatusChanged { .. } => {
++                crate::text::redact_static("Repository status changed")
++            }
+             Self::InventoryUpdated { .. } => crate::text::redact_static("Inventory updated"),
+             Self::SelectionChanged { .. } => crate::text::redact_static("Selection changed"),
+             Self::WorkflowSaved { .. } => crate::text::redact_static("Workflow saved"),
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/domain/src/contract.rs:1207:
+             Self::WorkflowDeleted { .. } => crate::text::redact_static("Workflow deleted"),
+-            Self::WorkflowStateChanged { .. } => crate::text::redact_static("Workflow state changed"),
++            Self::WorkflowStateChanged { .. } => {
++                crate::text::redact_static("Workflow state changed")
++            }
+             Self::TriggerFired { .. } => crate::text::redact_static("Trigger fired"),
+             Self::TriggerSkipped { .. } => crate::text::redact_static("Trigger skipped"),
+             Self::RunPlanned { .. } => crate::text::redact_static("Run planned"),
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/domain/src/contract.rs:1221:
+             Self::ApprovalRevoked { .. } => crate::text::redact_static("Approval revoked"),
+             Self::ReportWritten { .. } => crate::text::redact_static("Report written"),
+             Self::ExportStatusChanged { .. } => crate::text::redact_static("Export status changed"),
+-            Self::DependencyStatusChanged { .. } => crate::text::redact_static("Dependency status changed"),
+-            Self::CredentialStatusChanged { .. } => crate::text::redact_static("Credential status changed"),
+-            Self::ChatRetrievalCompleted { .. } => crate::text::redact_static("Chat retrieval completed"),
++            Self::DependencyStatusChanged { .. } => {
++                crate::text::redact_static("Dependency status changed")
++            }
++            Self::CredentialStatusChanged { .. } => {
++                crate::text::redact_static("Credential status changed")
++            }
++            Self::ChatRetrievalCompleted { .. } => {
++                crate::text::redact_static("Chat retrieval completed")
++            }
+             Self::ChatResponseStarted { .. } => crate::text::redact_static("Chat response started"),
+-            Self::ChatResponseFinished { .. } => crate::text::redact_static("Chat response finished"),
++            Self::ChatResponseFinished { .. } => {
++                crate::text::redact_static("Chat response finished")
++            }
+             Self::ChatResponseChunk { .. } => crate::text::redact_static("Chat response chunk"),
+             Self::ChatFailed { .. } => crate::text::redact_static("Chat failed"),
+             Self::SuppressionChanged { .. } => crate::text::redact_static("Suppression changed"),
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/domain/src/text.rs:390:
+ /// `pub(crate)`: only `domain::store` models use these as `#[serde(deserialize_with = ...)]` helpers, so no
+ /// other crate can deserialise a bare `RedactedText`. Text is re-escaped on read (not re-redacted): the store
+ /// is trusted as application-owned (Architecture trust boundary 3).
+-#[expect(dead_code, reason = "P02 B0: first used by the evidence-side store models in wave 1b; removed at B1")]
++#[expect(
++    dead_code,
++    reason = "P02 B0: first used by the evidence-side store models in wave 1b; removed at B1"
++)]
+ pub(crate) mod store_read {
+     use super::{RedactedText, escape};
+     use serde::{Deserialize, Deserializer};
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/domain/src/text.rs:402:
+     }
+ 
+     /// One nullable `RedactedText` field.
+-    pub(crate) fn redacted_opt<'de, D: Deserializer<'de>>(d: D) -> Result<Option<RedactedText>, D::Error> {
++    pub(crate) fn redacted_opt<'de, D: Deserializer<'de>>(
++        d: D,
++    ) -> Result<Option<RedactedText>, D::Error> {
+         let s = Option::<String>::deserialize(d)?;
+         Ok(s.map(|s| RedactedText(escape(&s))))
+     }
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/domain/src/text.rs:409:
+ 
+     /// An array of `RedactedText`.
+-    pub(crate) fn redacted_vec<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<RedactedText>, D::Error> {
++    pub(crate) fn redacted_vec<'de, D: Deserializer<'de>>(
++        d: D,
++    ) -> Result<Vec<RedactedText>, D::Error> {
+         let v = Vec::<String>::deserialize(d)?;
+         Ok(v.iter().map(|s| RedactedText(escape(s))).collect())
+     }
+Diff in /home/kali/Desktop/CI_CD_prod/workbench/crates/persistence/src/error.rs:29:
+     /// The root file does not exist.
+     NotInitialised(StoreKind),
+     /// An I/O error at the named step; the writer is halted afterwards (Data Schema §11.25).
+-    Io { step: WriteStep, kind: std::io::ErrorKind },
++    Io {
++        step: WriteStep,
++        kind: std::io::ErrorKind,
++    },
+     /// The document failed validation; nothing was written.
+     Invalid(StoreKind, Problems),
+     /// The embedded schema could not be used; nothing is valid and nothing is written (FR-15).
