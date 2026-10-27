@@ -419,6 +419,21 @@ pub(crate) mod store_read {
         let v = Vec::<String>::deserialize(d)?;
         Ok(v.iter().map(|s| RedactedText(escape(s))).collect())
     }
+
+    /// A string-valued map with validated keys (e.g. `RendererSetting.parameters_redacted`, P02-D01).
+    /// Keys deserialise through their own type; values are re-escaped like every `RedactedText`.
+    pub(crate) fn redacted_map<'de, D, K>(
+        d: D,
+    ) -> Result<std::collections::BTreeMap<K, RedactedText>, D::Error>
+    where
+        D: Deserializer<'de>,
+        K: Deserialize<'de> + Ord,
+    {
+        let m = std::collections::BTreeMap::<K, String>::deserialize(d)?;
+        Ok(m.into_iter()
+            .map(|(k, s)| (k, RedactedText(escape(&s))))
+            .collect())
+    }
 }
 
 /// Escapes every code point of the frozen escape set as `<U+XXXX>` (uppercase hex, at least four digits).
