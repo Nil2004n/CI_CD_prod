@@ -83,8 +83,16 @@ fn fill_time(n: usize) -> String {
     with_prefix("12:30", n).replace('a', "0")
 }
 
+/// A valid `CredentialRef` of exactly `n` bytes: 64-byte `a.a.` segments separated by `:` (P02-D03 O1
+/// caps a segment at 64 bytes; `.` breaks the key-like run). Valid for `n` whose last index is not a `:`.
 fn fill_locator(n: usize) -> String {
-    "a.".repeat(n.div_ceil(2)).chars().take(n).collect()
+    (0..n)
+        .map(|i| match (i % 65, i % 2) {
+            (64, _) => ':',
+            (_, 0) => 'a',
+            _ => '.',
+        })
+        .collect()
 }
 
 fn entries() -> Vec<Entry> {
@@ -311,7 +319,7 @@ fn entries() -> Vec<Entry> {
             "a",
             &[
                 "openrouter-key",
-                "keychain:pwt/openrouter",
+                "keychain:pwt.openrouter",
                 "pwt.openrouter.default",
                 "skip-1",
             ]
@@ -769,11 +777,16 @@ fn remote_url_requires_no_credentials_query_or_fragment() {
 
 #[test]
 fn credential_reference_key_heuristics() {
-    // 31-character runs are fine, 32 are not; `.`, `:`, `/`, `@`, `+` break a run.
+    // 31-character runs are fine, 32 are not; `.` and `:` break a run. (`/`, `@`, `+` also break a run but
+    // are no longer in the locator charset: P02-D03 O1.)
     let run31 = "a".repeat(31);
     assert!(CredentialRef::parse(&run31).is_ok());
     assert!(CredentialRef::parse(&format!("{run31}.{run31}")).is_ok());
-    assert!(CredentialRef::parse(&format!("{run31}:{run31}/{run31}")).is_ok());
+    assert!(CredentialRef::parse(&format!("{run31}:{run31}:{run31}")).is_ok());
+    assert_eq!(
+        CredentialRef::parse(&format!("{run31}:{run31}/{run31}")).map_err(|e| e.reason),
+        Err(Character)
+    );
     assert_eq!(
         CredentialRef::parse(&"a".repeat(32)).map_err(|e| e.reason),
         Err(Forbidden)
@@ -896,5 +909,447 @@ fn ascii_only_types_reject_non_ascii_input() {
             "Slug {input:?}"
         );
         assert!(serde_json::from_value::<Slug>(Value::String(input.to_owned())).is_err());
+    }
+}
+
+// --- P02-D03 (W1: O1, O4, O5, O6, O7, O9, O10) --------------------------------------------------------------
+
+fn reason<T>(r: Result<T, ValueError>) -> Option<ValueReason> {
+    r.err().map(|e| e.reason)
+}
+
+#[test]
+fn d03_o1_credential_ref_is_a_lowercase_locator() {
+    for ok in [
+        "pwt:openrouter:default",
+        "os-keyring.pwt",
+        "session:1",
+        "a",
+        "0",
+        "a_b:c_d",
+        "x:-y",
+        "x:.y",
+    ] {
+        assert!(CredentialRef::parse(ok).is_ok(), "{ok}");
+    }
+    // 64-byte segments are the maximum, in the first and in a later position.
+    let seg64 = "a.".repeat(32);
+    assert_eq!(seg64.len(), 64);
+    assert!(CredentialRef::parse(&seg64).is_ok());
+    assert!(CredentialRef::parse(&format!("{seg64}:{seg64}")).is_ok());
+
+    // An AWS-secret-like shape (synthetic) has `/`, `+` and uppercase: Character.
+    for bad in [
+        "abcdEFGH/ijkl+MNOPqrst/uvwxYZ0123456789abcd",
+        "Upper",
+        "aB",
+        "a/b",
+        "a+b",
+        "a@b",
+        "a=b",
+    ] {
+        assert_eq!(reason(CredentialRef::parse(bad)), Some(Character), "{bad}");
+        assert!(serde_json::from_value::<CredentialRef>(Value::String(bad.to_owned())).is_err());
+    }
+    // Segment shape: empty, over 64 bytes, or a first segment that does not start with [a-z0-9].
+    let seg65 = format!("{}a", "a.".repeat(32));
+    assert_eq!(seg65.len(), 65);
+    for bad in [
+        ":a".to_owned(),
+        "a:".to_owned(),
+        "a::b".to_owned(),
+        ":".to_owned(),
+        "_a".to_owned(),
+        ".a".to_owned(),
+        seg65.clone(),
+        format!("x:{seg65}"),
+        format!("{seg65}:x"),
+    ] {
+        assert_eq!(reason(CredentialRef::parse(&bad)), Some(Syntax), "{bad}");
+    }
+    // The key checks come first and stay Forbidden.
+    assert_eq!(reason(CredentialRef::parse("sk-abc")), Some(Forbidden));
+    assert_eq!(
+        reason(CredentialRef::parse(&"a".repeat(65))),
+        Some(Forbidden)
+    );
+}
+
+#[test]
+fn d03_o4_remote_url_rejects_option_like_values() {
+    for bad in [
+        "-oProxyCommand=x@host:path",
+        "-https://host/x",
+        "-git@host:p",
+        "ssh://-user@host/p",
+        "-user@host:p",
+        "git@host:-path",
+        "git@[::1]:-path",
+        "https://host/-x",
+        "https://host:8443/-x",
+        "ssh://git@host/-x",
+        "ssh://host/-x",
+    ] {
+        assert_eq!(reason(RemoteUrl::parse(bad)), Some(Syntax), "{bad}");
+        assert!(serde_json::from_value::<RemoteUrl>(Value::String(bad.to_owned())).is_err());
+    }
+    for ok in [
+        "https://host/x-y",
+        "https://host/a/-b",
+        "ssh://git@host/a/-b",
+        "git@host:a/-b",
+        "git@host:x-",
+        "ssh://us-er@host/p",
+        "us-er@host:p",
+    ] {
+        assert!(RemoteUrl::parse(ok).is_ok(), "{ok}");
+    }
+}
+
+#[test]
+fn d03_o4_token_types_reject_leading_dash_and_dot_tokens() {
+    let all = entries();
+    for name in [
+        "RedactionVersion",
+        "VersionLabel",
+        "ToolName",
+        "FrameworkId",
+        "RendererId",
+        "SchemaResourceId",
+        "ModelId",
+        "ProviderId",
+        "CredentialRef",
+        "PolicyId",
+        "SpdxExpression",
+        "EventCode",
+        "Identifier",
+    ] {
+        let e = entry_named(&all, name);
+        for bad in ["-x", "-", "--x", "-1.0", ".", ".."] {
+            assert_eq!(reason_of(e, bad), Some(Syntax), "{name}: {bad}");
+            assert!(
+                (e.decode)(Value::String(bad.to_owned())).is_err(),
+                "{name}: {bad}"
+            );
+        }
+        // Only a leading `-` and the whole values `.` and `..` are rejected as Syntax.
+        for ok in ["x-", "a.b", "a..b", "x-y", "1-x"] {
+            assert!(reason_of(e, ok).is_none(), "{name}: {ok}");
+        }
+    }
+    // Path types keep accepting a leading `-` (repository file names).
+    assert!(RelPath::parse("-file").is_ok());
+    assert!(RelPath::parse("dir/-file").is_ok());
+    assert!(AppRelPath::parse("-file").is_ok());
+    assert!(LocalPath::parse("-file").is_ok());
+    assert!(LocalPath::parse("/-file").is_ok());
+    assert!(PathPattern::parse("-*.yml").is_ok());
+}
+
+/// Hosts that must be rejected as non-canonical (O5), as `Syntax`.
+const NON_CANONICAL_HOSTS: &[&str] = &[
+    "127.1",
+    "2130706433",
+    "0x7f.0.0.1",
+    "017.0.0.1",
+    "127.0.0.01",
+    "1.2.3.4.5",
+    "0X7F.0.0.1",
+    "host.0x1",
+    "1",
+    "Example.com",
+    "EXAMPLE.COM",
+    "exAmple.com",
+    "[2001:DB8::1]",
+    "[::FFFF:1.2.3.4]",
+];
+
+/// Hosts that are accepted (O5).
+const CANONICAL_HOSTS: &[&str] = &[
+    "127.0.0.1",
+    "10.0.0.255",
+    "0.0.0.0",
+    "example.com",
+    "a1.b2",
+    "localhost",
+    "x-1.y",
+    "[2001:db8::1]",
+    "[::1]",
+];
+
+fn remote_url_forms(host: &str) -> [String; 4] {
+    [
+        format!("https://{host}/r"),
+        format!("ssh://git@{host}/r"),
+        format!("ssh://{host}:22/r"),
+        format!("git@{host}:r"),
+    ]
+}
+
+#[test]
+fn d03_o5_hosts_must_be_canonical_in_all_host_bearing_types() {
+    for host in NON_CANONICAL_HOSTS {
+        for url in remote_url_forms(host) {
+            assert_eq!(reason(RemoteUrl::parse(&url)), Some(Syntax), "{url}");
+        }
+        let dests = [
+            (*host).to_owned(),
+            format!("{host}:443"),
+            format!("https://{host}"),
+            format!("https://{host}/r"),
+            format!("https://{host}:8443/r"),
+        ];
+        for d in dests {
+            assert_eq!(reason(Destination::parse(&d)), Some(Syntax), "{d}");
+        }
+        let canon = format!("{host}/x");
+        assert_eq!(
+            reason(CanonicalRemote::parse(&canon)),
+            Some(Syntax),
+            "{canon}"
+        );
+    }
+    for host in CANONICAL_HOSTS {
+        for url in remote_url_forms(host) {
+            assert!(RemoteUrl::parse(&url).is_ok(), "{url}");
+        }
+        assert!(Destination::parse(host).is_ok(), "{host}");
+        assert!(Destination::parse(&format!("{host}:443")).is_ok(), "{host}");
+        assert!(Destination::parse(&format!("https://{host}/r")).is_ok());
+        let canon = format!("{host}/x");
+        assert!(CanonicalRemote::parse(&canon).is_ok(), "{canon}");
+    }
+}
+
+#[test]
+fn d03_o5_leading_zero_octets_are_rejected_explicitly() {
+    // Whatever std does with a leading-zero octet, the value must equal the address's Display form.
+    for host in ["017.0.0.1", "127.0.0.01", "127.000.000.001", "00.0.0.0"] {
+        for url in remote_url_forms(host) {
+            assert_eq!(reason(RemoteUrl::parse(&url)), Some(Syntax), "{url}");
+        }
+        assert_eq!(reason(Destination::parse(host)), Some(Syntax), "{host}");
+        assert_eq!(
+            reason(CanonicalRemote::parse(&format!("{host}/x"))),
+            Some(Syntax),
+            "{host}"
+        );
+    }
+    assert!(Destination::parse("0.0.0.0").is_ok());
+    assert!(Destination::parse("10.0.0.255").is_ok());
+}
+
+#[test]
+fn d03_o6_ssh_and_scp_user_is_at_most_32_bytes_and_not_key_like() {
+    let u32b = "a.".repeat(16);
+    let u33b = format!("{u32b}a");
+    assert_eq!((u32b.len(), u33b.len()), (32, 33));
+    let forms: [fn(&str) -> String; 2] =
+        [|u| format!("ssh://{u}@host/r"), |u| format!("{u}@host:r")];
+    for form in forms {
+        assert!(RemoteUrl::parse(&form(&u32b)).is_ok(), "32 bytes");
+        assert_eq!(reason(RemoteUrl::parse(&form(&u33b))), Some(TooLong));
+        // A long user of one run is TooLong first; a 32-byte run is key-like.
+        assert_eq!(
+            reason(RemoteUrl::parse(&form(&"a".repeat(40)))),
+            Some(TooLong)
+        );
+        assert_eq!(
+            reason(RemoteUrl::parse(&form(&"a".repeat(32)))),
+            Some(Forbidden)
+        );
+        let dashed = format!("{}-{}", "a".repeat(16), "b".repeat(15));
+        assert_eq!(dashed.len(), 32);
+        assert_eq!(reason(RemoteUrl::parse(&form(&dashed))), Some(Forbidden));
+        assert!(RemoteUrl::parse(&form(&"a".repeat(31))).is_ok());
+        assert_eq!(reason(RemoteUrl::parse(&form("-u"))), Some(Syntax));
+        // Existing rules stay.
+        assert_eq!(reason(RemoteUrl::parse(&form("u:p"))), Some(Forbidden));
+        assert_eq!(reason(RemoteUrl::parse(&form("u%41"))), Some(Forbidden));
+        assert_eq!(reason(RemoteUrl::parse(&form("u+x"))), Some(Character));
+    }
+}
+
+/// Parses `input` with the URL type selected by `idx` (0-2 `RemoteUrl`, 3 `Destination`, 4 `CanonicalRemote`).
+fn url_reason(idx: usize, input: &str) -> Option<ValueReason> {
+    match idx {
+        0..=2 => reason(RemoteUrl::parse(input)),
+        3 => reason(Destination::parse(input)),
+        _ => reason(CanonicalRemote::parse(input)),
+    }
+}
+
+fn url_with_escape(idx: usize, esc: &str) -> String {
+    match idx {
+        0 | 3 => format!("https://host/a{esc}b"),
+        1 => format!("ssh://git@host/a{esc}b"),
+        2 => format!("git@host:a{esc}b"),
+        _ => format!("host/a{esc}b"),
+    }
+}
+
+#[test]
+fn d03_o7_percent_escapes_of_dangerous_bytes_are_forbidden() {
+    for esc in [
+        "%00", "%01", "%0a", "%0D", "%1f", "%1F", "%7F", "%7f", "%2f", "%2F", "%5c", "%5C", "%3f",
+        "%3F", "%23", "%40",
+    ] {
+        for idx in 0..5 {
+            let input = url_with_escape(idx, esc);
+            assert_eq!(url_reason(idx, &input), Some(Forbidden), "{input}");
+        }
+    }
+    for esc in ["%20", "%41", "%7e", "%80", "%25", "%2e", "%3A", "%ff"] {
+        for idx in 0..5 {
+            let input = url_with_escape(idx, esc);
+            assert_eq!(url_reason(idx, &input), None, "{input}");
+        }
+    }
+    // Malformed escapes stay Syntax.
+    for esc in ["%", "%2!", "%zz", "%g0", "%0g"] {
+        for idx in 0..5 {
+            let input = url_with_escape(idx, esc);
+            assert_eq!(url_reason(idx, &input), Some(Syntax), "{input}");
+        }
+    }
+}
+
+#[test]
+fn d03_o9_spdx_expression_needs_an_alphanumeric_and_clean_spaces() {
+    for ok in [
+        "MIT",
+        "(MIT OR Apache-2.0)",
+        "Apache-2.0 WITH LLVM-exception",
+        "(a)",
+        "MIT AND (BSD-3-Clause OR ISC)",
+    ] {
+        assert!(SpdxExpression::parse(ok).is_ok(), "{ok}");
+    }
+    for bad in [
+        "()",
+        "(())",
+        " ",
+        "  ",
+        " MIT",
+        "MIT ",
+        "MIT  OR Apache-2.0",
+        "(MIT OR  Apache-2.0)",
+        "+",
+        "(+)",
+        ".",
+        "_:/@",
+    ] {
+        assert_eq!(reason(SpdxExpression::parse(bad)), Some(Syntax), "{bad:?}");
+        assert!(serde_json::from_value::<SpdxExpression>(Value::String(bad.to_owned())).is_err());
+    }
+    // The charset rule still applies first.
+    assert_eq!(reason(SpdxExpression::parse("MIT;")), Some(Character));
+}
+
+#[test]
+fn d03_o10_path_pattern_allows_at_most_16_wildcards() {
+    let at16 = [
+        "?".repeat(16),
+        format!("{}*", "*/".repeat(15)),
+        "[a]".repeat(16),
+        "*?".repeat(8),
+        format!("{}**", "**/".repeat(15)),
+        format!("{}{}{}", "[ab]".repeat(5), "?".repeat(5), "*/*/*/*/*/*"),
+        "a*b*c*d*e*f*g*h*i*j*k*l*m*n*o*p*".to_owned(),
+    ];
+    let at17 = [
+        "?".repeat(17),
+        format!("{}*", "*/".repeat(16)),
+        "[a]".repeat(17),
+        format!("{}*", "*?".repeat(8)),
+        format!("{}**", "**/".repeat(16)),
+        format!("{}{}{}", "[ab]".repeat(5), "?".repeat(6), "*/*/*/*/*/*"),
+        "a*b*c*d*e*f*g*h*i*j*k*l*m*n*o*p*q*".to_owned(),
+    ];
+    for ok in &at16 {
+        assert!(PathPattern::parse(ok).is_ok(), "{ok}");
+    }
+    for bad in &at17 {
+        assert_eq!(reason(PathPattern::parse(bad)), Some(Forbidden), "{bad}");
+        assert!(serde_json::from_value::<PathPattern>(Value::String(bad.clone())).is_err());
+    }
+    // A run of `**` counts once, so many `**`-only patterns are not penalised.
+    assert!(PathPattern::parse("**/**/a").is_ok());
+    // Syntax errors outrank the count.
+    assert_eq!(
+        reason(PathPattern::parse(&format!("{}***", "?".repeat(20)))),
+        Some(Syntax)
+    );
+}
+
+#[test]
+fn d03_new_forbidden_and_syntax_paths_never_echo_the_input() {
+    // Lowercase marker so it stays valid for the lowercase-only CredentialRef charset.
+    const MARKER: &str = "plantedmarker";
+    let credential_inputs = [
+        (format!("sk-{MARKER}"), Forbidden),
+        (format!("{MARKER}:"), Syntax),
+        (format!("{MARKER}::x"), Syntax),
+        (format!("_{MARKER}"), Syntax),
+        (format!("{MARKER}/x"), Character),
+        (format!("-{MARKER}"), Syntax),
+    ];
+    for (input, expected) in &credential_inputs {
+        let err = CredentialRef::parse(input).err();
+        let Some(err) = err else {
+            panic!("accepted: {input}");
+        };
+        assert_eq!(err.reason, *expected, "{input}");
+        for text in [err.to_string(), format!("{err:?}")] {
+            assert!(!text.contains(MARKER), "{text}");
+        }
+        let msg = serde_json::from_value::<CredentialRef>(Value::String(input.clone()))
+            .err()
+            .map(|e| e.to_string())
+            .unwrap_or_default();
+        assert!(!msg.is_empty() && !msg.contains(MARKER), "{msg}");
+        let msg = serde_json::from_str::<CredentialRef>(&format!("\"{input}\""))
+            .err()
+            .map(|e| e.to_string())
+            .unwrap_or_default();
+        assert!(!msg.is_empty() && !msg.contains(MARKER), "{msg}");
+    }
+
+    let url_inputs = [
+        (format!("https://host/{MARKER}%00"), Forbidden),
+        (format!("https://host/{MARKER}%2F"), Forbidden),
+        (format!("git@host:{MARKER}%40"), Forbidden),
+        (format!("ssh://git@host/{MARKER}%5c"), Forbidden),
+        (format!("https://host/{MARKER}%zz"), Syntax),
+        (format!("https://host/-{MARKER}"), Syntax),
+        (format!("-{MARKER}@host:p"), Syntax),
+        (format!("https://{MARKER}.0x1/r"), Syntax),
+        (format!("https://Host-{MARKER}/r"), Syntax),
+    ];
+    for (input, expected) in &url_inputs {
+        let err = RemoteUrl::parse(input).err();
+        let Some(err) = err else {
+            panic!("accepted: {input}");
+        };
+        assert_eq!(err.reason, *expected, "{input}");
+        for text in [err.to_string(), format!("{err:?}")] {
+            assert!(!text.contains(MARKER), "{text}");
+        }
+        let msg = serde_json::from_str::<RemoteUrl>(&format!("\"{input}\""))
+            .err()
+            .map(|e| e.to_string())
+            .unwrap_or_default();
+        assert!(!msg.is_empty() && !msg.contains(MARKER), "{msg}");
+    }
+    for input in [
+        format!("https://host/{MARKER}%00"),
+        format!("https://{MARKER}.0x1/r"),
+    ] {
+        for text in [
+            format!("{:?}", Destination::parse(&input).err()),
+            format!("{:?}", CanonicalRemote::parse(&input).err()),
+        ] {
+            assert!(!text.contains(MARKER), "{text}");
+        }
     }
 }

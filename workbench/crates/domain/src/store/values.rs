@@ -10,7 +10,8 @@
 
 use std::fmt;
 use std::marker::PhantomData;
-use std::net::Ipv6Addr;
+use std::net::{Ipv4Addr, Ipv6Addr};
+use std::str::FromStr;
 
 use serde::de::{Deserializer, Visitor};
 
@@ -300,8 +301,14 @@ fn pattern_char(c: char) -> bool {
         )
 }
 
+/// Most wildcards one pattern may contain (P02-D03 O10): each maximal run of `*`, each `?` and each
+/// `[...]` class counts as one.
+const PATTERN_WILDCARDS_MAX: usize = 16;
+
 /// One `/`-free segment of a pattern: `*`/`**`/`?` wildcards and non-nested, closed `[...]` classes.
-fn pattern_segment(seg: &str) -> Check {
+/// Returns the number of wildcards in the segment.
+fn pattern_segment(seg: &str) -> Result<usize, ValueReason> {
+    let mut wildcards = 0usize;
     let mut in_class = false;
     let mut class_len = 0usize;
     let mut negated = false;
@@ -329,14 +336,19 @@ fn pattern_segment(seg: &str) -> Check {
                     in_class = true;
                     class_len = 0;
                     negated = false;
+                    wildcards += 1;
                 }
                 ']' | '!' | '^' => return Err(ValueReason::Syntax),
                 '*' => {
                     stars += 1;
+                    if stars == 1 {
+                        wildcards += 1;
+                    }
                     if stars > 2 {
                         return Err(ValueReason::Syntax);
                     }
                 }
+                '?' => wildcards += 1,
                 _ => {}
             }
         }
@@ -344,7 +356,7 @@ fn pattern_segment(seg: &str) -> Check {
     if in_class {
         Err(ValueReason::Syntax)
     } else {
-        Ok(())
+        Ok(wildcards)
     }
 }
 
@@ -356,11 +368,15 @@ fn path_pattern(s: &str) -> Check {
     if s.starts_with('/') {
         return Err(ValueReason::Syntax);
     }
+    let mut wildcards = 0usize;
     for seg in s.split('/') {
         if seg.is_empty() || seg == ".." {
             return Err(ValueReason::Syntax);
         }
-        pattern_segment(seg)?;
+        wildcards += pattern_segment(seg)?;
+    }
+    if wildcards > PATTERN_WILDCARDS_MAX {
+        return Err(ValueReason::Forbidden);
     }
     Ok(())
 }
@@ -406,7 +422,10 @@ string_newtype!(
 
 const URL_MAX: usize = 2048;
 
-/// DNS host name: dot-separated labels of `[A-Za-z0-9-]`, 1-63 bytes each, not starting or ending in `-`.
+/// DNS host name: dot-separated labels of `[a-z0-9-]`, 1-63 bytes each, not starting or ending in `-`.
+/// Canonical form only (P02-D03 O5): no uppercase, and a host whose last label is all digits or starts
+/// with `0x` must be a dotted-quad IPv4 address in its `Display` form (so `127.1`, `2130706433`,
+/// `0x7f.0.0.1`, `017.0.0.1` and `1.2.3.4.5` are rejected).
 fn dns_name(host: &str) -> Check {
     if host.is_empty() || host.len() > 253 {
         return Err(ValueReason::Syntax);
@@ -425,10 +444,25 @@ fn dns_name(host: &str) -> Check {
             return Err(ValueReason::Syntax);
         }
     }
+    if host.bytes().any(|b| b.is_ascii_uppercase()) {
+        return Err(ValueReason::Syntax);
+    }
+    let last = host.rsplit('.').next().unwrap_or(host);
+    if last.bytes().all(|b| b.is_ascii_digit()) || last.starts_with("0x") || last.starts_with("0X")
+    {
+        return match Ipv4Addr::from_str(host) {
+            Ok(addr) if addr.to_string() == host => Ok(()),
+            _ => Err(ValueReason::Syntax),
+        };
+    }
     Ok(())
 }
 
+/// Bracketed IPv6 literal contents: lowercase hex only (O5).
 fn ipv6_literal(addr: &str) -> Check {
+    if addr.bytes().any(|b| b.is_ascii_uppercase()) {
+        return Err(ValueReason::Syntax);
+    }
     addr.parse::<Ipv6Addr>()
         .map(|_| ())
         .map_err(|_| ValueReason::Syntax)
@@ -474,7 +508,14 @@ fn host_port(hp: &str) -> Check {
     }
 }
 
-/// Path part of a URL (after the first `/`): not empty, no `\`, `%` only as a `%XX` escape.
+/// Whether a decoded `%XX` byte is forbidden in a URL path (P02-D03 O7): C0 controls, DEL, `/`, `\`,
+/// `?`, `#` and `@`.
+fn forbidden_escape(byte: u8) -> bool {
+    byte < 0x20 || byte == 0x7F || matches!(byte, b'/' | b'\\' | b'?' | b'#' | b'@')
+}
+
+/// Path part of a URL (after the first `/`): not empty, no `\`, `%` only as a `%XX` escape that does
+/// not decode to a forbidden byte.
 fn url_path(p: &str) -> Check {
     if p.is_empty() {
         return Err(ValueReason::Syntax);
@@ -485,29 +526,52 @@ fn url_path(p: &str) -> Check {
     let b = p.as_bytes();
     for (i, &c) in b.iter().enumerate() {
         if c == b'%' {
-            let hex = |off: usize| b.get(i + off).is_some_and(u8::is_ascii_hexdigit);
-            if !(hex(1) && hex(2)) {
+            let hex = |off: usize| {
+                b.get(i + off)
+                    .and_then(|d| char::from(*d).to_digit(16))
+                    .and_then(|d| u8::try_from(d).ok())
+            };
+            let (Some(hi), Some(lo)) = (hex(1), hex(2)) else {
                 return Err(ValueReason::Syntax);
+            };
+            if forbidden_escape((hi << 4) | lo) {
+                return Err(ValueReason::Forbidden);
             }
         }
     }
     Ok(())
 }
 
-/// User part of `user@host`. A `:` (password) or `%` (encoded userinfo) is a policy violation.
+/// User part of `user@host`. A `:` (password) or `%` (encoded userinfo) is a policy violation; a leading
+/// `-` would read as an option (O4); at most 32 bytes and no key-like run (O6).
 fn url_user(u: &str) -> Check {
     if u.contains(':') || u.contains('%') {
         return Err(ValueReason::Forbidden);
     }
-    if u.is_empty() {
+    if u.is_empty() || u.starts_with('-') {
         return Err(ValueReason::Syntax);
     }
-    if u.bytes()
+    if u.len() > 32 {
+        return Err(ValueReason::TooLong);
+    }
+    if !u
+        .bytes()
         .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
     {
-        Ok(())
+        return Err(ValueReason::Character);
+    }
+    if has_key_run(u) {
+        return Err(ValueReason::Forbidden);
+    }
+    Ok(())
+}
+
+/// A remote URL path must not start with `-` (a git client could read it as an option; O4).
+fn path_not_option(p: &str) -> Check {
+    if p.starts_with('-') {
+        Err(ValueReason::Syntax)
     } else {
-        Err(ValueReason::Character)
+        Ok(())
     }
 }
 
@@ -521,6 +585,9 @@ fn no_query_or_fragment(s: &str) -> Check {
 
 fn remote_url(s: &str) -> Check {
     common_graphic(s, URL_MAX)?;
+    if s.starts_with('-') {
+        return Err(ValueReason::Syntax);
+    }
     no_query_or_fragment(s)?;
     if let Some(rest) = s.strip_prefix("https://") {
         let (authority, path) = rest.split_once('/').ok_or(ValueReason::Syntax)?;
@@ -528,6 +595,7 @@ fn remote_url(s: &str) -> Check {
             return Err(ValueReason::Forbidden);
         }
         host_port(authority)?;
+        path_not_option(path)?;
         return url_path(path);
     }
     if let Some(rest) = s.strip_prefix("ssh://") {
@@ -539,6 +607,7 @@ fn remote_url(s: &str) -> Check {
             }
             None => host_port(authority)?,
         }
+        path_not_option(path)?;
         return url_path(path);
     }
     if s.contains("://") {
@@ -559,6 +628,7 @@ fn remote_url(s: &str) -> Check {
             path
         }
     };
+    path_not_option(path)?;
     url_path(path)
 }
 
@@ -585,9 +655,6 @@ fn canonical_remote(s: &str) -> Check {
             return Err(ValueReason::Forbidden);
         }
         dns_name(host)?;
-    }
-    if host.bytes().any(|b| b.is_ascii_uppercase()) {
-        return Err(ValueReason::Syntax);
     }
     url_path(path)
 }
@@ -711,31 +778,71 @@ fn spdx_char(c: char) -> bool {
     token_char(c) || matches!(c, ' ' | '(' | ')')
 }
 
+/// Charset check plus (O4) no leading `-` and not the whole value `.` or `..`.
 fn token(s: &str, max: usize, allowed: fn(char) -> bool) -> Check {
     common(s, max)?;
-    if s.chars().all(allowed) {
-        Ok(())
-    } else {
-        Err(ValueReason::Character)
+    if !s.chars().all(allowed) {
+        return Err(ValueReason::Character);
     }
+    if s.starts_with('-') || s == "." || s == ".." {
+        return Err(ValueReason::Syntax);
+    }
+    Ok(())
 }
 
-/// A credential reference is a locator, never key material (Data §11.23): no `sk-` prefix and no run of
-/// 32 or more characters from `[A-Za-z0-9_-]`.
-fn credential_ref(s: &str) -> Check {
-    token(s, 256, token_char)?;
-    if s.get(..3).is_some_and(|p| p.eq_ignore_ascii_case("sk-")) {
-        return Err(ValueReason::Forbidden);
-    }
+/// Any run of 32 or more bytes of `[A-Za-z0-9_-]` (the shape of API key material).
+fn has_key_run(s: &str) -> bool {
     let mut run = 0usize;
     for b in s.bytes() {
         if b.is_ascii_alphanumeric() || b == b'_' || b == b'-' {
             run += 1;
             if run >= 32 {
-                return Err(ValueReason::Forbidden);
+                return true;
             }
         } else {
             run = 0;
+        }
+    }
+    false
+}
+
+/// SPDX expression: token characters plus space and parentheses, at least one alphanumeric byte, no
+/// leading, trailing or doubled space (P02-D03 O9).
+fn spdx_expression(s: &str) -> Check {
+    token(s, 256, spdx_char)?;
+    if !s.bytes().any(|b| b.is_ascii_alphanumeric())
+        || s.starts_with(' ')
+        || s.ends_with(' ')
+        || s.contains("  ")
+    {
+        return Err(ValueReason::Syntax);
+    }
+    Ok(())
+}
+
+/// A credential reference is a locator, never key material (Data §11.23; P02-D03 O1). Checks, in order:
+/// the token charset, no `sk-` prefix, no run of 32 or more `[A-Za-z0-9_-]` bytes, then the locator shape
+/// `^[a-z0-9][a-z0-9._-]{0,63}(:[a-z0-9._-]{1,64})*$` (a byte outside `[a-z0-9._:-]` is `Character`; an
+/// empty or over-long segment, or a first segment not starting with `[a-z0-9]`, is `Syntax`).
+///
+/// The key-likeness check is a heuristic, not a guarantee: a short key, or one broken up by `.` or `:`,
+/// can pass.
+fn credential_ref(s: &str) -> Check {
+    token(s, 256, token_char)?;
+    if s.get(..3).is_some_and(|p| p.eq_ignore_ascii_case("sk-")) || has_key_run(s) {
+        return Err(ValueReason::Forbidden);
+    }
+    if !s
+        .bytes()
+        .all(|b| matches!(b, b'a'..=b'z' | b'0'..=b'9' | b'.' | b'_' | b':' | b'-'))
+    {
+        return Err(ValueReason::Character);
+    }
+    for (i, seg) in s.split(':').enumerate() {
+        let first_ok =
+            i > 0 || seg.starts_with(|c: char| c.is_ascii_lowercase() || c.is_ascii_digit());
+        if seg.is_empty() || seg.len() > 64 || !first_ok {
+            return Err(ValueReason::Syntax);
         }
     }
     Ok(())
@@ -790,7 +897,8 @@ string_newtype!(
 );
 
 string_newtype!(
-    /// Locator of a credential in the OS store or session; rejects anything that looks like a key.
+    /// Locator of a credential in the OS store or session (`name[:part...]`, lowercase); rejects anything
+    /// that looks like a key. The key-likeness check is a heuristic, not a guarantee.
     CredentialRef,
     credential_ref
 );
@@ -804,7 +912,7 @@ string_newtype!(
 string_newtype!(
     /// SPDX licence expression (token characters plus space and parentheses).
     SpdxExpression,
-    |s| token(s, 256, spdx_char)
+    spdx_expression
 );
 
 string_newtype!(
