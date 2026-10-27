@@ -406,7 +406,7 @@ fn provider_max() -> Value {
         "endpoint": "https://openrouter.ai/api/v1",
         "model_id": "openai/gpt-4o:free",
         "credential_mode": "os_credential_store",
-        "credential_reference": "keychain:pwt/openrouter",
+        "credential_reference": "keychain:pwt.openrouter",
         "routing_policy": policy_max()
     })
 }
