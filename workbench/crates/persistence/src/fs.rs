@@ -5,6 +5,16 @@
 //! Operations are path based (each opens and closes its own file); the data directory is application-owned
 //! and mode 0700, so the window between two operations is not defended against a hostile local writer
 //! (documented limitation, T07).
+//!
+//! Open hardening (P02-D03): every file open uses `O_NOFOLLOW | O_NONBLOCK` and then requires the open
+//! handle (`fstat`) to be a regular file, so a symlink in the final component is refused and a FIFO or device
+//! can neither block nor be read or written. `sync_dir` opens with `O_NOFOLLOW | O_DIRECTORY`. There is no
+//! `nlink` check on `read`/`write_all`/`sync_file`: the write protocol legitimately leaves the current file
+//! with two links between its `LinkPrevious` and `Replace` steps, and recovery must still read it.
+//! Remaining limitations: only the final path component is protected (a symlinked parent directory is not
+//! detected by these opens); `canonicalize`, `list_dir`, `hard_link`, `rename`, `remove_file` and
+//! `create_dir` are path based and not hardened; the window between a path check and a later path operation
+//! is not closed.
 
 use crate::error::WriteStep;
 use std::ffi::OsString;
@@ -28,6 +38,10 @@ pub struct FileInfo {
     pub len: u64,
     /// Permission bits only (`& 0o7777`).
     pub mode: u32,
+    /// Owning user id.
+    pub uid: u32,
+    /// Number of hard links.
+    pub nlink: u64,
 }
 
 impl FileInfo {
@@ -59,6 +73,11 @@ impl LockHandle {
             Err(std::fs::TryLockError::WouldBlock) => Ok(false),
             Err(std::fs::TryLockError::Error(e)) => Err(e),
         }
+    }
+
+    /// The facts about the open file itself (`fstat` on the handle, not on a path).
+    pub fn file_info(&self) -> io::Result<FileInfo> {
+        Ok(info_from_metadata(&self.file.metadata()?))
     }
 
     /// Replaces the file content with one diagnostic line. The content is never trusted by any reader.
@@ -113,9 +132,32 @@ fn file_kind(t: std::fs::FileType) -> FileKind {
     }
 }
 
+fn info_from_metadata(meta: &std::fs::Metadata) -> FileInfo {
+    FileInfo {
+        kind: file_kind(meta.file_type()),
+        len: meta.len(),
+        mode: meta.mode() & 0o7777,
+        uid: meta.uid(),
+        nlink: meta.nlink(),
+    }
+}
+
+/// Opens `path` with `O_NOFOLLOW | O_NONBLOCK` and requires the open handle to be a regular file.
+/// The error for a non-regular file is fixed and carries no path.
+fn open_regular(opts: &mut std::fs::OpenOptions, path: &Path) -> io::Result<std::fs::File> {
+    let file = opts
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(path)?;
+    if file.metadata()?.is_file() {
+        Ok(file)
+    } else {
+        Err(io::ErrorKind::InvalidInput.into())
+    }
+}
+
 impl FsOps for RealFs {
     fn read(&self, path: &Path, max_bytes: u64) -> io::Result<Vec<u8>> {
-        let file = std::fs::File::open(path)?;
+        let file = open_regular(std::fs::OpenOptions::new().read(true), path)?;
         if file.metadata()?.len() > max_bytes {
             return Err(io::ErrorKind::FileTooLarge.into());
         }
@@ -131,21 +173,23 @@ impl FsOps for RealFs {
     }
 
     fn create_new(&self, _step: WriteStep, path: &Path, mode: u32) -> io::Result<()> {
-        std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(mode)
-            .open(path)
-            .map(drop)
+        open_regular(
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(mode),
+            path,
+        )
+        .map(drop)
     }
 
     fn write_all(&self, _step: WriteStep, path: &Path, bytes: &[u8]) -> io::Result<()> {
-        let mut file = std::fs::OpenOptions::new().write(true).open(path)?;
+        let mut file = open_regular(std::fs::OpenOptions::new().write(true), path)?;
         file.write_all(bytes)
     }
 
     fn sync_file(&self, _step: WriteStep, path: &Path) -> io::Result<()> {
-        std::fs::File::open(path)?.sync_all()
+        open_regular(std::fs::OpenOptions::new().read(true), path)?.sync_all()
     }
 
     fn hard_link(&self, _step: WriteStep, existing: &Path, new: &Path) -> io::Result<()> {
@@ -157,7 +201,11 @@ impl FsOps for RealFs {
     }
 
     fn sync_dir(&self, _step: WriteStep, dir: &Path) -> io::Result<()> {
-        std::fs::File::open(dir)?.sync_all()
+        std::fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_DIRECTORY)
+            .open(dir)?
+            .sync_all()
     }
 
     fn remove_file(&self, path: &Path) -> io::Result<()> {
@@ -174,12 +222,7 @@ impl FsOps for RealFs {
     }
 
     fn symlink_metadata(&self, path: &Path) -> io::Result<FileInfo> {
-        let meta = std::fs::symlink_metadata(path)?;
-        Ok(FileInfo {
-            kind: file_kind(meta.file_type()),
-            len: meta.len(),
-            mode: meta.mode() & 0o7777,
-        })
+        Ok(info_from_metadata(&std::fs::symlink_metadata(path)?))
     }
 
     fn create_dir(&self, _step: WriteStep, path: &Path, mode: u32) -> io::Result<()> {
@@ -197,13 +240,15 @@ impl FsOps for RealFs {
     }
 
     fn open_lock_file(&self, path: &Path, mode: u32) -> io::Result<LockHandle> {
-        let file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .mode(mode)
-            .open(path)?;
+        let file = open_regular(
+            std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .mode(mode),
+            path,
+        )?;
         Ok(LockHandle { file })
     }
 }
