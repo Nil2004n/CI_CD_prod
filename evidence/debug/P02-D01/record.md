@@ -23,5 +23,12 @@ Opened: 2026-10-27, by Opus, after wave-1a task P02-T05a (W1). Authority: owner 
 2. The lead runs `dev/p02_check.py all` on the integrated phase branch (B1a candidate).
 3. `dev/p02_fr31_appendix.py` exits 0 with 105 rows.
 
-## Result
-(filled in after the retest)
+## Result: closed, PASS on attempt 1 of 2 (2026-10-27)
+- **Worker.** A fresh `sonnet-implementer` (configured `claude-sonnet-5-5`, self-report unverified) worked in the W1 scope, packet `planning/P02-packets/D01-W1.md`. Commit `8d22da8` on base `4153f78` changes only the two owned files:
+  - `plan.rs`: field type and `deserialize_with`, plus a doc comment;
+  - `store_plan.rs`: 4 tests added and 1 comment word changed; no existing assertion removed.
+  - The worker's first test run failed on its own new case (`../X` *is* a valid `Identifier`), and it replaced that case. This is recorded as an observation (`Identifier`'s charset includes `.` and `/`; it is not a path type) for the reviewers.
+- **Retest 1** (`lead-verify-worker/`): `dev/p02_check.py all` on the worker branch: PASS. 26 suites, **489 passed / 0 failed / 0 ignored** (= 416 + 34 T07 + 35 T05a + 4 D01), 32 compile_fail; clippy, fmt, build, static clean.
+- **Merge.** `3381a90` (`--no-ff`) into `phase/P02-store`.
+- **Retest 3.** `dev/p02_fr31_appendix.py` exit 0, 105 rows. Regenerating to scratch is byte-identical to the committed Appendix A (`appendix-regen.txt`).
+- **Retest 2** (integrated branch) is part of the B1a check (`evidence/P02/wave1a/`).

@@ -115,12 +115,14 @@ impl Serialize for SchemaVersion {
 
 impl<'de> Deserialize<'de> for SchemaVersion {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let s = String::deserialize(d)?;
-        if s == crate::versions::STORE_SCHEMA_VERSION {
-            Ok(Self)
-        } else {
-            Err(marker_error("unsupported schema_version"))
-        }
+        // P02-D02: through the no-echo visitor, so a wrong-typed value is not quoted in the error.
+        values::deserialize_parsed(d, |s| {
+            if s == crate::versions::STORE_SCHEMA_VERSION {
+                Ok(Self)
+            } else {
+                Err(String::from("unsupported schema_version"))
+            }
+        })
     }
 }
 
@@ -134,13 +136,45 @@ impl Serialize for ConstFalse {
     }
 }
 
-impl<'de> Deserialize<'de> for ConstFalse {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        if bool::deserialize(d)? {
+/// Accepts only `false`; every other value fails with fixed text (P02-D02: `bool::deserialize` makes
+/// serde_json quote a wrong-typed string in its error).
+struct ConstFalseVisitor;
+
+impl serde::de::Visitor<'_> for ConstFalseVisitor {
+    type Value = ConstFalse;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("false")
+    }
+
+    fn visit_bool<E: serde::de::Error>(self, v: bool) -> Result<ConstFalse, E> {
+        if v {
             Err(marker_error("value must be false"))
         } else {
-            Ok(Self)
+            Ok(ConstFalse)
         }
+    }
+
+    fn visit_str<E: serde::de::Error>(self, _: &str) -> Result<ConstFalse, E> {
+        Err(marker_error("value must be false"))
+    }
+
+    fn visit_i64<E: serde::de::Error>(self, _: i64) -> Result<ConstFalse, E> {
+        Err(marker_error("value must be false"))
+    }
+
+    fn visit_u64<E: serde::de::Error>(self, _: u64) -> Result<ConstFalse, E> {
+        Err(marker_error("value must be false"))
+    }
+
+    fn visit_f64<E: serde::de::Error>(self, _: f64) -> Result<ConstFalse, E> {
+        Err(marker_error("value must be false"))
+    }
+}
+
+impl<'de> Deserialize<'de> for ConstFalse {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        d.deserialize_any(ConstFalseVisitor)
     }
 }
 
@@ -163,12 +197,13 @@ macro_rules! store_type_marker {
 
         impl<'de> Deserialize<'de> for $name {
             fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-                let s = String::deserialize(d)?;
-                if s == StoreKind::$kind.store_type() {
-                    Ok(Self)
-                } else {
-                    Err(marker_error("store_type does not match the root"))
-                }
+                values::deserialize_parsed(d, |s| {
+                    if s == StoreKind::$kind.store_type() {
+                        Ok(Self)
+                    } else {
+                        Err(String::from("store_type does not match the root"))
+                    }
+                })
             }
         }
     };
