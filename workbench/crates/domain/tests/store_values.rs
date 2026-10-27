@@ -839,3 +839,62 @@ fn path_types_are_distinct_types_with_equal_rules() {
         Err(ValueKind::LocalPath)
     );
 }
+
+// --- P02-D02 -----------------------------------------------------------------------------------------------
+
+#[test]
+fn rel_path_length_bound_is_in_bytes_not_characters() {
+    // D02-5a: 4096 bytes. U+00E9 is 2 bytes, U+20AC is 3 bytes.
+    const BOUND: usize = 4096;
+    let two_byte_at = "\u{e9}".repeat(BOUND / 2);
+    let three_byte_at = format!("{}a", "\u{20ac}".repeat((BOUND - 1) / 3));
+    for at in [&two_byte_at, &three_byte_at] {
+        assert_eq!(at.len(), BOUND);
+        assert!(at.chars().count() < BOUND);
+        assert!(RelPath::parse(at).is_ok(), "exactly the bound is accepted");
+        let json = serde_json::from_value::<RelPath>(Value::String(at.clone()));
+        assert!(json.is_ok());
+    }
+
+    // One byte over, with far fewer characters than the bound.
+    let two_byte_over = format!("{two_byte_at}a");
+    let three_byte_over = "\u{20ac}".repeat(BOUND / 3 + 1);
+    assert_eq!(two_byte_over.len(), BOUND + 1);
+    assert_eq!(three_byte_over.len(), BOUND + 2);
+    for over in [&two_byte_over, &three_byte_over] {
+        assert!(over.chars().count() < BOUND);
+        assert_eq!(
+            RelPath::parse(over).map_err(|e| e.reason),
+            Err(TooLong),
+            "over the byte bound"
+        );
+        let json = serde_json::from_value::<RelPath>(Value::String(over.clone()));
+        assert!(json.is_err());
+    }
+}
+
+#[test]
+fn ascii_only_types_reject_non_ascii_input() {
+    // D02-5b: a token type (ModelId) and Slug.
+    for input in [
+        "vendor/m\u{f6}del",
+        "\u{fc}n\u{ef}",
+        "model\u{20ac}",
+        "\u{65e5}\u{672c}",
+    ] {
+        assert_eq!(
+            ModelId::parse(input).map_err(|e| e.reason),
+            Err(Character),
+            "ModelId {input:?}"
+        );
+        assert!(serde_json::from_value::<ModelId>(Value::String(input.to_owned())).is_err());
+    }
+    for input in ["rep\u{f6}", "\u{fc}", "\u{65e5}\u{672c}", "a-\u{e9}"] {
+        assert_eq!(
+            Slug::parse(input).map_err(|e| e.reason),
+            Err(Character),
+            "Slug {input:?}"
+        );
+        assert!(serde_json::from_value::<Slug>(Value::String(input.to_owned())).is_err());
+    }
+}

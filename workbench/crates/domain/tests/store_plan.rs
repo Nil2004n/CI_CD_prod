@@ -6,7 +6,7 @@
     reason = "shared helpers outside #[test] fns are not covered by clippy.toml allow-*-in-tests"
 )]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Debug;
 
 use domain::contract::{AdapterId, SelectorMode};
@@ -16,6 +16,8 @@ use domain::store::plan::{
     TargetSnapshot, TemplateMode,
 };
 use domain::store::provider::{InferenceScope, Provider, ProviderCredentialMode, ProviderPolicy};
+use domain::store::values::Identifier;
+use domain::text::RedactedText;
 use domain::vocab::Category;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -961,4 +963,57 @@ fn renderer_setting_schema_cross_check_holds_after_the_class_change() {
         def_properties("RendererSetting")
     );
     assert_eq!(ser, renderer_max());
+}
+
+// --- P02-D02 -----------------------------------------------------------------------------------------------
+
+#[test]
+fn renderer_parameters_field_type_is_exactly_a_map_of_identifier_to_redacted_text() {
+    // D02-3: compile-time pin. A `SanitisedText` (or any other) value type would not compile here.
+    let typed: RendererSetting = serde_json::from_value(renderer_min()).expect("renderer");
+    let _: &BTreeMap<Identifier, RedactedText> = &typed.parameters_redacted;
+}
+
+#[test]
+fn wrong_typed_zdr_value_is_rejected_without_echo() {
+    // D02-4: `ConstTrue` must not quote the planted value (serde_json's `invalid_type` would).
+    const MARKER: &str = "MARKERx";
+    const NUMBER: &str = "987654321";
+    let planted = [
+        json!(MARKER),
+        json!(987_654_321u64),
+        json!(-987_654_321i64),
+        json!(987_654_321.5f64),
+        json!(false),
+    ];
+    for value in planted {
+        let inst = with(&policy_min(), "zdr", value.clone());
+        let err = serde_json::from_value::<ProviderPolicy>(inst.clone())
+            .expect_err("wrong-typed zdr accepted")
+            .to_string();
+        assert!(!err.contains(MARKER), "{value}: {err}");
+        assert!(!err.contains(NUMBER), "{value}: {err}");
+        let text = serde_json::to_string(&inst).expect("serialise instance");
+        let err = serde_json::from_str::<ProviderPolicy>(&text)
+            .expect_err("wrong-typed zdr accepted from text")
+            .to_string();
+        assert!(!err.contains(MARKER), "{value}: {err}");
+        assert!(!err.contains(NUMBER), "{value}: {err}");
+    }
+}
+
+#[test]
+fn absent_required_nullable_key_decodes_as_none_because_the_schema_layer_not_serde_enforces_presence()
+ {
+    // D02-6: pins current behaviour. Serde treats a missing `Option` field as `None`; the schema's
+    // `required` list is the guard against a missing key (T08 carries the schema-layer negative). The
+    // typed layer still always writes the key back.
+    let inst = without(&file_min(), "detected_framework");
+    assert!(inst.get("detected_framework").is_none());
+    let typed: FileRecord = serde_json::from_value(inst).expect("decodes without the key");
+    assert_eq!(typed.detected_framework, None);
+    let text = serde_json::to_string(&typed).expect("serialise");
+    assert!(text.contains("\"detected_framework\":null"), "{text}");
+    let back = serde_json::to_value(&typed).expect("serialise");
+    assert_eq!(back, file_min());
 }

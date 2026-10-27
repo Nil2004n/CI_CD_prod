@@ -5,6 +5,9 @@
 //! routing policy to the privacy constants of Data §18.11; those constants are marker types here, so a
 //! document with any other value fails to decode.
 
+use std::fmt;
+
+use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::ConstFalse;
@@ -73,11 +76,45 @@ impl Serialize for ConstTrue {
 
 impl<'de> Deserialize<'de> for ConstTrue {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        if bool::deserialize(deserializer)? {
-            Ok(Self)
-        } else {
-            Err(serde::de::Error::custom("value must be true"))
+        struct TrueVisitor;
+
+        impl Visitor<'_> for TrueVisitor {
+            type Value = ConstTrue;
+
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("the boolean true")
+            }
+
+            fn visit_bool<E: serde::de::Error>(self, v: bool) -> Result<ConstTrue, E> {
+                if v {
+                    Ok(ConstTrue)
+                } else {
+                    Err(E::custom("value must be true"))
+                }
+            }
+
+            // The default `visit_*` methods quote the value; these overrides use a fixed message so a
+            // failed decode never echoes the input (FR-31).
+            fn visit_str<E: serde::de::Error>(self, _: &str) -> Result<ConstTrue, E> {
+                Err(E::custom("value must be true"))
+            }
+
+            fn visit_i64<E: serde::de::Error>(self, _: i64) -> Result<ConstTrue, E> {
+                Err(E::custom("value must be true"))
+            }
+
+            fn visit_u64<E: serde::de::Error>(self, _: u64) -> Result<ConstTrue, E> {
+                Err(E::custom("value must be true"))
+            }
+
+            fn visit_f64<E: serde::de::Error>(self, _: f64) -> Result<ConstTrue, E> {
+                Err(E::custom("value must be true"))
+            }
         }
+
+        // `deserialize_any`, not `deserialize_bool`: serde_json reports a wrongly typed value through
+        // `invalid_type`, which quotes it; with `deserialize_any` the visitor methods above run instead.
+        deserializer.deserialize_any(TrueVisitor)
     }
 }
 
