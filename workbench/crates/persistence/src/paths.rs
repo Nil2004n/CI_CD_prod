@@ -13,10 +13,33 @@ use std::path::{Path, PathBuf};
 /// derived from it (`.<name>.prev.tmp-<16 hex>`, +27 bytes) still fits in a directory entry.
 pub const MAX_REPORT_NAME_BYTES: usize = 200;
 
+/// Permission bits of every directory the store creates (`rag/`, `backup/`); the data directory itself must
+/// have no group or other bits either.
+pub const PRIVATE_DIR_MODE: u32 = 0o700;
+
 const BACKUP_DIR: &str = "backup";
+const RAG_DIR: &str = "rag";
 const LOCK_FILE_NAME: &str = ".app.lock";
 
-/// The application data directory: absolute, existing, a directory, not itself a symlink, in canonical form.
+/// Requires `path` to be a real directory (not a symlink) with no group/other permission bits, owned by
+/// `owner_uid`. Any failure, including a missing path, is [`StoreError::PathRejected`].
+///
+/// Limitations: the check is path based, so the directory could be swapped between this check and a later
+/// operation; and the store has no portable way to ask for the process uid without `unsafe`, so callers pass
+/// the uid of the lock file this process just opened (see [`crate::lock::acquire`]) as a proxy.
+pub fn check_private_dir(fs: &dyn FsOps, path: &Path, owner_uid: u32) -> Result<(), StoreError> {
+    let info = fs
+        .symlink_metadata(path)
+        .map_err(|_| StoreError::PathRejected)?;
+    if info.is_dir() && info.mode & 0o077 == 0 && info.uid == owner_uid {
+        Ok(())
+    } else {
+        Err(StoreError::PathRejected)
+    }
+}
+
+/// The application data directory: absolute, existing, a directory, not itself a symlink, in canonical form,
+/// with no group or other permission bits.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DataDir(PathBuf);
 
@@ -31,7 +54,7 @@ impl DataDir {
         let info = fs
             .symlink_metadata(&normalised)
             .map_err(|_| StoreError::PathRejected)?;
-        if info.is_symlink() || !info.is_dir() {
+        if info.is_symlink() || !info.is_dir() || info.mode & 0o077 != 0 {
             return Err(StoreError::PathRejected);
         }
         let canonical = fs
@@ -44,6 +67,9 @@ impl DataDir {
     pub fn as_path(&self) -> &Path {
         &self.0
     }
+
+    /// The names of the sub-directories the store creates inside the data directory.
+    pub(crate) const SUBDIRS: [&'static str; 2] = [RAG_DIR, BACKUP_DIR];
 
     /// The real path of a confined store path.
     pub fn join(&self, path: &StorePath) -> PathBuf {

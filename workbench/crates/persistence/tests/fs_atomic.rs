@@ -22,7 +22,7 @@ use persistence::lock::acquire;
 use persistence::paths::{DataDir, MAX_REPORT_NAME_BYTES, StorePath};
 use std::ffi::OsString;
 use std::io::{self, ErrorKind};
-use std::os::unix::fs::{MetadataExt, symlink};
+use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -49,6 +49,8 @@ impl Tmp {
             .join(format!("fs_atomic-{label}-{}-{n}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
+        // The data directory must be private (P02-D03); the default umask would leave it 0755.
+        set_mode(&root, 0o700);
         Self { root }
     }
 
@@ -78,6 +80,10 @@ fn names(dir: &Path) -> Vec<String> {
 
 fn mode_of(path: &Path) -> u32 {
     std::fs::symlink_metadata(path).unwrap().mode() & 0o7777
+}
+
+fn set_mode(path: &Path, mode: u32) {
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(mode)).unwrap();
 }
 
 fn plan(step: WriteStep, kind: ErrorKind) -> FaultPlan {
@@ -805,6 +811,7 @@ fn data_dir_rejects_relative_missing_file_and_symlinked_paths() {
 
     let real = tmp.root.join("real");
     std::fs::create_dir(&real).unwrap();
+    set_mode(&real, 0o700);
     let link = tmp.root.join("link");
     symlink(&real, &link).unwrap();
     reject(&link);
@@ -960,4 +967,303 @@ fn random_suffix_is_not_constant() {
     let a = RealFs.random_suffix().unwrap();
     let b = RealFs.random_suffix().unwrap();
     assert_ne!(a, b);
+}
+
+// ---------------------------------------------------------------------------------------------------
+// P02-D03: data-directory ownership/mode and open hardening
+
+/// Delegates to `RealFs`, but reports a uid that differs from the real one for exactly one path.
+#[derive(Debug)]
+struct UidSpoof {
+    target: PathBuf,
+}
+
+impl FsOps for UidSpoof {
+    fn read(&self, path: &Path, max_bytes: u64) -> io::Result<Vec<u8>> {
+        RealFs.read(path, max_bytes)
+    }
+    fn create_new(&self, step: WriteStep, path: &Path, mode: u32) -> io::Result<()> {
+        RealFs.create_new(step, path, mode)
+    }
+    fn write_all(&self, step: WriteStep, path: &Path, bytes: &[u8]) -> io::Result<()> {
+        RealFs.write_all(step, path, bytes)
+    }
+    fn sync_file(&self, step: WriteStep, path: &Path) -> io::Result<()> {
+        RealFs.sync_file(step, path)
+    }
+    fn hard_link(&self, step: WriteStep, existing: &Path, new: &Path) -> io::Result<()> {
+        RealFs.hard_link(step, existing, new)
+    }
+    fn rename(&self, step: WriteStep, from: &Path, to: &Path) -> io::Result<()> {
+        RealFs.rename(step, from, to)
+    }
+    fn sync_dir(&self, step: WriteStep, dir: &Path) -> io::Result<()> {
+        RealFs.sync_dir(step, dir)
+    }
+    fn remove_file(&self, path: &Path) -> io::Result<()> {
+        RealFs.remove_file(path)
+    }
+    fn list_dir(&self, dir: &Path) -> io::Result<Vec<OsString>> {
+        RealFs.list_dir(dir)
+    }
+    fn symlink_metadata(&self, path: &Path) -> io::Result<FileInfo> {
+        let mut info = RealFs.symlink_metadata(path)?;
+        if path == self.target {
+            info.uid = info.uid.wrapping_add(1);
+        }
+        Ok(info)
+    }
+    fn create_dir(&self, step: WriteStep, path: &Path, mode: u32) -> io::Result<()> {
+        RealFs.create_dir(step, path, mode)
+    }
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+        RealFs.canonicalize(path)
+    }
+    fn random_suffix(&self) -> io::Result<[u8; 8]> {
+        RealFs.random_suffix()
+    }
+    fn open_lock_file(&self, path: &Path, mode: u32) -> io::Result<LockHandle> {
+        RealFs.open_lock_file(path, mode)
+    }
+}
+
+#[test]
+fn data_dir_new_requires_no_group_or_other_bits() {
+    let tmp = Tmp::new("dirmode");
+    for mode in [0o755, 0o750, 0o701, 0o770, 0o707] {
+        set_mode(&tmp.root, mode);
+        assert_eq!(
+            DataDir::new(&RealFs, &tmp.root).unwrap_err(),
+            StoreError::PathRejected,
+            "mode {mode:o}"
+        );
+    }
+    set_mode(&tmp.root, 0o700);
+    DataDir::new(&RealFs, &tmp.root).unwrap();
+}
+
+#[test]
+fn acquire_rejects_a_non_private_rag_dir_and_does_not_leak_the_lock() {
+    let tmp = Tmp::new("ragmode");
+    let rag = tmp.root.join("rag");
+    std::fs::create_dir(&rag).unwrap();
+    set_mode(&rag, 0o755);
+    let dir = tmp.data_dir();
+    assert_eq!(
+        acquire(&dir, &RealFs).unwrap_err(),
+        StoreError::PathRejected
+    );
+    set_mode(&rag, 0o700);
+    drop(acquire(&dir, &RealFs).unwrap());
+}
+
+#[test]
+fn acquire_rejects_a_non_private_backup_dir_and_does_not_leak_the_lock() {
+    let tmp = Tmp::new("backupmode");
+    let backup = tmp.root.join("backup");
+    std::fs::create_dir(&backup).unwrap();
+    set_mode(&backup, 0o750);
+    let dir = tmp.data_dir();
+    assert_eq!(
+        acquire(&dir, &RealFs).unwrap_err(),
+        StoreError::PathRejected
+    );
+    set_mode(&backup, 0o700);
+    drop(acquire(&dir, &RealFs).unwrap());
+}
+
+#[test]
+fn acquire_rejects_a_symlinked_backup_dir_and_does_not_leak_the_lock() {
+    let tmp = Tmp::new("backuplink");
+    let elsewhere = tmp.root.join("elsewhere");
+    std::fs::create_dir(&elsewhere).unwrap();
+    set_mode(&elsewhere, 0o700);
+    let backup = tmp.root.join("backup");
+    symlink(&elsewhere, &backup).unwrap();
+    let dir = tmp.data_dir();
+    assert_eq!(
+        acquire(&dir, &RealFs).unwrap_err(),
+        StoreError::PathRejected
+    );
+    std::fs::remove_file(&backup).unwrap();
+    drop(acquire(&dir, &RealFs).unwrap());
+}
+
+#[test]
+fn acquire_rejects_a_regular_file_in_place_of_backup() {
+    let tmp = Tmp::new("backupfile");
+    let backup = tmp.root.join("backup");
+    std::fs::write(&backup, b"x").unwrap();
+    let dir = tmp.data_dir();
+    assert_eq!(
+        acquire(&dir, &RealFs).unwrap_err(),
+        StoreError::PathRejected
+    );
+    std::fs::remove_file(&backup).unwrap();
+    drop(acquire(&dir, &RealFs).unwrap());
+}
+
+#[test]
+fn acquire_accepts_existing_private_rag_and_backup_dirs() {
+    let tmp = Tmp::new("subok");
+    for name in ["rag", "backup"] {
+        let sub = tmp.root.join(name);
+        std::fs::create_dir(&sub).unwrap();
+        set_mode(&sub, 0o700);
+    }
+    let dir = tmp.data_dir();
+    drop(acquire(&dir, &RealFs).unwrap());
+}
+
+#[test]
+fn acquire_rejects_a_hard_linked_lock_file() {
+    let tmp = Tmp::new("lockhard");
+    let lock = tmp.root.join(".app.lock");
+    std::fs::write(&lock, b"").unwrap();
+    std::fs::hard_link(&lock, tmp.root.join("other-name")).unwrap();
+    let dir = tmp.data_dir();
+    assert_eq!(
+        acquire(&dir, &RealFs).unwrap_err(),
+        StoreError::PathRejected
+    );
+    std::fs::remove_file(tmp.root.join("other-name")).unwrap();
+    drop(acquire(&dir, &RealFs).unwrap());
+}
+
+#[test]
+fn open_lock_file_refuses_a_symlink_on_its_own() {
+    // The handle-level O_NOFOLLOW refuses it (the path pre-check in `acquire` is not relied on here).
+    let tmp = Tmp::new("locknofollow");
+    let elsewhere = tmp.root.join("elsewhere");
+    std::fs::write(&elsewhere, b"x").unwrap();
+    let lock = tmp.root.join(".app.lock");
+    symlink(&elsewhere, &lock).unwrap();
+    assert!(RealFs.open_lock_file(&lock, 0o600).is_err());
+    assert_eq!(std::fs::read(&elsewhere).unwrap(), b"x");
+}
+
+#[test]
+fn acquire_rejects_a_uid_mismatch_on_the_data_dir_or_on_rag() {
+    let tmp = Tmp::new("uid");
+    let rag = tmp.root.join("rag");
+    std::fs::create_dir(&rag).unwrap();
+    set_mode(&rag, 0o700);
+    let dir = tmp.data_dir();
+    let spoof_dir = UidSpoof {
+        target: dir.as_path().to_path_buf(),
+    };
+    assert_eq!(
+        acquire(&dir, &spoof_dir).unwrap_err(),
+        StoreError::PathRejected
+    );
+    let spoof_rag = UidSpoof {
+        target: dir.as_path().join("rag"),
+    };
+    assert_eq!(
+        acquire(&dir, &spoof_rag).unwrap_err(),
+        StoreError::PathRejected
+    );
+    // Neither rejection left the lock held.
+    drop(acquire(&dir, &RealFs).unwrap());
+}
+
+#[test]
+fn owner_uid_equals_the_data_dir_uid() {
+    let tmp = Tmp::new("owner");
+    let dir = tmp.data_dir();
+    let lock = acquire(&dir, &RealFs).unwrap();
+    assert_eq!(
+        lock.owner_uid(),
+        std::fs::metadata(dir.as_path()).unwrap().uid()
+    );
+}
+
+#[test]
+fn read_refuses_a_symlink_and_returns_no_content() {
+    let tmp = Tmp::new("readlink");
+    let target = tmp.root.join("target");
+    std::fs::write(&target, b"synthetic content").unwrap();
+    let link = tmp.root.join("link");
+    symlink(&target, &link).unwrap();
+    assert!(RealFs.read(&link, BIG).is_err());
+    assert_eq!(RealFs.read(&target, BIG).unwrap(), b"synthetic content");
+}
+
+#[test]
+fn write_all_through_a_symlink_fails_and_leaves_the_target_alone() {
+    let tmp = Tmp::new("writelink");
+    let target = tmp.root.join("target");
+    std::fs::write(&target, b"original").unwrap();
+    let link = tmp.root.join("link");
+    symlink(&target, &link).unwrap();
+    assert!(
+        RealFs
+            .write_all(WriteStep::WriteTemp, &link, b"clobber")
+            .is_err()
+    );
+    assert!(RealFs.sync_file(WriteStep::SyncTemp, &link).is_err());
+    assert_eq!(std::fs::read(&target).unwrap(), b"original");
+}
+
+#[test]
+fn read_of_a_fifo_fails_promptly_instead_of_blocking() {
+    let tmp = Tmp::new("fifo");
+    let fifo = tmp.root.join("fifo");
+    let status = std::process::Command::new("/usr/bin/mkfifo")
+        .arg(&fifo)
+        .status()
+        .expect("/usr/bin/mkfifo must be present to run this test");
+    assert!(status.success(), "mkfifo failed");
+    let (tx, rx) = std::sync::mpsc::channel();
+    let path = fifo.clone();
+    std::thread::spawn(move || {
+        let _ = tx.send(RealFs.read(&path, BIG));
+    });
+    let result = rx
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .expect("read of a FIFO must not block");
+    assert_eq!(result.unwrap_err().kind(), ErrorKind::InvalidInput);
+    // The other file operations refuse it too (write: no reader, or non-regular).
+    assert!(RealFs.write_all(WriteStep::WriteTemp, &fifo, b"x").is_err());
+    assert!(RealFs.sync_file(WriteStep::SyncTemp, &fifo).is_err());
+}
+
+#[test]
+fn a_file_with_two_hard_links_is_still_readable() {
+    let tmp = Tmp::new("hardread");
+    let file = tmp.root.join("f");
+    std::fs::write(&file, b"two links").unwrap();
+    std::fs::hard_link(&file, tmp.root.join("g")).unwrap();
+    assert_eq!(std::fs::metadata(&file).unwrap().nlink(), 2);
+    assert_eq!(RealFs.read(&file, BIG).unwrap(), b"two links");
+    RealFs
+        .write_all(WriteStep::WriteTemp, &file, b"TWO LINKS")
+        .unwrap();
+    RealFs.sync_file(WriteStep::SyncTemp, &file).unwrap();
+}
+
+#[test]
+fn sync_dir_refuses_a_symlink_and_a_regular_file() {
+    let tmp = Tmp::new("syncdir");
+    let real = tmp.root.join("real");
+    std::fs::create_dir(&real).unwrap();
+    RealFs.sync_dir(WriteStep::SyncDir, &real).unwrap();
+    let link = tmp.root.join("link");
+    symlink(&real, &link).unwrap();
+    assert!(RealFs.sync_dir(WriteStep::SyncDir, &link).is_err());
+    let file = tmp.root.join("file");
+    std::fs::write(&file, b"x").unwrap();
+    assert!(RealFs.sync_dir(WriteStep::SyncDir, &file).is_err());
+}
+
+#[test]
+fn symlink_metadata_reports_uid_and_nlink() {
+    let tmp = Tmp::new("info");
+    let file = tmp.root.join("f");
+    std::fs::write(&file, b"x").unwrap();
+    std::fs::hard_link(&file, tmp.root.join("g")).unwrap();
+    let info = RealFs.symlink_metadata(&file).unwrap();
+    let meta = std::fs::metadata(&file).unwrap();
+    assert_eq!(info.uid, meta.uid());
+    assert_eq!(info.nlink, 2);
 }
