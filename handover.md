@@ -1,35 +1,30 @@
 # Handover
 
-Checkpoint: 2026-10-28, **P02-T14 done (with debug cycles D07, D08), UNCOMMITTED on B3b `bf6130b`**. `--final` PASS 866/0/0, 0 ignored, 39 compile_fail, cli 48/0/0 (`evidence/P02/T14/final-check/`); floors 866/39 in `dev/p02_baseline.json` (uncommitted). Records `evidence/P02/{T11,T12,T13,T14}/record.md`, `evidence/debug/P02-D07/record.md`, `evidence/debug/P02-D08/record.md`. T15 not approved.
+Checkpoint: 2026-10-28 (late), **B4 committed locally (`0cc562e`); T15 started, then STOPPED by the owner** ("stop before you start p002t14", read as T15 because T14 was already done and committed). Nothing pushed; `main` untouched.
 
 ## Takeover map (read this before touching anything)
 
-Branch `phase/P02-store`: HEAD `bf6130b` (B3b, T13) → `49b8cba` (B3, T11+T12) → `2448abf` (B2) → `9537c67` (= `origin/phase/P02-store`). B2/B3/B3b are **local commits; push not approved**. `main` untouched since the P01 merge (`7324da6`); do not merge.
+Branch `phase/P02-store`: HEAD `0cc562e` (B4: T14 + D07 + D08, `--final` 866/0/0, 39, cli 48) → `bf6130b` (B3b, T13) → `49b8cba` (B3, T11+T12) → `2448abf` (B2) → `9537c67` (= `origin/phase/P02-store`). **Four local commits ahead; push not approved.** `main` = P01 merge `7324da6`; merge not approved.
 
-Working tree on top of B3b (one layer, unstaged/untracked; nothing staged):
-- T14: `workbench/crates/application/src/dev_store.rs` (four `*_with` fault seams `pub`), `cli/src/features.rs` (27 rows), new `application/tests/dev_store_faults.rs`, `cli/tests/p02_failures.rs`.
-- D07: `persistence/src/atomic.rs` (`replace_steps`), `persistence/tests/fs_atomic.rs`. D08: `cli/tests/p02_scenarios.rs` (`store_after_release`).
-- Lead: `dev/p02_check.py` (T14 static rules, review hardening, git hardening), new `dev/p02_differential.py`, `dev/p02_baseline.json` (866/39), `evidence/P02/T13/record.md` (one correction), `plan.md`, `status.md`, `handover.md`.
-- Untracked: `evidence/P02/T14/`, `evidence/debug/P02-D07/`, `evidence/debug/P02-D08/`, packets `planning/P02-packets/{T14-W1,D07-W1,D08-W2}.md`; `.commandcode/` is local and never committed.
+Working tree on top of B4: untracked `evidence/P02/T15/` only (plus local `.commandcode/`, never commit) and the doc updates of this checkpoint (`status.md`, `handover.md`):
+- `differential-b/` + `.stdout`: differential B re-run on B4, **PASS** (jsonschema 4.26.0, schema SHA = pin, 31/31, 5 controls).
+- `final-check/` + `final-check.stdout`: `all --final` on B4 **stopped by the lead mid-run at the owner's stop; no verdict**. Not evidence; discard or overwrite when T15 resumes.
 
-HEAD alone gives 840/39; HEAD + working tree gives 866/39.
+Owner decisions 2026-10-28: B4 commit; T15 approved; Q-T14-1 keep (exit 4); Q-T14-2 → plan §5.2 **FR-32** (P06, P19 at the latest); Q-T14-3 → **FR-33** (P03).
 
-### Worktrees (git-excluded via `.git/info/exclude`)
-| Worktree | Branch / HEAD | State |
-|---|---|---|
-| `p02-t14-w1`, `p02-d07-w1`, `p02-d08-w2` | @ `bf6130b` | increments (D07/D08 on lead-staged bases) identical to the main tree; keep until B4 |
-| `p02-t13-w3` | @ `49b8cba` | contained in B3b |
-| `p02-t11-w1`, `p02-t12-w2` | @ `2448abf` | contained in B3 |
-| `p02-t08-w1`, `p02-t09-w2`, `p02-t10-w3`, `p02-d05-w1`, `p02-d06-w1`, `agent-a4ba8a936ec281447`, `agent-abb89aad73dcb2554` | @ `9537c67` | contained in B2 |
+### Disk clean-up (owner 2026-10-28: "safely clean the build artefact for redundant stuff", then "remove any unnecessary build, in depth clean up and cache removal")
+- **Build caches deleted:** every Cargo target dir under `~/.local/share/pwt-dev-tools/_cargo-target/` (six worker slots, then the lead slot `p02-lead-47835b267e4c`; each cache-tagged, nothing running) and the uv download cache `_uv-cache/` (installed venvs checked afterwards: checkov 3.3.30, yamllint 1.38.0 run). **The next runner call rebuilds from scratch** (offline from `_cargo-home`, `--frozen`; slower first run, no network).
+- **Worktrees removed:** all 13 (`p02-t08..t14-w*`, `p02-d05..d08-w*`, `agent-a4ba8a936ec281447`, `agent-abb89aad73dcb2554`) with `git worktree remove --force`, branches deleted with `git branch -d` (all merged into `0cc562e`). Preservation: every worktree HEAD is an ancestor of B4; 2 had no content outside history; 11 held superseded intermediate states (pre-integration stubs, older floors, pre-D07 F-1 test). Before removal each worktree's `git diff --binary HEAD`, untracked files (tar), status and HEAD were archived to `~/.local/share/pwt-dev-tools/_archive/p02-worktrees-2026-10-28.tar.gz` (826 KB, 67 entries, internal `SHA256SUMS` verified after extraction). Not in Git.
+- **Kept on purpose:** `_cargo-home` (only offline copy of the 72 locked crates; needed for every build), `_staging` (verified archives/attestations, install-record provenance), `_artifacts` and `_private-evidence` (P00 evidence referenced by records), all tool installs, `_p01`/`_p02` scratch (≤1 MB, referenced by records), repository evidence.
+- Result: `pwt-dev-tools` 23 GB → 819 MB; disk 91 % → 68 % (31 GB free).
 
-Removal of any worktree is not approved (preservation check, non-force `git worktree remove`, `git branch -d` when approved).
+### Worktrees
+None besides the main tree. New workers need fresh lead-prepared worktrees from B4 (`.claude/worktrees/` stays git-excluded).
 
 ### P02 state in brief
-- Wave 3 (T11 emitter, T12 CLI + dev store, T13 FR-31 table/guards) committed in B3/B3b; details in their records.
-- **T14:** application fault matrix (every reached write step × StorageFull/PermissionDenied/Interrupted, crash matrix, read/lock faults), CLI failure scenarios (malformed JSON ×9 roots ×8 damages, >64 MiB, stale lock, second-process lock, leftover temps, same-second reports, hostile/long/symlinked data dirs), static rules (layering, `process::exit`, `/dev/urandom`, store `Event` construction, `RedactedText` helper, `*_with` seams, allow/expect equality), differential B (host `jsonschema` 4.26.0, 31/31).
-- **D07:** F-1 fixed (stray `.prev` temp after a failed Replace; POSIX no-op rename). **D08:** flaky post-release lock assertion fixed with a bounded wait (hypothesis: fork→exec descriptor inheritance; unconfirmed).
-- **Manual-pending:** `real_storage_failure_exits_4_when_permissions_are_enforced` returns early inside the runner (root-mapped user namespace); run once unprivileged outside `unshare`.
-- Open owner decisions: Q-T14-1 (4090-byte path exit 4), Q-T14-2 (escape-set gaps, P06/P19), Q-T14-3 (lock uid proxy as root, P03); dev caps (T09, FR-11).
+- T01–T14 done and committed locally (B0 … B4); records `evidence/P02/*/record.md`, debug records `evidence/debug/P02-D01..D08/`.
+- **T15 (approved, paused):** to do — fresh `all --final` on B4 into a new dir, freeze `evidence/P02/P02-freeze.json` (P01 freeze layout: toolchain, workspace incl. `crates/cli`, direct deps serde/serde_json/jsonschema/sha2/libc, lock entries + sha, build exposure from `evidence/P02/T02/record.md` §4 — 15 build scripts, 3 proc-macros, advisory status: cargo-audit C-A fetch only, not run; contract versions store 1.4 / app 1.1 / spec 0.3.5; runner/baseline hashes; schema sha), report `evidence/P02/P02-report.md` (acceptance criteria §5B.4 1–11), status/handover → stop for acceptance. Lead-owned per plan §5B.3: no Sonnet worker needed.
+- **Manual-pending:** `real_storage_failure_exits_4_when_permissions_are_enforced` (run once unprivileged outside `unshare`).
 
 ### Lessons (T11–T14)
 - T14: keep a finding test `#[ignore]`d only until its debug cycle lands — the runner fails on any ignored test, which keeps findings visible. Debug-cycle workers can receive the integrated state as a lead-staged base (sha recorded) without a commit.
@@ -37,14 +32,17 @@ Removal of any worktree is not approved (preservation check, non-force `git work
 - T13: a lead negative control in a *model* file (not only the worker's own table) shows the guard tests catch drift from either side.
 - T12: staging the previous increment (T11) in the worker worktree as a lead base works when there is no commit approval; check the staged hash is unchanged in the worker report.
 - **Do not pass harness `isolation: "worktree"` when using a lead-prepared worktree:** it creates a second worktree at the wrong commit and confines the worker's writes there (spawn 1 blocked). Spawn without it and confine by packet to the prepared worktree; verify afterwards that the main tree is untouched (`git status`).
+- Space: each Cargo slot target dir grows to 2.5–4 GB; once a worker's work is committed, delete its target dir and archive + remove its worktree.
 - Earlier lessons still apply: `--no-fail-fast` (NC8); controls restore files with a fresh mtime (D05).
 
 ### Re-verify (exact commands)
-Main tree: `python3 -I -B dev/p02_check.py all --slot lead --final --out <new dir>` (floors 866/39 from `dev/p02_baseline.json`), or `--min-passed 866 --min-compile-fail 39` instead of `--final`. Differential B: `python3 -I -B dev/p02_differential.py --out <new dir>`.
+Main tree: `python3 -I -B dev/p02_check.py all --slot lead --final --out <new dir>` (floors 866/39 from `dev/p02_baseline.json`). Differential B: `python3 -I -B dev/p02_differential.py --out <new dir>`.
 Worker tree: `python3 -I -B .claude/worktrees/<wt>/dev/p02_check.py all --slot w1 --repo .claude/worktrees/<wt> --out <dir>`. Cargo only through the runner (pinned 1.97.1, `env -i`, isolated `CARGO_HOME`, `unshare -rn`, `--frozen`); no network.
 
 ### What is next, and what is not approved
-Recommended next: **B4 local commit** (T14 + D07 + D08), then **T15** (P02 report `evidence/P02/P02-report.md`, freeze update, status/handover) → owner acceptance → merge decision (`main`) and push decision. Not approved: B4 commit, T15, push, cargo-audit C-A2+, network, new dependencies, merge to `main`, worktree removal. Open: Q-T14-1..3, manual exit-4 run, dev caps (T09, FR-11), O-1–O-6 (P13), Q-01/Q-02/Q-04/Q-05, B-01, B-04, B-08.
+Next on owner go: **resume T15** (above) → stop for P02 acceptance → merge and push decisions. Not approved: push, merge to `main`, cargo-audit C-A2+, network, new dependencies, a T15 commit. Open: manual exit-4 run, dev caps (T09, FR-11), O-1–O-6 (P13), Q-01/Q-02/Q-04/Q-05, B-01, B-04, B-08.
+
+Previous checkpoint (historical): 2026-10-28, P02-T14 done with D07/D08, uncommitted on `bf6130b`, `--final` 866/0/0, 39, cli 48 — committed as B4 `0cc562e`.
 
 Previous checkpoint (historical):
 
