@@ -526,7 +526,13 @@ fn validated_record(kind: StoreKind, read: RootRead) -> DevRecord {
     }
 }
 
-fn init_with(fs: Arc<dyn FsOps>, validator: Arc<dyn DocumentValidator>, dir: &Path) -> DevOutcome {
+/// [`init`] over an injected file system and validator: fault-injection seam for tests; production callers
+/// use `init`/`validate`/`show`/`recover`.
+pub fn init_with(
+    fs: Arc<dyn FsOps>,
+    validator: Arc<dyn DocumentValidator>,
+    dir: &Path,
+) -> DevOutcome {
     let data = match DataDir::new(&*fs, dir) {
         Ok(data) => data,
         Err(e) => return DevOutcome::failed(e),
@@ -550,7 +556,9 @@ pub fn init(dir: &Path) -> DevOutcome {
     init_with(Arc::new(RealFs), Arc::new(SchemaValidator::new()), dir)
 }
 
-fn validate_with(
+/// [`validate`] over an injected file system and validator: fault-injection seam for tests; production
+/// callers use `init`/`validate`/`show`/`recover`.
+pub fn validate_with(
     fs: &dyn FsOps,
     validator: &dyn DocumentValidator,
     dir: &Path,
@@ -581,7 +589,9 @@ pub fn validate(dir: &Path, root: Option<StoreKind>) -> DevOutcome {
     validate_with(&RealFs, &SchemaValidator::new(), dir, root)
 }
 
-fn show_with(
+/// [`show`] over an injected file system and validator: fault-injection seam for tests; production callers
+/// use `init`/`validate`/`show`/`recover`.
+pub fn show_with(
     fs: &dyn FsOps,
     validator: &dyn DocumentValidator,
     dir: &Path,
@@ -643,7 +653,9 @@ fn reconciled_record(report: ReconcileReport) -> DevRecord {
     }
 }
 
-fn recover_with(
+/// [`recover`] over an injected file system and validator: fault-injection seam for tests; production
+/// callers use `init`/`validate`/`show`/`recover`.
+pub fn recover_with(
     fs: Arc<dyn FsOps>,
     validator: Arc<dyn DocumentValidator>,
     dir: &Path,

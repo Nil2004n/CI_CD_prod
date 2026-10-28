@@ -36,7 +36,7 @@ Lead decisions / observations (no code change, no debug cycle):
 - L-T13-1: `Row` is a tuple alias rather than a struct because the runner's static "no bare String/str in store-model fields" rule scans every struct in `store/*.rs`; acceptable, documented in the worker report.
 - L-T13-2: the model-source parser in `fr31.rs` is textual (self-tested; no generic/tuple/macro-generated store structs exist). A future macro-generated model would need the parser or a const table.
 - L-T13-3: `compile_fail` doctests pass for any compile error; each has a compiling control. Control 3b differs in two places (helper path and field type), a minor deviation from "differs only in the forbidden part". Error codes in the attributes are not enforced on stable.
-- L-T13-4: no `Vec<RedactedText>` field exists, so `store_read::redacted_vec` stays unused (existing `#[expect(dead_code)]` reason in `text.rs`); `the_redacted_shapes_present_are_the_ones_the_seal_tests_cover` fails when one appears.
+- L-T13-4: no `Vec<RedactedText>` field exists, so `store_read::redacted_vec` stays unused (existing `#[allow(dead_code, reason = …)]` on `store_read` in `text.rs`, approved in the runner's `SRC_ALLOWS`; corrected 2026-10-28 after the T14 review — the record first said `#[expect]`); `the_redacted_shapes_present_are_the_ones_the_seal_tests_cover` fails when one appears.
 - Plan wording: `plan.md` T13 says "sealed `RedactedText` read-back path in `persistence`"; superseded by T01-D1 (read-back is `domain::text::store_read`, `pub(crate)`, already in place). No persistence path was added.
 
 ## 4. Not done

@@ -1,0 +1,73 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/cli-1d43d82945d530bb)
+
+running 13 tests
+test args::tests::flag_values_are_required_and_not_repeatable ... ok
+test args::tests::flags_are_checked_against_the_command ... ok
+test args::tests::non_utf8_argument_is_a_usage_error ... ok
+test args::tests::json_flag_is_global ... ok
+test args::tests::roots_resolve_for_every_command ... ok
+test args::tests::usage_messages_do_not_echo_arguments ... ok
+test commands::tests::command_names_are_unique ... ok
+test commands::tests::store_topic_selects_the_store_commands ... ok
+test output::tests::a_broken_stdout_is_remembered_and_never_panics ... ok
+test output::tests::json_lines_are_escaped_and_stay_valid_json ... ok
+test commands::tests::failure_classes_map_to_exit_codes ... ok
+test commands::tests::exit_codes_are_the_frozen_values ... ok
+test output::tests::restored_record_mentions_quarantine ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/pwt_workbench_cli-83cefec0d008689b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p02_failures.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/p02_failures-e8dbcb1f7c5d3c13)
+
+running 14 tests
+test application_storage_failures_map_to_exit_4 ... ok
+test lock_file_that_is_a_symlink_or_hard_linked_is_rejected_with_exit_5 ... ok
+test data_directory_paths_near_and_over_path_max ... ok
+test non_utf8_and_flag_like_data_dir_values_are_usage_errors ... ok
+test leftover_temp_files_are_removed_and_look_alikes_survive ... ok
+test real_storage_failure_exits_4_when_permissions_are_enforced ... ok
+test lock_held_by_a_second_process_exits_3_then_succeeds_after_release ... ok
+test second_process_lock_holder_helper ... ok
+test same_second_reports_are_recognised_and_not_orphans ... ok
+test stale_lock_file_does_not_block_and_is_not_echoed ... ok
+test symlinked_and_permissive_data_directories_exit_5 ... ok
+test oversized_root_is_reported_too_large_without_reading_it ... ok
+test malformed_json_in_every_root_is_invalid_not_a_failure ... ok
+test hostile_data_directory_names_work_and_are_never_echoed ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.50s
+
+     Running tests/p02_scenarios.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/p02_scenarios-d013af4be585a2b9)
+
+running 21 tests
+test exit_codes_map_as_specified ... ok
+test a_closed_stdout_does_not_panic_and_is_exit_5 ... ok
+test features_prints_the_index ... ok
+test help_lists_every_command ... ok
+test help_for_one_command_and_unknown_topic ... ok
+test feature_index_rows_name_an_existing_command_and_test ... ok
+test in_process_run_reports_a_held_lock_as_exit_3 ... ok
+test malformed_root_is_invalid_and_exit_is_zero ... ok
+test lock_held_by_another_holder_exits_3 ... ok
+test rejected_data_directory_exits_5 ... ok
+test init_creates_exactly_five_roots_and_is_idempotent ... ok
+test recover_removes_leftover_temp_files_and_reports_malformed_roots ... ok
+test json_lines_parse_and_store_records_carry_mode_dev ... ok
+test schema_1_3_label_is_rejected_with_the_version_problem ... ok
+test restore_previous_restores_and_quarantines ... ok
+test usage_errors_exit_2 ... ok
+test version_prints_all_contract_versions ... ok
+test restore_without_previous_generation_exits_5_and_keeps_the_reconciliation_record ... ok
+test show_of_a_malformed_root_prints_problems_only ... ok
+test seeded_marker_never_reaches_output_unescaped ... ok
+test validate_fresh_store_and_single_root ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+

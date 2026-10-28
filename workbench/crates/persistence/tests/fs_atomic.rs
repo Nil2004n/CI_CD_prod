@@ -310,6 +310,139 @@ fn replace_fault_at_every_step_keeps_previous_file_and_names_the_step() {
     }
 }
 
+/// Leaves `repo.json` = "old" and `repo.json.prev` = "old" as the very same inode: a `write_replace` with
+/// `keep_previous` that failed at `Replace` after its `.prev` rename succeeded (finding F-1).
+fn seed_failed_replace(dir: &DataDir, path: &StorePath) {
+    seed(dir, path);
+    let fs = FaultFs::new(plan(WriteStep::Replace, ErrorKind::StorageFull));
+    assert_eq!(
+        write_replace(&fs, dir, path, b"lost", true),
+        Err(StoreError::Io {
+            step: WriteStep::Replace,
+            kind: ErrorKind::StorageFull
+        })
+    );
+    assert!(fs.fired());
+    let target = dir.join(path);
+    let prev = dir.join(&path.previous());
+    assert_eq!(std::fs::read(&target).unwrap(), b"old");
+    assert_eq!(std::fs::read(&prev).unwrap(), b"old");
+    assert_eq!(
+        std::fs::metadata(&target).unwrap().ino(),
+        std::fs::metadata(&prev).unwrap().ino(),
+        "precondition: .prev and the target are two links of one inode"
+    );
+}
+
+/// F-1: `rename(2)` between two links of one inode succeeds and does nothing, so without the explicit removal
+/// the `.prev` temp link survived a successful rewrite that follows a failed `Replace`.
+#[test]
+fn a_rewrite_after_a_failed_replace_leaves_no_stray_prev_temp() {
+    let path = root_path(StoreKind::Repositories);
+    let tmp = Tmp::new("f1rewrite");
+    let dir = tmp.data_dir();
+    seed_failed_replace(&dir, &path);
+
+    write_replace(&RealFs, &dir, &path, b"new", true).unwrap();
+
+    assert_eq!(
+        names(&tmp.root),
+        ["repo.json", "repo.json.prev"],
+        "no temp name survives the successful rewrite"
+    );
+    assert_eq!(std::fs::read(dir.join(&path)).unwrap(), b"new");
+    assert_eq!(std::fs::read(dir.join(&path.previous())).unwrap(), b"old");
+    assert_eq!(mode_of(&dir.join(&path)), 0o600);
+    assert_eq!(mode_of(&dir.join(&path.previous())), 0o600);
+}
+
+/// A `FsOps` that delegates to `RealFs` but fails `remove_file` for `.prev.tmp-` names (also during cleanup).
+#[derive(Debug)]
+struct PrevTempRemovalFails;
+
+impl FsOps for PrevTempRemovalFails {
+    fn read(&self, path: &Path, max_bytes: u64) -> io::Result<Vec<u8>> {
+        RealFs.read(path, max_bytes)
+    }
+    fn create_new(&self, step: WriteStep, path: &Path, mode: u32) -> io::Result<()> {
+        RealFs.create_new(step, path, mode)
+    }
+    fn write_all(&self, step: WriteStep, path: &Path, bytes: &[u8]) -> io::Result<()> {
+        RealFs.write_all(step, path, bytes)
+    }
+    fn sync_file(&self, step: WriteStep, path: &Path) -> io::Result<()> {
+        RealFs.sync_file(step, path)
+    }
+    fn hard_link(&self, step: WriteStep, existing: &Path, new: &Path) -> io::Result<()> {
+        RealFs.hard_link(step, existing, new)
+    }
+    fn rename(&self, step: WriteStep, from: &Path, to: &Path) -> io::Result<()> {
+        RealFs.rename(step, from, to)
+    }
+    fn sync_dir(&self, step: WriteStep, dir: &Path) -> io::Result<()> {
+        RealFs.sync_dir(step, dir)
+    }
+    fn remove_file(&self, path: &Path) -> io::Result<()> {
+        let is_prev_temp = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.contains(".prev.tmp-"));
+        if is_prev_temp {
+            return Err(ErrorKind::PermissionDenied.into());
+        }
+        RealFs.remove_file(path)
+    }
+    fn list_dir(&self, dir: &Path) -> io::Result<Vec<OsString>> {
+        RealFs.list_dir(dir)
+    }
+    fn symlink_metadata(&self, path: &Path) -> io::Result<FileInfo> {
+        RealFs.symlink_metadata(path)
+    }
+    fn create_dir(&self, step: WriteStep, path: &Path, mode: u32) -> io::Result<()> {
+        RealFs.create_dir(step, path, mode)
+    }
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+        RealFs.canonicalize(path)
+    }
+    fn random_suffix(&self) -> io::Result<[u8; 8]> {
+        RealFs.random_suffix()
+    }
+    fn open_lock_file(&self, path: &Path, mode: u32) -> io::Result<LockHandle> {
+        RealFs.open_lock_file(path, mode)
+    }
+}
+
+/// F-1: if the stray `.prev` temp link cannot be removed the failure is reported at `ReplacePrevious`, not
+/// swallowed, and the target is untouched because the main `Replace` has not run.
+#[test]
+fn failing_to_remove_the_prev_temp_is_reported_before_the_main_replace() {
+    let path = root_path(StoreKind::Repositories);
+    let tmp = Tmp::new("f1removefail");
+    let dir = tmp.data_dir();
+    seed_failed_replace(&dir, &path);
+
+    let res = write_replace(&PrevTempRemovalFails, &dir, &path, b"new", true);
+
+    assert_eq!(
+        res,
+        Err(StoreError::Io {
+            step: WriteStep::ReplacePrevious,
+            kind: ErrorKind::PermissionDenied
+        })
+    );
+    assert_eq!(std::fs::read(dir.join(&path)).unwrap(), b"old");
+    assert_eq!(std::fs::read(dir.join(&path.previous())).unwrap(), b"old");
+    // The unremovable link is the only leftover (the new-content temp was cleaned); a `recover` removes it.
+    let left = names(&tmp.root);
+    let strays: Vec<&String> = left
+        .iter()
+        .filter(|n| n.starts_with(".repo.json.prev.tmp-"))
+        .collect();
+    assert_eq!(strays.len(), 1, "{left:?}");
+    assert_eq!(left.len(), 3, "{left:?}");
+    assert!(is_temp_file_name(strays[0]));
+}
+
 #[test]
 fn replace_fault_on_first_write_leaves_no_file_and_no_temp() {
     let path = root_path(StoreKind::Repositories);

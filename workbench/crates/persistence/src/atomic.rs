@@ -172,6 +172,18 @@ fn replace_steps(
             &dir.join(&path.previous()),
         )
         .map_err(at(WriteStep::ReplacePrevious))?;
+        // POSIX `rename(2)` between two links of the same inode succeeds and does nothing, so when
+        // `<name>.prev` already names the target's inode (a previous call failed at `Replace` after its
+        // `.prev` rename) the temp link is still there. Remove it here, before the main replace, so a
+        // successful write never leaves a stray `.<name>.prev.tmp-<hex>`. It stays registered in `temps`
+        // until it is gone, so a failure in this block still cleans it up.
+        match fs.symlink_metadata(&prev_tmp) {
+            Ok(_) => fs
+                .remove_file(&prev_tmp)
+                .map_err(at(WriteStep::ReplacePrevious))?,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+            Err(e) => return Err(at(WriteStep::ReplacePrevious)(e)),
+        }
         temps.forget(&prev_tmp);
     }
 

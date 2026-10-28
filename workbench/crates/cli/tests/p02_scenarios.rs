@@ -164,6 +164,29 @@ fn init(tmp: &Tmp) {
     assert_eq!(run.code, 0, "init failed: {}", run.err());
 }
 
+/// `store <sub> --data-dir <tmp> <extra...>`, re-run while it exits 3 (lock held), at most 10 s, 20 ms
+/// apart; returns the first run that exits otherwise (the caller asserts on it) and the number of tries.
+///
+/// For use right after a test releases a lock it held through a descriptor of the test process. Sibling
+/// tests run in parallel threads of this process and spawn the binary; between `fork` and `exec` the child
+/// holds a copy of every descriptor of the test process (`O_CLOEXEC` ones are closed only by `exec`). A
+/// `flock` lives until the last descriptor of its open file description is closed, so `drop` of the holder
+/// does not release the lock while such a child exists, and a command started in that window correctly
+/// exits 3. Only exit 3 is retried; any other code is returned at once. The product is not affected: it
+/// never spawns a process while holding the lock.
+fn store_after_release(tmp: &Tmp, sub: &str, extra: &[&str]) -> (Run, u32) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let mut tries = 1;
+    loop {
+        let run = store(tmp, sub, extra);
+        if run.code != 3 || std::time::Instant::now() >= deadline {
+            return (run, tries);
+        }
+        tries += 1;
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+}
+
 /// The record of `dev_event` `event` among `records`; panics unless there is exactly one.
 fn one<'a>(records: &'a [Value], event: &str) -> &'a Value {
     let found: Vec<&Value> = records.iter().filter(|r| r["dev_event"] == event).collect();
@@ -792,8 +815,8 @@ fn lock_held_by_another_holder_exits_3() {
         assert!(!err.contains(tmp.dir()));
     }
     drop(held);
-    let free = store(&tmp, "validate", &[]);
-    assert_eq!(free.code, 0, "{}", free.err());
+    let (free, tries) = store_after_release(&tmp, "validate", &[]);
+    assert_eq!(free.code, 0, "after {tries} tries: {}", free.err());
 }
 
 /// Fails if a missing `--data-dir`, an unknown command, an unknown flag, a missing or unknown root, a

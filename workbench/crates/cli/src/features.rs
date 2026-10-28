@@ -55,7 +55,7 @@ pub struct FeatureRow {
 }
 
 /// The feature index as of P02.
-pub const FEATURES: [FeatureRow; 13] = [
+pub const FEATURES: [FeatureRow; 27] = [
     FeatureRow {
         requirement: "D-17; Architecture A-11 (contract versions)",
         command: "--version",
@@ -144,6 +144,104 @@ pub const FEATURES: [FeatureRow; 13] = [
         requirement: "Data Schema 12.7; T01-D8",
         command: "store recover",
         scenario: "restore_previous_restores_and_quarantines",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "FR-31 (no value echo); FR-15; Data Schema 12",
+        command: "store validate",
+        scenario: "malformed_json_in_every_root_is_invalid_not_a_failure",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "FR-31 (validated content only); FR-15",
+        command: "store show",
+        scenario: "malformed_json_in_every_root_is_invalid_not_a_failure",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 6.5 (64 MiB bound); FR-15",
+        command: "store validate",
+        scenario: "oversized_root_is_reported_too_large_without_reading_it",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Data Schema 12.6 (single instance; stale lock reused)",
+        command: "store init",
+        scenario: "stale_lock_file_does_not_block_and_is_not_echoed",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Data Schema 12.6; Request 6.3 (lock file confinement)",
+        command: "store validate",
+        scenario: "lock_file_that_is_a_symlink_or_hard_linked_is_rejected_with_exit_5",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Data Schema 12.6 (single instance, second process)",
+        command: "store recover",
+        scenario: "lock_held_by_a_second_process_exits_3_then_succeeds_after_release",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 6.5; Data Schema 12.6-12.7; T01-D8",
+        command: "store recover",
+        scenario: "leftover_temp_files_are_removed_and_look_alikes_survive",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 6.4 (same-second reports); Data Schema 13",
+        command: "store recover",
+        scenario: "same_second_reports_are_recognised_and_not_orphans",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.5 (data-dir confinement); FR-31 (no path echo)",
+        command: "store init",
+        scenario: "hostile_data_directory_names_work_and_are_never_echoed",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.5 (path bounds)",
+        command: "store init",
+        scenario: "data_directory_paths_near_and_over_path_max",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.5 (data-dir confinement); Request 5.9 (exit 5)",
+        command: "store validate",
+        scenario: "symlinked_and_permissive_data_directories_exit_5",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.9 (usage errors, exit 2)",
+        command: "store init",
+        scenario: "non_utf8_and_flag_like_data_dir_values_are_usage_errors",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 6.3 (storage failure); Request 5.9 (exit 4)",
+        command: "store init",
+        scenario: "real_storage_failure_exits_4_when_permissions_are_enforced",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 6.3; Request 5.9 (class to exit code)",
+        command: "store validate",
+        scenario: "application_storage_failures_map_to_exit_4",
         mode: FeatureMode::Dev,
         reason: None,
     },

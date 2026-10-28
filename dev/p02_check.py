@@ -12,6 +12,7 @@ from the producer process itself. Cargo.lock and every Cargo.toml are hashed bef
 """
 
 import argparse
+import os
 import hashlib
 import json
 import re
@@ -315,7 +316,7 @@ def static_selftest():
 EXPECTED_LOCK_SHA256 = "6c9d4998d89e67d3b3c6598cbc266a6bbc7943766244e724402b26deb3877545"  # P02-D03 O3: persistence -> libc edge (was b34cb529…)
 # The only `#[allow(...)]` attributes permitted in production code (file, lint) — planning/P01-T01-request.md §6.1.
 SRC_ALLOWS = {("crates/domain/src/contract.rs", "clippy::result_large_err"),
-              # Temporary (P02 B0 -> B1): store_read helpers unused until the wave-1b evidence-side models.
+              # P02-D04: `store_read::redacted_vec` has no store field yet (reserved for list-valued class R fields).
               ("crates/domain/src/text.rs", "dead_code")}
 # The only production call sites of `redact_static` (file); argument must be a literal or ALL_CAPS const.
 REDACT_STATIC_CALLERS = {"crates/domain/src/contract.rs"}
@@ -369,12 +370,15 @@ def step_static(final, out):
     checks.append({"check": "no Box::leak / .leak() in src", "hits": hits, "ok": not hits})
     found = set()
     for p, c in prod.items():
-        for m in re.finditer(r"#!?\s*\[\s*allow\s*\(([^)]*)", strip_comments(p.read_text(), mask_strings=True)):
+        # T14 review L-6: `#[expect(..)]` and `cfg_attr(.., allow(..))` count as allowances too.
+        for m in re.finditer(r"#!?\s*\[\s*(?:cfg_attr\s*\([^\[\]]*?,\s*)?(?:allow|expect)\s*\(([^)]*)", strip_comments(p.read_text(), mask_strings=True)):
             for lint in re.findall(r"[\w:]+", m.group(1)):
                 if lint != "reason":
                     found.add((rel(p), lint))
-    checks.append({"check": "#[allow] in src limited to the approved list", "found": sorted(map(list, found)),
-                   "unapproved": sorted(map(list, found - SRC_ALLOWS)), "ok": found <= SRC_ALLOWS})
+    # P02-T14: equality, so a stale approval (allow removed from the code) fails too.
+    checks.append({"check": "#[allow] in src == the approved list", "found": sorted(map(list, found)),
+                   "unapproved": sorted(map(list, found - SRC_ALLOWS)), "stale": sorted(map(list, SRC_ALLOWS - found)),
+                   "ok": found == SRC_ALLOWS})
     # Closed construction of RedactedText (reviewer M1): trait impls for it anywhere in src must be exactly
     # the approved set, and its derive list is fixed.
     impls = set()
@@ -432,10 +436,23 @@ BARE_TEXT_RE = r"\b(String|str|Cow|Value)\b"
 STORE_READ_OK = ("crates/domain/src/text.rs", STORE_DIR)
 SERDE_FROM_RE = r"\bserde_json\s*::\s*from_(str|slice|value|reader)\b|\bfrom_(str|slice|value|reader)\s*::\s*<"
 SERDE_FROM_OK = {"crates/persistence/src/read.rs", "crates/persistence/src/schema.rs"}
-FS_RE = r"\bstd\s*::\s*fs\b|\bfs\s*::\s*(File|OpenOptions|read|write|rename|remove_file|create_dir|hard_link|metadata|symlink_metadata|read_dir|copy)\b|\bFile\s*::|\bOpenOptions\b"
+# T14 review L-6: also brace imports (`use std::{fs, ..}`) and any bare `fs::<item>` path (not `x::fs::`).
+FS_RE = r"\bstd\s*::\s*\{[^}]*\bfs\b|(?<![\w:])fs\s*::\s*\w+|\bstd\s*::\s*fs\b|\bfs\s*::\s*(File|OpenOptions|read|write|rename|remove_file|create_dir|hard_link|metadata|symlink_metadata|read_dir|copy)\b|\bFile\s*::|\bOpenOptions\b"
 FS_OK = {"crates/persistence/src/fs.rs", "crates/application/src/emit.rs"}
 ENV_RE = r"\benv\s*::\s*(var|var_os|vars|vars_os|home_dir|temp_dir|current_dir)\b|\bhome_dir\s*\("
 ENV_SCOPE = ("crates/cli/src/", "crates/application/src/", "crates/persistence/src/")
+# P02-T14 additions (wave 3).
+CLI_SRC = "crates/cli/src/"
+LAYER_RE = r"\bpersistence\s*::|\buse\s+persistence\b|\bextern\s+crate\s+persistence\b"
+EXIT_RE = (r"\bprocess\s*::\s*(exit|abort)\b|\bstd\s*::\s*process\s*::\s*exit\b"
+           r"|\buse\s+std\s*::\s*process\s*::\s*\{[^}]*\b(exit|abort)\b")
+URANDOM_RE = r"/dev/u?random"
+URANDOM_OK = FS_OK
+STORE_EVENT_RE = r"(?<!struct )(?<!enum )\bEvent\s*\{"
+STORE_EVENT_OK = {"crates/application/src/emit.rs"}
+# Fault-injection seams of application::dev_store (made pub in T14): no production caller outside dev_store.rs.
+SEAM_RE = r"\b(init|validate|show|recover)_with\s*\("
+SEAM_OK = {"crates/application/src/dev_store.rs"}
 
 
 def struct_fields(code):
@@ -477,7 +494,49 @@ def check_p02(prod, rel, line_of):
     hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() if rel(p).startswith(ENV_SCOPE)
             for m in re.finditer(ENV_RE, c)]
     checks.append({"check": "no environment/home/temp/cwd lookups in cli, application, persistence src", "hits": hits, "ok": not hits})
+    # --- P02-T14 (wave 3) ---
+    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() if rel(p).startswith(CLI_SRC)
+            for m in re.finditer(LAYER_RE, c)]
+    checks.append({"check": "cli src does not reference persistence (CLI -> application only)", "hits": hits, "ok": not hits})
+    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() for m in re.finditer(EXIT_RE, c)]
+    checks.append({"check": "no process::exit/abort in src (exit codes via ExitCode)", "hits": hits, "ok": not hits})
+    raw = {p: drop_test_modules(strip_comments(p.read_text(), mask_strings=False)) for p in prod}
+    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in raw.items() if rel(p) not in URANDOM_OK
+            for m in re.finditer(URANDOM_RE, c)]
+    checks.append({"check": "/dev/urandom only in persistence/src/fs.rs and application/src/emit.rs", "hits": hits, "ok": not hits})
+    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() if rel(p).startswith(ENV_SCOPE)
+            and rel(p) not in STORE_EVENT_OK for m in re.finditer(STORE_EVENT_RE, c)]
+    checks.append({"check": "store log Event records constructed only in application/src/emit.rs (to_store_event)", "hits": hits, "ok": not hits})
+    hits = []
+    for p in prod:
+        r = rel(p)
+        if r.startswith(STORE_DIR) and r not in STORE_FIELD_EXEMPT:
+            hits += [f"{r}: {h}" for h in redacted_field_hits(drop_test_modules(strip_comments(p.read_text(), mask_strings=False)))]
+    checks.append({"check": "store RedactedText fields deserialise through text::store_read (FR-31 (2))", "hits": hits, "ok": not hits})
+    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() if rel(p) not in SEAM_OK
+            for m in re.finditer(SEAM_RE, c)]
+    checks.append({"check": "dev_store *_with fault seams called only from dev_store.rs and tests", "hits": hits, "ok": not hits})
     return checks
+
+
+def redacted_field_hits(code):
+    """Store struct fields whose type mentions RedactedText but whose own attributes lack a
+    `deserialize_with = "...store_read::redacted..."` (comment-stripped code, strings kept)."""
+    hits = []
+    for m in re.finditer(r"\bstruct\s+(\w+)\s*(?:<[^>{]*>)?\s*\{", code):
+        depth, i = 1, m.end()
+        while depth and i < len(code):
+            depth += {"{": 1, "}": -1}.get(code[i], 0)
+            i += 1
+        body = code[m.end():i - 1]
+        for f in split_top(body):
+            attrs = " ".join(re.findall(r"#\s*\[[^\]]*\]", f))
+            decl = re.sub(r"#\s*\[[^\]]*\]", " ", f)
+            mf = re.match(r"\s*(?:pub(?:\([^)]*\))?\s+)?(\w+)\s*:(?!:)\s*(.+)$", decl, re.S)
+            if mf and re.search(r"\bRedactedText\b", mf.group(2)) and not re.search(
+                    r'deserialize_with\s*=\s*"[\w:]*store_read::redacted(_opt|_vec|_map)?"', attrs):
+                hits.append(f"{m.group(1)}.{mf.group(1)}")
+    return hits
 
 
 def p02_selftest():
@@ -500,14 +559,43 @@ def p02_selftest():
                 "ok": not store_field_hits(strip_comments("pub struct A {\n /// a String\n pub n: Slug,\n}", mask_strings=True))})
     for s in ("let x = serde_json::from_str::<ConfigFile>(t);", "let x: R = from_value::<R>(v);", "serde_json :: from_slice(b)"):
         res.append({"case": f"serde from_* caught: {s[:30]}", "ok": bool(re.search(SERDE_FROM_RE, s))})
-    for s in ("std::fs::read(p)", "use std::fs;", "File::open(p)", "OpenOptions::new()", "fs::rename(a, b)"):
+    for s in ("std::fs::read(p)", "use std::fs;", "File::open(p)", "OpenOptions::new()", "fs::rename(a, b)",
+              "use std::{fs, io};", "fs::read_to_string(p)", "fs::create_dir_all(p)", "fs::set_permissions(p, m)"):
         res.append({"case": f"fs use caught: {s}", "ok": bool(re.search(FS_RE, s))})
     res.append({"case": "fs regex ignores FsOps trait use", "ok": not re.search(FS_RE, "fs.rename(&a, &b)?; let f: &dyn FsOps = x;")})
+    res.append({"case": "fs regex ignores the persistence::fs module path",
+                "ok": not re.search(FS_RE, "use persistence::fs::{FsOps, RealFs}; crate::fs::FileInfo")})
     for s in ("std::env::var(\"HOME\")", "env::var_os(k)", "std::env::temp_dir()", "env::home_dir()", "std::env::current_dir()"):
         res.append({"case": f"env lookup caught: {s}", "ok": bool(re.search(ENV_RE, s))})
     res.append({"case": "env regex allows args_os", "ok": not re.search(ENV_RE, "std::env::args_os()")})
     res.append({"case": "print macro regex catches println in main", "ok": bool(re.search(PRINT_MACRO_RE, 'println!("x")'))})
     res.append({"case": "print macro regex allows stdout handle in main", "ok": not re.search(PRINT_MACRO_RE, "std::io::stdout().lock()")})
+    # --- P02-T14 negative and positive controls ---
+    for s in ("use persistence::writer::StoreWriter;", "let w = persistence :: writer::open(d);", "extern crate persistence;"):
+        res.append({"case": f"layer rule catches: {s[:32]}", "ok": bool(re.search(LAYER_RE, s))})
+    res.append({"case": "layer rule allows application::dev_store", "ok": not re.search(LAYER_RE, "use application::dev_store;")})
+    for s in ("std::process::exit(2)", "process::abort()", "std :: process :: exit(1);"):
+        res.append({"case": f"exit rule catches: {s}", "ok": bool(re.search(EXIT_RE, s))})
+    res.append({"case": "exit rule allows ExitCode", "ok": not re.search(EXIT_RE, "ExitCode::from(2)")})
+    res.append({"case": "exit rule catches a brace import", "ok": bool(re.search(EXIT_RE, "use std::process::{abort, Command};"))})
+    res.append({"case": "urandom rule catches a literal", "ok": bool(re.search(URANDOM_RE, 'File::open("/dev/urandom")'))})
+    res.append({"case": "store Event literal caught", "ok": bool(re.search(STORE_EVENT_RE, "Some(Event { event_id: x })"))})
+    res.append({"case": "store Event definition ignored", "ok": not re.search(STORE_EVENT_RE, "pub struct Event { pub a: u8 }")})
+    res.append({"case": "EventEnvelope literal not a store Event", "ok": not re.search(STORE_EVENT_RE, "EventEnvelope { event_id }")})
+    bad_r = {
+        "missing helper": "pub struct A { pub t: RedactedText }",
+        "wrong helper": 'pub struct A {\n #[serde(deserialize_with = "crate::x::other")]\n pub t: RedactedText,\n}',
+        "Option without helper": "pub struct A { pub t: Option<RedactedText>, pub n: u32 }",
+        "helper on the wrong field": 'pub struct A {\n #[serde(deserialize_with = "crate::text::store_read::redacted")]\n pub n: u32,\n pub t: RedactedText,\n}',
+    }
+    for name, s in bad_r.items():
+        res.append({"case": f"store R field rule catches {name}", "ok": bool(redacted_field_hits(s))})
+    good_r = ('pub struct A {\n #[serde(deserialize_with = "crate::text::store_read::redacted")]\n pub t: RedactedText,\n'
+              ' #[serde(deserialize_with = "crate::text::store_read::redacted_opt")]\n pub o: Option<RedactedText>,\n pub n: u32,\n}')
+    res.append({"case": "store R field rule accepts helpered fields", "ok": not redacted_field_hits(good_r)})
+    for s in ("dev_store::validate_with(fs, v, d, None)", "recover_with (a, b, c, d)"):
+        res.append({"case": f"seam rule catches: {s[:28]}", "ok": bool(re.search(SEAM_RE, s))})
+    res.append({"case": "seam rule allows the production entry points", "ok": not re.search(SEAM_RE, "dev_store::validate(d, None)")})
     return res
 
 
@@ -548,8 +636,12 @@ def main():
     modes = ["env", "fmt", "clippy", "test", "build", "cli", "static"] if a.mode == "all" else [a.mode]
     if a.mode not in ("env", "all", "static"):
         modes = ["env", *modes]  # T01 §2: version gate and netns probe before any Cargo command
-    head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    dirty = subprocess.run(["git", "-C", str(REPO), "status", "--short"], capture_output=True, text=True).stdout
+    # T14 security review L-4: repository-local git config (fsmonitor, hooks) is not trusted for --repo trees.
+    git = ["git", "--no-optional-locks", "-c", "core.fsmonitor=", "-c", "core.hooksPath=/dev/null", "-C", str(REPO)]
+    genv = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_NOSYSTEM": "1", "LC_ALL": "C"}
+    head = subprocess.run([*git, "rev-parse", "HEAD"], capture_output=True, text=True, env=genv).stdout.strip()
+    dirty = subprocess.run([*git, "status", "--short"], capture_output=True, text=True, env=genv).stdout
     results = []
     for m in modes:
         if m == "env":
