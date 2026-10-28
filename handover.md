@@ -1,10 +1,10 @@
 # Handover
 
-Checkpoint: 2026-10-28 (late), **B4 committed locally (`0cc562e`); T15 started, then STOPPED by the owner** ("stop before you start p002t14", read as T15 because T14 was already done and committed). Nothing pushed; `main` untouched.
+Checkpoint: 2026-10-28 (late), **B4 committed locally (`0cc562e`); T15 started, then STOPPED by the owner** ("stop before you start p002t14", read as T15 because T14 was already done and committed). B2–B4 and the docs commit pushed to `origin/phase/P02-store`; `main` untouched.
 
 ## Takeover map (read this before touching anything)
 
-Branch `phase/P02-store`: HEAD `0cc562e` (B4: T14 + D07 + D08, `--final` 866/0/0, 39, cli 48) → `bf6130b` (B3b, T13) → `49b8cba` (B3, T11+T12) → `2448abf` (B2) → `9537c67` (= `origin/phase/P02-store`). **Four local commits ahead; push not approved.** `main` = P01 merge `7324da6`; merge not approved.
+Branch `phase/P02-store`: HEAD `0cc562e` (B4: T14 + D07 + D08, `--final` 866/0/0, 39, cli 48) → `bf6130b` (B3b, T13) → `49b8cba` (B3, T11+T12) → `2448abf` (B2) → `9537c67` (= `origin/phase/P02-store`). **Pushed 2026-10-28 (owner: "commit and push to phase branch"); origin up to date.** `main` = P01 merge `7324da6`; merge not approved.
 
 Working tree on top of B4: untracked `evidence/P02/T15/` only (plus local `.commandcode/`, never commit) and the doc updates of this checkpoint (`status.md`, `handover.md`):
 - `differential-b/` + `.stdout`: differential B re-run on B4, **PASS** (jsonschema 4.26.0, schema SHA = pin, 31/31, 5 controls).
@@ -40,7 +40,7 @@ Main tree: `python3 -I -B dev/p02_check.py all --slot lead --final --out <new di
 Worker tree: `python3 -I -B .claude/worktrees/<wt>/dev/p02_check.py all --slot w1 --repo .claude/worktrees/<wt> --out <dir>`. Cargo only through the runner (pinned 1.97.1, `env -i`, isolated `CARGO_HOME`, `unshare -rn`, `--frozen`); no network.
 
 ### What is next, and what is not approved
-Next on owner go: **resume T15** (above) → stop for P02 acceptance → merge and push decisions. Not approved: push, merge to `main`, cargo-audit C-A2+, network, new dependencies, a T15 commit. Open: manual exit-4 run, dev caps (T09, FR-11), O-1–O-6 (P13), Q-01/Q-02/Q-04/Q-05, B-01, B-04, B-08.
+Next on owner go: **resume T15** (above) → stop for P02 acceptance → merge and push decisions. Not approved: merge to `main`, cargo-audit C-A2+, network, new dependencies, a T15 commit. Open: manual exit-4 run, dev caps (T09, FR-11), O-1–O-6 (P13), Q-01/Q-02/Q-04/Q-05, B-01, B-04, B-08.
 
 Previous checkpoint (historical): 2026-10-28, P02-T14 done with D07/D08, uncommitted on `bf6130b`, `--final` 866/0/0, 39, cli 48 — committed as B4 `0cc562e`.
 
