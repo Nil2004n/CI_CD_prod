@@ -13,18 +13,41 @@ use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
+use domain::text::sanitise;
+
+use crate::commands::Exit;
+use crate::output::Output;
+
 /// Runs one CLI invocation. Exit codes (request §5.9): 0 executed (never "clean"), 2 usage error, 3 store
 /// locked, 4 storage failure or halted writer, 5 operation failed, 6 approval required (reserved).
-#[expect(
-    clippy::todo,
-    reason = "P02 B0 stub; implemented by W2 in wave 3 (T12)"
-)]
-pub fn run<I, R, W, E>(_args: I, _stdin: R, _stdout: W, _stderr: E) -> ExitCode
+///
+/// `args` includes the program name first, as `std::env::args_os()` does. `stdin` is not read by any P02
+/// command. If standard output cannot be written (for example a closed pipe) the run does not panic: a
+/// command that would have exited 0 exits 5 instead, because its output was lost.
+pub fn run<I, R, W, E>(args: I, _stdin: R, stdout: W, stderr: E) -> ExitCode
 where
     I: IntoIterator<Item = OsString>,
     R: Read,
     W: Write,
     E: Write,
 {
-    todo!("P02-T12")
+    let exit = match args::parse(args) {
+        Err(error) => {
+            let mut out = Output::new(false, stdout, stderr);
+            let exit = commands::usage_error(error, &mut out);
+            out.finish();
+            exit
+        }
+        Ok(invocation) => {
+            let mut out = Output::new(invocation.json, stdout, stderr);
+            let mut exit = commands::execute(&invocation.command, &mut out);
+            out.finish();
+            if out.stdout_failed() && exit == Exit::Executed {
+                out.error_line(&sanitise("error: output could not be written"));
+                exit = Exit::OperationFailed;
+            }
+            exit
+        }
+    };
+    ExitCode::from(exit.code())
 }
