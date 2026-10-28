@@ -13,14 +13,16 @@
 
 use crate::error::{StoreError, WriteStep};
 use crate::fs::FsOps;
-use crate::paths::{DataDir, StorePath};
+use crate::paths::{DataDir, PRIVATE_DIR_MODE, StorePath};
 use std::io;
 use std::path::{Path, PathBuf};
 
 /// Permission bits of every file the store creates.
 pub const FILE_MODE: u32 = 0o600;
-/// Permission bits of every directory the store creates.
-pub const DIR_MODE: u32 = 0o700;
+/// Permission bits of every directory the store creates: the one constant [`PRIVATE_DIR_MODE`]
+/// (R-D03-4), so the mode a directory is created with and the mode `check_private_dir` accepts cannot
+/// diverge.
+pub const DIR_MODE: u32 = PRIVATE_DIR_MODE;
 
 const HEX: &[u8; 16] = b"0123456789abcdef";
 

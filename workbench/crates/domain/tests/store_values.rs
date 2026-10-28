@@ -356,7 +356,16 @@ fn entries() -> Vec<Entry> {
             128,
             fill_a,
             "a",
-            &["dark", "a:b/c@1+2._-", "x86_64", "Dark"]
+            &[
+                "dark",
+                "a:b_c-1+2._-",
+                "x86_64",
+                "Dark",
+                "linux-x86_64",
+                "a.b",
+                "ns:name",
+                "v1+build"
+            ]
         ),
     ]
 }
@@ -694,7 +703,7 @@ fn rejections() -> Vec<(&'static str, String, ValueReason)> {
     add("LocalTime", &["12-30", "ab:cd", "12:3a", "1 :30", "\u{663}\u{663}:"], Character);
     add("LocalTime", &["12:30:"], TooLong);
 
-    add("IanaTimezone", &["utc", "Europe", "GMT", "Europe//Berlin", "/Europe/Berlin", "Europe/Berlin/", "a/b/c/d", "/"], Syntax);
+    add("IanaTimezone", &["utc", "Europe", "GMT", "Europe//Berlin", "/Europe/Berlin", "Europe/Berlin/", "a/b/c/d", "/", "-Foo/Bar", "Etc/-GMT", "Foo/-Bar", "A/B/-C", "-UTC", "-"], Syntax);
     add("IanaTimezone", &["Europe/Ber lin", "Europe\\Berlin", "Europe/Bérlin", "Europe/Berlin?", "Europe/Berlin:1"], Character);
 
     add("Destination", &["https://user:pw@h/x", "https://u@h", "https://h/x?q=1", "https://h/x#f", "h@x", "h?x", "h#x", "user:pw@h:443"], Forbidden);
@@ -721,6 +730,11 @@ fn rejections() -> Vec<(&'static str, String, ValueReason)> {
     }
     // SPDX allows space and parentheses, nothing else beyond the token set.
     add("SpdxExpression", &["MIT;", "MIT|x", "MIT,Apache", "\u{fc}", "MIT\tOR", "a\\b", "MIT{1}", "a=b"], Character);
+    // P02-D05 E-2: `Identifier` and `PolicyId` drop `/` and `@` from the token charset and reject `..`.
+    for name in ["Identifier", "PolicyId"] {
+        add(name, &["a/b", "/x", "x@y", "a/", "@", "/", "a@b/c", "../x", "x/.."], Character);
+        add(name, &["a..b", "..", "...", "a..", "..a", "a...b", "x.y..z"], Syntax);
+    }
     // Lowercase-only types.
     for name in ["ToolName", "FrameworkId", "EventCode"] {
         add(name, &["Upper", "aB", "a:b", "a/b", "a@b", "a+b"], Character);
@@ -823,6 +837,87 @@ fn local_time_boundaries() {
     }
     for bad in ["24:00", "23:60", "00:6O"] {
         assert!(LocalTime::parse(bad).is_err(), "{bad}");
+    }
+}
+
+#[test]
+fn d05_identifier_and_policy_id_charset_and_dotdot() {
+    // Fails if `/` or `@` is accepted again, if `..` is accepted anywhere, or if a rule is lost.
+    for parse in [
+        (|s| Identifier::parse(s).map(|v| v.as_str().to_owned()))
+            as fn(&str) -> Result<String, ValueError>,
+        |s| PolicyId::parse(s).map(|v| v.as_str().to_owned()),
+    ] {
+        for ok in [
+            "linux-x86_64",
+            "a.b",
+            "ns:name",
+            "v1+build",
+            "A.B_c-1:2+3",
+            "x.",
+            "a-",
+            "a.b.c",
+        ] {
+            assert_eq!(parse(ok).as_deref().ok(), Some(ok), "{ok}");
+        }
+        let reason_of = |s: &str| parse(s).err().map(|e| e.reason);
+        for (bad, why) in [
+            ("a/b", Character),
+            ("/x", Character),
+            ("x@y", Character),
+            ("../x", Character),
+            ("a..b", Syntax),
+            ("..", Syntax),
+            // Existing rules stay.
+            ("", Empty),
+            ("-x", Syntax),
+            (".", Syntax),
+            ("a b", Character),
+            ("a\\b", Character),
+            ("a\u{0}b", Character),
+            ("\u{fc}", Character),
+        ] {
+            assert_eq!(reason_of(bad), Some(why), "{bad:?}");
+        }
+        assert_eq!(reason_of(&"a".repeat(129)), Some(TooLong));
+        assert!(parse(&"a".repeat(128)).is_ok());
+    }
+    // Other token types keep `/` and `@` (only these two types changed).
+    assert!(ModelId::parse("vendor/model@v1").is_ok());
+    assert!(RendererId::parse("a/b@c").is_ok());
+    assert!(ProviderId::parse("a/b@c").is_ok());
+    assert!(VersionLabel::parse("a/b@c").is_ok());
+    assert!(SchemaResourceId::parse("a/b@c").is_ok());
+    assert!(RedactionVersion::parse("a/b@c").is_ok());
+    assert!(SpdxExpression::parse("a/b@c").is_ok());
+}
+
+#[test]
+fn d05_timezone_segments_must_not_start_with_dash() {
+    // Fails if the leading-`-` rule is dropped, applied to the whole value only, or applied inside a segment.
+    for bad in ["-Foo/Bar", "Etc/-GMT", "Foo/-Bar", "A/B/-C", "-UTC"] {
+        assert_eq!(
+            IanaTimezone::parse(bad).map_err(|e| e.reason),
+            Err(Syntax),
+            "{bad}"
+        );
+        assert!(
+            serde_json::from_value::<IanaTimezone>(Value::String(bad.to_owned())).is_err(),
+            "{bad}"
+        );
+    }
+    for ok in [
+        "Etc/GMT-5",
+        "America/Port-au-Prince",
+        "UTC",
+        "Etc/GMT+5",
+        "A/B-C/D-E",
+    ] {
+        assert_eq!(
+            IanaTimezone::parse(ok).as_ref().map(IanaTimezone::as_str),
+            Ok(ok),
+            "{ok}"
+        );
     }
 }
 
@@ -1033,9 +1128,16 @@ fn d03_o4_token_types_reject_leading_dash_and_dot_tokens() {
             );
         }
         // Only a leading `-` and the whole values `.` and `..` are rejected as Syntax.
-        for ok in ["x-", "a.b", "a..b", "x-y", "1-x"] {
+        for ok in ["x-", "a.b", "x-y", "1-x"] {
             assert!(reason_of(e, ok).is_none(), "{name}: {ok}");
         }
+        // `a..b` stays valid for every token type except the two that reject any `..` (P02-D05 E-2).
+        let rejects_dotdot = matches!(name, "PolicyId" | "Identifier");
+        assert_eq!(
+            reason_of(e, "a..b"),
+            rejects_dotdot.then_some(Syntax),
+            "{name}: a..b"
+        );
     }
     // Path types keep accepting a leading `-` (repository file names).
     assert!(RelPath::parse("-file").is_ok());
@@ -1140,7 +1242,7 @@ fn d03_o5_leading_zero_octets_are_rejected_explicitly() {
 }
 
 #[test]
-fn d03_o6_ssh_and_scp_user_is_at_most_32_bytes_and_not_key_like() {
+fn d03_o6_ssh_and_scp_user_is_at_most_32_bytes_and_may_be_a_plain_run() {
     let u32b = "a.".repeat(16);
     let u33b = format!("{u32b}a");
     assert_eq!((u32b.len(), u33b.len()), (32, 33));
@@ -1149,20 +1251,40 @@ fn d03_o6_ssh_and_scp_user_is_at_most_32_bytes_and_not_key_like() {
     for form in forms {
         assert!(RemoteUrl::parse(&form(&u32b)).is_ok(), "32 bytes");
         assert_eq!(reason(RemoteUrl::parse(&form(&u33b))), Some(TooLong));
-        // A long user of one run is TooLong first; a 32-byte run is key-like.
         assert_eq!(
             reason(RemoteUrl::parse(&form(&"a".repeat(40)))),
             Some(TooLong)
         );
-        assert_eq!(
-            reason(RemoteUrl::parse(&form(&"a".repeat(32)))),
-            Some(Forbidden)
+        // P02-D05 R-D03-1: the key-run check no longer applies to the user, so a plain 32-byte user
+        // (one run of `[A-Za-z0-9_-]`) is accepted; 33 bytes is still `TooLong`.
+        let plain32 = "a".repeat(32);
+        assert!(
+            RemoteUrl::parse(&form(&plain32)).is_ok(),
+            "32-byte plain user"
         );
-        let dashed = format!("{}-{}", "a".repeat(16), "b".repeat(15));
-        assert_eq!(dashed.len(), 32);
-        assert_eq!(reason(RemoteUrl::parse(&form(&dashed))), Some(Forbidden));
+        assert_eq!(
+            reason(RemoteUrl::parse(&form(&format!("{plain32}a")))),
+            Some(TooLong),
+            "33-byte plain user"
+        );
+        for plain in [
+            "A_".repeat(16),
+            format!("{}-{}", "a".repeat(16), "b".repeat(15)),
+            "Z".repeat(32),
+            "0123456789".repeat(3) + "ab",
+            "_".repeat(32),
+            format!("a{}", "-".repeat(31)),
+        ] {
+            assert_eq!(plain.len(), 32, "{plain}");
+            assert!(RemoteUrl::parse(&form(&plain)).is_ok(), "{plain}");
+        }
         assert!(RemoteUrl::parse(&form(&"a".repeat(31))).is_ok());
         assert_eq!(reason(RemoteUrl::parse(&form("-u"))), Some(Syntax));
+        // A leading `-` is still rejected at the 32-byte bound.
+        assert_eq!(
+            reason(RemoteUrl::parse(&form(&format!("-{}", "a".repeat(31))))),
+            Some(Syntax)
+        );
         // Existing rules stay.
         assert_eq!(reason(RemoteUrl::parse(&form("u:p"))), Some(Forbidden));
         assert_eq!(reason(RemoteUrl::parse(&form("u%41"))), Some(Forbidden));

@@ -118,23 +118,18 @@ impl<'de> Deserialize<'de> for ConstTrue {
     }
 }
 
-/// Where the provider credential lives (`Provider.credential_mode`).
-///
-/// A new enum rather than `contract::CredentialMode`: that one serialises the OS-store value as
-/// `os_store`, the schema value is `os_credential_store`.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ProviderCredentialMode {
-    /// Held in memory for this session only.
-    SessionOnly,
-    /// OS credential store.
-    OsCredentialStore,
-}
-
-impl ProviderCredentialMode {
-    /// Every value, in schema order.
-    pub const ALL: [Self; 2] = [Self::SessionOnly, Self::OsCredentialStore];
-}
+closed_enum!(
+    /// Where the provider credential lives (`Provider.credential_mode`).
+    ///
+    /// A new enum rather than `contract::CredentialMode`: that one serialises the OS-store value as
+    /// `os_store`, the schema value is `os_credential_store`.
+    ProviderCredentialMode, 2, {
+        /// Held in memory for this session only.
+        SessionOnly => "session_only",
+        /// OS credential store.
+        OsCredentialStore => "os_credential_store",
+    }
+);
 
 /// Fixed OpenRouter routing/privacy policy (`$defs/ProviderPolicy`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

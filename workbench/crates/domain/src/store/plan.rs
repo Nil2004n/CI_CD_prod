@@ -17,117 +17,81 @@ use crate::text::{RedactedText, SanitisedText};
 use crate::time::UtcTimestamp;
 use crate::vocab::Category;
 
-/// Kind of a Git reference (`RepoTarget.ref_kind`, `Repository.default_ref_kind`).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RefKind {
-    /// A branch.
-    Branch,
-    /// A tag.
-    Tag,
-    /// A commit ID.
-    Commit,
-}
+closed_enum!(
+    /// Kind of a Git reference (`RepoTarget.ref_kind`, `Repository.default_ref_kind`).
+    RefKind, 3, {
+        /// A branch.
+        Branch => "branch",
+        /// A tag.
+        Tag => "tag",
+        /// A commit ID.
+        Commit => "commit",
+    }
+);
 
-impl RefKind {
-    /// Every value, in schema order.
-    pub const ALL: [Self; 3] = [Self::Branch, Self::Tag, Self::Commit];
-}
+closed_enum!(
+    /// Which history is searched for secrets (`ScanSettings.secret_scope`).
+    SecretScope, 2, {
+        /// The selected checkout only.
+        Checkout => "checkout",
+        /// Git history as well.
+        History => "history",
+    }
+);
 
-/// Which history is searched for secrets (`ScanSettings.secret_scope`).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SecretScope {
-    /// The selected checkout only.
-    Checkout,
-    /// Git history as well.
-    History,
-}
+closed_enum!(
+    /// Which form of template files is assessed (`ScanSettings.template_mode`).
+    TemplateMode, 3, {
+        /// Source templates.
+        Source => "source",
+        /// Rendered output.
+        Rendered => "rendered",
+        /// Both.
+        Both => "both",
+    }
+);
 
-impl SecretScope {
-    /// Every value, in schema order.
-    pub const ALL: [Self; 2] = [Self::Checkout, Self::History];
-}
+closed_enum!(
+    /// Where schemas come from (`ScanSettings.schema_mode`).
+    SchemaMode, 3, {
+        /// Detected automatically.
+        Automatic => "automatic",
+        /// Supplied through bindings.
+        UserSupplied => "user_supplied",
+        /// Both.
+        Both => "both",
+    }
+);
 
-/// Which form of template files is assessed (`ScanSettings.template_mode`).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TemplateMode {
-    /// Source templates.
-    Source,
-    /// Rendered output.
-    Rendered,
-    /// Both.
-    Both,
-}
+closed_enum!(
+    /// Result of file discovery (`FileRecord.discovery_state`).
+    DiscoveryState, 3, {
+        /// Eligible for assessment.
+        Eligible => "eligible",
+        /// Excluded by selection or policy.
+        Excluded => "excluded",
+        /// Present but could not be read.
+        Unreadable => "unreadable",
+    }
+);
 
-impl TemplateMode {
-    /// Every value, in schema order.
-    pub const ALL: [Self; 3] = [Self::Source, Self::Rendered, Self::Both];
-}
-
-/// Where schemas come from (`ScanSettings.schema_mode`).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SchemaMode {
-    /// Detected automatically.
-    Automatic,
-    /// Supplied through bindings.
-    UserSupplied,
-    /// Both.
-    Both,
-}
-
-impl SchemaMode {
-    /// Every value, in schema order.
-    pub const ALL: [Self; 3] = [Self::Automatic, Self::UserSupplied, Self::Both];
-}
-
-/// Result of file discovery (`FileRecord.discovery_state`).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DiscoveryState {
-    /// Eligible for assessment.
-    Eligible,
-    /// Excluded by selection or policy.
-    Excluded,
-    /// Present but could not be read.
-    Unreadable,
-}
-
-impl DiscoveryState {
-    /// Every value, in schema order.
-    pub const ALL: [Self; 3] = [Self::Eligible, Self::Excluded, Self::Unreadable];
-}
-
-/// Availability of a tool in a plan snapshot (`EngineSnapshot.availability`).
-///
-/// A new enum rather than `contract::ToolAvailability`: the schema set here has no `unavailable` value.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EngineAvailability {
-    /// Installed, compatible and verified.
-    Ready,
-    /// Not installed.
-    Missing,
-    /// Installed version not compatible.
-    Incompatible,
-    /// Capability deferred.
-    Deferred,
-    /// Installed but requires configuration.
-    Unconfigured,
-}
-
-impl EngineAvailability {
-    /// Every value, in schema order.
-    pub const ALL: [Self; 5] = [
-        Self::Ready,
-        Self::Missing,
-        Self::Incompatible,
-        Self::Deferred,
-        Self::Unconfigured,
-    ];
-}
+closed_enum!(
+    /// Availability of a tool in a plan snapshot (`EngineSnapshot.availability`).
+    ///
+    /// A new enum rather than `contract::ToolAvailability`: the schema set here has no `unavailable` value.
+    EngineAvailability, 5, {
+        /// Installed, compatible and verified.
+        Ready => "ready",
+        /// Not installed.
+        Missing => "missing",
+        /// Installed version not compatible.
+        Incompatible => "incompatible",
+        /// Capability deferred.
+        Deferred => "deferred",
+        /// Installed but requires configuration.
+        Unconfigured => "unconfigured",
+    }
+);
 
 /// Which files of a repository a target covers (`$defs/Selector`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

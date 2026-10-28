@@ -1017,3 +1017,206 @@ fn absent_required_nullable_key_decodes_as_none_because_the_schema_layer_not_ser
     let back = serde_json::to_value(&typed).expect("serialise");
     assert_eq!(back, file_min());
 }
+
+/// Planted values for an enum field `base[field]`: a marker string, the valid wire value with the marker
+/// appended, a marker number (unsigned, negative, float), and a marker inside an array and an object.
+fn planted_values(valid: &str) -> Vec<Value> {
+    vec![
+        json!(ENUM_MARKER),
+        json!(format!("{valid}{ENUM_MARKER}")),
+        json!(format!("{ENUM_MARKER}{valid}")),
+        json!(ENUM_MARKER_NUMBER),
+        json!(-i64::try_from(ENUM_MARKER_NUMBER).expect("fits")),
+        json!(6_543.210_987_6_f64),
+        json!([ENUM_MARKER]),
+        json!({ ENUM_MARKER: ENUM_MARKER }),
+    ]
+}
+
+const ENUM_MARKER: &str = "PLANTEDENUMMARKER";
+const ENUM_MARKER_NUMBER: u64 = 7_654_321_987;
+
+/// Plants every marker value in `field` of `base`, decoding as `T` from a `Value` and from JSON text. The
+/// decode must fail and the error text must contain neither the marker string nor any marker number. This
+/// fails if the field's enum goes back to a derived `Deserialize` (`unknown variant `PLANTED...``,
+/// `invalid type: integer `7654321987``).
+fn assert_enum_field_does_not_echo<T: DeserializeOwned>(label: &str, base: &Value, field: &str) {
+    let valid = base[field]
+        .as_str()
+        .expect("base holds a wire string")
+        .to_owned();
+    for planted in planted_values(&valid) {
+        let inst = with(base, field, planted.clone());
+        let text = serde_json::to_string(&inst).expect("serialise instance");
+        for (how, err) in [
+            (
+                "value",
+                serde_json::from_value::<T>(inst.clone())
+                    .map(drop)
+                    .expect_err("planted enum value accepted"),
+            ),
+            (
+                "text",
+                serde_json::from_str::<T>(&text)
+                    .map(drop)
+                    .expect_err("planted enum value accepted from text"),
+            ),
+        ] {
+            let err = err.to_string();
+            for needle in [ENUM_MARKER, "7654321987", "6543.2109876"] {
+                assert!(
+                    !err.contains(needle),
+                    "{label}.{field} ({how}) echoed {needle} for {planted}: {err}"
+                );
+            }
+        }
+    }
+}
+
+/// `Struct.field` of every `pub field: <one of enums>` in `src` (the model sources are read as text so a new
+/// enum-typed field cannot be added without extending the planted-marker test).
+fn enum_typed_fields(src: &str, enums: &[&str]) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let mut current = String::new();
+    for line in src.lines() {
+        let t = line.trim();
+        if let Some(rest) = t.strip_prefix("pub struct ") {
+            current = rest
+                .split(|c: char| !c.is_alphanumeric() && c != '_')
+                .next()
+                .unwrap_or("")
+                .to_owned();
+        } else if let Some(field) = t.strip_prefix("pub ")
+            && let Some((name, ty)) = field.split_once(':')
+            && enums.contains(&ty.trim().trim_end_matches(','))
+        {
+            out.insert(format!("{current}.{}", name.trim()));
+        }
+    }
+    out
+}
+
+/// Every closed-enum type of the store models (P02-D05 E-1) except those defined in `log.rs`/`report.rs`.
+const D05_ENUMS: &[&str] = &[
+    "RefKind",
+    "SecretScope",
+    "TemplateMode",
+    "SchemaMode",
+    "DiscoveryState",
+    "EngineAvailability",
+    "ProviderCredentialMode",
+    "ScheduleKind",
+    "OverlapPolicy",
+    "MissedPolicy",
+    "CheckoutState",
+    "ExitMeaningKind",
+    "LicenseReviewStatus",
+    "ToolRole",
+    "ReleaseTier",
+    "InvocationMode",
+    "SelectionStrategy",
+    "NetworkPolicy",
+    "ToolDistribution",
+];
+
+/// For each listed `closed_enum!` type: `as_str` equals the serialised value, `from_wire` and `Deserialize`
+/// invert it, wire strings are distinct, and near-misses are rejected. Fails if a variant's `as_str` and
+/// serialisation diverge, `ALL` omits or repeats a variant, or `from_wire` accepts a non-wire string.
+macro_rules! wire_agrees {
+    ($($ty:ident),+ $(,)?) => {$(
+        let mut seen = BTreeSet::new();
+        for v in $ty::ALL {
+            let s = v.as_str();
+            assert!(seen.insert(s), "{}: {s} listed twice", stringify!($ty));
+            assert_eq!(serde_json::to_value(v).expect("serialise"), json!(s), "{}", stringify!($ty));
+            assert_eq!($ty::from_wire(s), Some(v), "{}: {s}", stringify!($ty));
+            assert_eq!(
+                serde_json::from_value::<$ty>(json!(s)).expect("decode wire value"),
+                v,
+                "{}: {s}",
+                stringify!($ty)
+            );
+            for near in [s.to_uppercase(), format!("{s} "), format!(" {s}"), format!("{s}x"), String::new()] {
+                assert_eq!($ty::from_wire(&near), None, "{}: {near:?}", stringify!($ty));
+                assert!(
+                    serde_json::from_value::<$ty>(json!(near)).is_err(),
+                    "{}: {near:?}",
+                    stringify!($ty)
+                );
+            }
+        }
+        assert!($ty::from_wire("not_a_value").is_none(), "{}", stringify!($ty));
+    )+};
+}
+
+#[test]
+fn d05_every_plan_and_provider_enum_field_rejects_planted_text_and_numbers_without_echo() {
+    assert_enum_field_does_not_echo::<RepoTarget>("RepoTarget", &target_min(), "ref_kind");
+    for field in ["secret_scope", "template_mode", "schema_mode"] {
+        assert_enum_field_does_not_echo::<ScanSettings>("ScanSettings", &scan_example(), field);
+    }
+    assert_enum_field_does_not_echo::<FileRecord>("FileRecord", &file_min(), "discovery_state");
+    assert_enum_field_does_not_echo::<EngineSnapshot>(
+        "EngineSnapshot",
+        &engine_min(),
+        "availability",
+    );
+    assert_enum_field_does_not_echo::<Provider>("Provider", &provider_min(), "credential_mode");
+
+    // The list above is complete: it equals the enum-typed fields found in the model sources.
+    let mut found = enum_typed_fields(include_str!("../src/store/plan.rs"), D05_ENUMS);
+    found.extend(enum_typed_fields(
+        include_str!("../src/store/provider.rs"),
+        D05_ENUMS,
+    ));
+    let planted: BTreeSet<String> = [
+        "RepoTarget.ref_kind",
+        "ScanSettings.secret_scope",
+        "ScanSettings.template_mode",
+        "ScanSettings.schema_mode",
+        "FileRecord.discovery_state",
+        "EngineSnapshot.availability",
+        "Provider.credential_mode",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect();
+    assert_eq!(found, planted);
+}
+
+#[test]
+fn d05_enum_helper_detects_an_echoing_derive() {
+    // Self-check of the planted-marker helper: a derived `Deserialize` echoes the marker (`unknown variant`),
+    // so the helper must fail on it. Guards against the helper passing vacuously.
+    #[derive(serde::Deserialize, Debug)]
+    #[serde(rename_all = "snake_case")]
+    enum Derived {
+        Alpha,
+    }
+    #[derive(serde::Deserialize, Debug)]
+    #[allow(
+        dead_code,
+        reason = "decode target of the helper self-check; the field is never read"
+    )]
+    struct Holder {
+        k: Derived,
+    }
+    let _ = Derived::Alpha;
+    let result = std::panic::catch_unwind(|| {
+        assert_enum_field_does_not_echo::<Holder>("Holder", &json!({"k": "alpha"}), "k");
+    });
+    assert!(result.is_err(), "helper accepted an echoing derive");
+}
+
+#[test]
+fn d05_plan_and_provider_enums_agree_between_as_str_from_wire_and_serde() {
+    wire_agrees!(
+        RefKind,
+        SecretScope,
+        TemplateMode,
+        SchemaMode,
+        DiscoveryState,
+        EngineAvailability,
+        ProviderCredentialMode,
+    );
+}

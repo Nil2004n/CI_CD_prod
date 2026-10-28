@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.4",
+  "store_type": "tool_manifest",
+  "updated_at": "2026-10-16T05:25:00.123456789Z",
+  "tools": [
+    {
+      "adapter_id": "yamllint",
+      "adapter_version": "1.0",
+      "tool_name": "yamllint",
+      "tool_version": null,
+      "role": "runtime",
+      "release_tier": "foundation",
+      "availability": "missing",
+      "capabilities": [],
+      "frameworks": [],
+      "platforms": [],
+      "wrapper_name": null,
+      "invocation_mode": "native",
+      "command_policy_id": "policy.yamllint.v1",
+      "parser_id": "parser.yamllint.v1",
+      "native_format": "parsable",
+      "config_digest": null,
+      "selection_strategy": "explicit_files",
+      "network_policy": "none",
+      "network_resources": [],
+      "exit_mapping": [],
+      "timeout_seconds": 1,
+      "max_output_bytes": 1,
+      "distribution": "not_shipped",
+      "binary_origin": null,
+      "binary_sha256": null,
+      "license": {
+        "spdx": null,
+        "verified_version": null,
+        "review_status": "pending",
+        "license_file": null,
+        "notice_files": [],
+        "source_obligation_note": null,
+        "reviewed_at": null
+      },
+      "limitations": []
+    },
+    {
+      "adapter_id": "docker-compose",
+      "adapter_version": "0.1.0+local",
+      "tool_name": "docker-compose",
+      "tool_version": "2.29.1",
+      "role": "optional_helper",
+      "release_tier": "recommended_extension",
+      "availability": "ready",
+      "capabilities": [
+        "syntax", "schema", "secrets", "misconfiguration", "vulnerability",
+        "external_verification", "style", "workflow_validation", "rendering"
+      ],
+      "frameworks": ["docker-compose", "github-actions"],
+      "platforms": ["linux-x86_64", "macos-aarch64"],
+      "wrapper_name": "pwt-compose-wrapper",
+      "invocation_mode": "shell",
+      "command_policy_id": "policy.compose.v2",
+      "parser_id": "parser.compose.v2",
+      "native_format": "json",
+      "config_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "selection_strategy": "approved_wider_context",
+      "network_policy": "approval_required",
+      "network_resources": ["registry.example.invalid:443", "https://api.example.invalid/v1"],
+      "exit_mapping": [
+        {"code": 0, "meaning": "no_findings_when_output_confirms"},
+        {"code": -9223372036854775808, "meaning": "inspection_required"},
+        {"code": 2, "meaning": "execution_error"},
+        {"code": 3, "meaning": "findings_possible"}
+      ],
+      "timeout_seconds": 86400,
+      "max_output_bytes": 67108864,
+      "distribution": "system_prerequisite",
+      "binary_origin": "Installed by the user from the vendor package.",
+      "binary_sha256": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+      "license": {
+        "spdx": "Apache-2.0 OR (MIT AND BSD-3-Clause)",
+        "verified_version": "2.29.1",
+        "review_status": "approved",
+        "license_file": "licenses/LICENSE",
+        "notice_files": ["licenses/NOTICE", "licenses/NOTICE-extra"],
+        "source_obligation_note": "No source offer required for unmodified dynamic use.",
+        "reviewed_at": "2026-10-16T05:25:00.123456789Z"
+      },
+      "limitations": ["Does not render templates.", "Needs a container runtime."]
+    }
+  ]
+}

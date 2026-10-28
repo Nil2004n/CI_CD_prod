@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.4",
+  "store_type": "config",
+  "updated_at": "2026-10-16T05:25:00.123456789Z",
+  "config": {
+    "app_data_root": "/var/lib/pwt-example",
+    "backup_directory": "/var/backups/pwt-example",
+    "active_theme": "high-contrast",
+    "max_active_repositories": 1024,
+    "max_scanner_processes": 64,
+    "history_retention_days": 90,
+    "chat_persistence_enabled": false,
+    "provider": {
+      "provider_id": "openrouter",
+      "kind": "api",
+      "endpoint": "https://openrouter.ai/api/v1",
+      "model_id": "openai/gpt-4o:free",
+      "credential_mode": "os_credential_store",
+      "credential_reference": "keychain:pwt.openrouter",
+      "routing_policy": {
+        "data_collection": "deny",
+        "zdr": true,
+        "allow_fallbacks": false,
+        "only": ["openrouter"]
+      }
+    },
+    "telemetry_enabled": false,
+    "redaction_version": "2026.10-a"
+  }
+}

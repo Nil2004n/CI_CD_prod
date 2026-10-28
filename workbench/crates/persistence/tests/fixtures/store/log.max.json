@@ -1,0 +1,230 @@
+{
+  "schema_version": "1.4",
+  "store_type": "log",
+  "updated_at": "2026-10-16T05:25:00.123456789Z",
+  "runs": [
+    {
+      "run_id": "00000000-0000-4000-8000-000000000014",
+      "trigger": "manual",
+      "execution": "queued",
+      "created_at": "2026-10-16T05:25:00Z",
+      "started_at": null,
+      "finished_at": null,
+      "plan": {
+        "workflow_id": null,
+        "workflow_revision": null,
+        "targets": [
+          {
+            "repo_id": "00000000-0000-4000-8000-00000000000b",
+            "ref_kind": "branch",
+            "ref_value": "main",
+            "selector": {
+              "mode": "all_yaml",
+              "paths": [],
+              "include_patterns": [],
+              "exclude_patterns": []
+            }
+          }
+        ],
+        "scan_settings": {
+          "categories": ["syntax", "schema", "secrets", "misconfiguration", "vulnerability"],
+          "secret_scope": "checkout",
+          "template_mode": "both",
+          "schema_mode": "both",
+          "schema_bindings": [],
+          "renderers": [],
+          "allow_reference_context": true,
+          "adapter_ids": []
+        },
+        "approval_ids": [],
+        "created_at": "2026-10-16T05:25:00Z",
+        "plan_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "target_snapshots": [],
+        "engine_snapshots": []
+      },
+      "coverage": {
+        "discovered_files": 0,
+        "selected_files": 0,
+        "assessed_files": 0,
+        "excluded_files": 0,
+        "missing_files": 0,
+        "checks_passed": 0,
+        "checks_with_findings": 0,
+        "checks_failed": 0,
+        "checks_unsupported": 0,
+        "checks_skipped": 0,
+        "checks_incomplete": 0,
+        "checks_cancelled": 0,
+        "coverage": "none",
+        "assessment": "unknown"
+      },
+      "report_ids": [],
+      "last_checkpoint_at": null
+    },
+    {
+      "run_id": "00000000-0000-4000-8000-000000000015",
+      "trigger": "daily",
+      "execution": "completed",
+      "created_at": "2026-10-16T05:25:00Z",
+      "started_at": "2026-10-16T05:25:00.123456789Z",
+      "finished_at": "2026-10-16T06:00:00Z",
+      "plan": {
+        "workflow_id": "00000000-0000-4000-8000-000000000064",
+        "workflow_revision": 3,
+        "targets": [
+          {
+            "repo_id": "00000000-0000-4000-8000-00000000000b",
+            "ref_kind": "branch",
+            "ref_value": "main",
+            "selector": {
+              "mode": "all_yaml",
+              "paths": [],
+              "include_patterns": [],
+              "exclude_patterns": []
+            }
+          },
+          {
+            "repo_id": "00000000-0000-4000-8000-00000000000c",
+            "ref_kind": "tag",
+            "ref_value": "v1.2.3",
+            "selector": {
+              "mode": "all_yaml",
+              "paths": [],
+              "include_patterns": [],
+              "exclude_patterns": []
+            }
+          }
+        ],
+        "scan_settings": {
+          "categories": ["syntax", "schema", "secrets", "misconfiguration", "vulnerability"],
+          "secret_scope": "checkout",
+          "template_mode": "both",
+          "schema_mode": "both",
+          "schema_bindings": [],
+          "renderers": [],
+          "allow_reference_context": true,
+          "adapter_ids": []
+        },
+        "approval_ids": ["00000000-0000-4000-8000-000000000028"],
+        "created_at": "2026-10-16T05:25:00Z",
+        "plan_digest": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+        "target_snapshots": [
+          {
+            "repo_id": "00000000-0000-4000-8000-00000000000b",
+            "selected_ref": "main",
+            "commit_oid": "0123456789abcdef0123456789abcdef01234567",
+            "inventory_revision": 7,
+            "selected_files": [],
+            "missing_paths": [],
+            "snapshot_at": "2026-10-16T05:25:00Z"
+          },
+          {
+            "repo_id": "00000000-0000-4000-8000-00000000000c",
+            "selected_ref": "v1.2.3",
+            "commit_oid": "fedcba9876543210fedcba9876543210fedcba98",
+            "inventory_revision": 8,
+            "selected_files": [],
+            "missing_paths": [],
+            "snapshot_at": "2026-10-16T05:25:00Z"
+          }
+        ],
+        "engine_snapshots": [
+          {
+            "adapter_id": "yamllint",
+            "adapter_version": "1.0",
+            "tool_name": "yamllint",
+            "tool_version": "1.35.1",
+            "ruleset_version": null,
+            "config_digest": null,
+            "manifest_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "availability": "ready",
+            "data_updated_at": null
+          }
+        ]
+      },
+      "coverage": {
+        "discovered_files": 18446744073709551615,
+        "selected_files": 12,
+        "assessed_files": 11,
+        "excluded_files": 3,
+        "missing_files": 1,
+        "checks_passed": 7,
+        "checks_with_findings": 2,
+        "checks_failed": 1,
+        "checks_unsupported": 1,
+        "checks_skipped": 1,
+        "checks_incomplete": 1,
+        "checks_cancelled": 1,
+        "coverage": "partial",
+        "assessment": "findings"
+      },
+      "report_ids": [
+        "00000000-0000-4000-8000-00000000006f",
+        "00000000-0000-4000-8000-000000000070"
+      ],
+      "last_checkpoint_at": "2026-10-16T06:00:00Z"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "00000000-0000-4000-8000-000000000078",
+      "at": "2026-10-16T05:25:00Z",
+      "level": "info",
+      "event_type": "RunStarted",
+      "run_id": null,
+      "repo_id": null,
+      "workflow_id": null,
+      "task_id": null,
+      "approval_id": null,
+      "message_redacted": "Run started",
+      "code": null
+    },
+    {
+      "event_id": "00000000-0000-4000-8000-000000000079",
+      "at": "2026-10-16T05:25:00.123456789Z",
+      "level": "error",
+      "event_type": "StorageFailure",
+      "run_id": "00000000-0000-4000-8000-000000000015",
+      "repo_id": "00000000-0000-4000-8000-00000000000b",
+      "workflow_id": "00000000-0000-4000-8000-000000000064",
+      "task_id": "00000000-0000-4000-8000-00000000003d",
+      "approval_id": "00000000-0000-4000-8000-000000000028",
+      "message_redacted": "Synthetic failure detail",
+      "code": "storage_failed"
+    }
+  ],
+  "reports": [
+    {
+      "report_id": "00000000-0000-4000-8000-00000000006f",
+      "run_id": "00000000-0000-4000-8000-000000000015",
+      "repo_id": "00000000-0000-4000-8000-00000000000b",
+      "json_path": "backup/report-fake.json",
+      "md_path": "backup/report-fake.md",
+      "json_written": true,
+      "md_written": true,
+      "json_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "generated_at": "2026-10-16T06:00:00Z",
+      "pdf_path": "backup/report-fake.pdf",
+      "pdf_written": true,
+      "pdf_digest": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+      "pdf_error_redacted": null,
+      "pdf_renderer_version": "renderer-0.1"
+    },
+    {
+      "report_id": "00000000-0000-4000-8000-000000000070",
+      "run_id": "00000000-0000-4000-8000-000000000015",
+      "repo_id": "00000000-0000-4000-8000-00000000000c",
+      "json_path": "backup/report-fake-2.json",
+      "md_path": "backup/report-fake-2.md",
+      "json_written": false,
+      "md_written": false,
+      "json_digest": null,
+      "generated_at": "2026-10-16T06:00:00Z",
+      "pdf_path": null,
+      "pdf_written": false,
+      "pdf_digest": null,
+      "pdf_error_redacted": "Synthetic renderer error",
+      "pdf_renderer_version": null
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+     Running tests/fs_atomic.rs 
+     Running tests/read.rs 
+     Running tests/recovery.rs 
+test each_in_flight_state_becomes_interrupted_and_terminal_runs_are_untouched ... FAILED
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s

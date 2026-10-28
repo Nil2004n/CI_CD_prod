@@ -1,0 +1,99 @@
+{
+  "tool": "dev/p02_check.py",
+  "repo": "/home/kali/Desktop/CI_CD_prod",
+  "target_dir": "/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c",
+  "mode": "test",
+  "slot": "lead",
+  "package": "domain",
+  "final": false,
+  "repo_head": "9537c67b3443e6da71bbb5415cae9158193f27d0",
+  "dirty": [
+    "M  workbench/crates/domain/src/store/approval.rs",
+    "M  workbench/crates/domain/src/store/config.rs",
+    "M  workbench/crates/domain/src/store/conversation.rs",
+    "M  workbench/crates/domain/src/store/evidence.rs",
+    "M  workbench/crates/domain/src/store/log.rs",
+    " M workbench/crates/domain/src/store/mod.rs",
+    "M  workbench/crates/domain/src/store/rag.rs",
+    "M  workbench/crates/domain/src/store/report.rs",
+    "M  workbench/crates/domain/src/store/repository.rs",
+    "M  workbench/crates/domain/src/store/suppression.rs",
+    "M  workbench/crates/domain/src/store/tools.rs",
+    "MM workbench/crates/domain/src/store/workflow.rs",
+    " M workbench/crates/domain/src/text.rs",
+    " A workbench/crates/domain/tests/store_any.rs",
+    "A  workbench/crates/domain/tests/store_models_a.rs",
+    "A  workbench/crates/domain/tests/store_models_b.rs",
+    "?? evidence/debug/P02-D04/",
+    "?? planning/P02-packets/D04-W1.md",
+    "?? planning/P02-packets/D04-W2.md",
+    "?? planning/P02-packets/T05b-W1.md",
+    "?? planning/P02-packets/T06-W2.md"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.97.1 (c980f4866 2026-06-30)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.97 (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "errno 101",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "test",
+      "command": "cargo test -p domain --frozen",
+      "exit": 101,
+      "log": "test.log",
+      "seconds": 4.39,
+      "protected_files_unchanged": true,
+      "ok": false,
+      "counts": {
+        "suites": 6,
+        "passed": 365,
+        "failed": 2,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "compile_fail_ok": 0
+      },
+      "floors": {
+        "min_passed": 0,
+        "min_compile_fail": 0
+      }
+    }
+  ],
+  "ok": false
+}

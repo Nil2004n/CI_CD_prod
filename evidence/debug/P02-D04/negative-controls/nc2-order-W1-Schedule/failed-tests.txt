@@ -1,0 +1,10 @@
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 279 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test data_schema_section_nine_workflows_json_is_byte_stable ... FAILED
+test schedule ... FAILED
+failures:
+failures:
+test result: FAILED. 31 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s

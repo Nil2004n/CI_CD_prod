@@ -405,7 +405,7 @@ pub(crate) fn redact_static(text: &'static str) -> RedactedText {
 /// is trusted as application-owned (Architecture trust boundary 3).
 #[allow(
     dead_code,
-    reason = "P02 B0: first used by the evidence-side store models in wave 1b; removed by the lead at B1"
+    reason = "P02 B1 (P02-D04): `redacted_vec` has no store field yet (reserved for list-valued class R fields); the other helpers are used"
 )]
 pub(crate) mod store_read {
     use super::{RedactedText, escape};

@@ -8,6 +8,63 @@
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+/// Defines a closed string enum with explicit wire values (P02-D05, owner decision E-1: the one mechanism for
+/// every enum defined in `domain::store`; reused contract/vocab/state enums keep their derives). Defined before
+/// the `mod` declarations below, so it is in textual scope in every child module without an import.
+///
+/// The generated type derives `Clone, Copy, PartialEq, Eq, Hash, Debug`, has `ALL` (every value in schema
+/// order), `as_str` (the wire string) and `from_wire`, and implements `Serialize` and `Deserialize`.
+/// `Deserialize` accepts exactly the listed strings and fails with fixed text for anything else, including
+/// a wrong-typed value, so the failed input is never part of the error.
+macro_rules! closed_enum {
+    (
+        $(#[$doc:meta])*
+        $name:ident, $count:literal, {
+            $($(#[$vdoc:meta])* $variant:ident => $wire:literal),+ $(,)?
+        }
+    ) => {
+        $(#[$doc])*
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+        pub enum $name {
+            $($(#[$vdoc])* $variant),+
+        }
+
+        impl $name {
+            /// Every value, in schema order.
+            pub const ALL: [Self; $count] = [$(Self::$variant),+];
+
+            /// The wire string of this value.
+            pub fn as_str(self) -> &'static str {
+                match self {
+                    $(Self::$variant => $wire),+
+                }
+            }
+
+            /// The value whose wire string is `s`, if any.
+            pub fn from_wire(s: &str) -> Option<Self> {
+                match s {
+                    $($wire => Some(Self::$variant),)+
+                    _ => None,
+                }
+            }
+        }
+
+        impl serde::Serialize for $name {
+            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                serializer.serialize_str(self.as_str())
+            }
+        }
+
+        impl<'de> serde::Deserialize<'de> for $name {
+            fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                $crate::store::values::deserialize_parsed(deserializer, |s| {
+                    Self::from_wire(s).ok_or_else(|| String::from("unknown value"))
+                })
+            }
+        }
+    };
+}
+
 pub mod approval;
 pub mod classes;
 pub mod config;
@@ -178,6 +235,13 @@ impl<'de> Deserialize<'de> for ConstFalse {
     }
 }
 
+/// Implemented by the ten `store_type` marker types only (private trait), so [`AnyStore::kind`] reads the
+/// kind from the type of the document's `store_type` field.
+trait StoreTypeMarker {
+    /// The root kind whose `store_type` const this marker (de)serialises.
+    const KIND: StoreKind;
+}
+
 macro_rules! store_type_marker {
     ($(#[$doc:meta])* $name:ident, $kind:ident) => {
         $(#[$doc])*
@@ -187,6 +251,10 @@ macro_rules! store_type_marker {
         impl $name {
             /// The root kind this marker belongs to.
             pub const KIND: StoreKind = StoreKind::$kind;
+        }
+
+        impl StoreTypeMarker for $name {
+            const KIND: StoreKind = StoreKind::$kind;
         }
 
         impl Serialize for $name {
@@ -229,3 +297,58 @@ store_type_marker!(/// `store_type` of a `backup/` report.
     ReportStoreType, Report);
 store_type_marker!(/// `store_type` of `tools.json`.
     ToolManifestStoreType, ToolManifest);
+
+/// A decoded store document of any root kind (request §5.3; completed by the lead at B1).
+///
+/// Serialises as the root document itself (untagged: the root's own `store_type` member identifies it). It
+/// has no `Deserialize`: decoding is `persistence::read`, keyed by the [`StoreKind`] of the file being read,
+/// after the version gate and schema validation.
+///
+/// `Report` is boxed: a report is far larger than every other root (clippy `large_enum_variant`), and
+/// boxing does not change the serialised form.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+pub enum AnyStore {
+    /// `config.json`.
+    Config(config::ConfigFile),
+    /// `repo.json`.
+    Repositories(repository::RepositoryFile),
+    /// `workflows.json`.
+    Workflows(workflow::WorkflowFile),
+    /// `approvals.json`.
+    Approvals(approval::ApprovalFile),
+    /// `log.json`.
+    Log(log::LogFile),
+    /// `suppressions.json` (reserved, read-only).
+    Suppressions(suppression::SuppressionFile),
+    /// `rag/index.json`.
+    RagIndex(rag::RagIndexFile),
+    /// `rag/conversations.json`.
+    Conversations(conversation::ConversationFile),
+    /// A `backup/` report.
+    Report(Box<report::ReportFile>),
+    /// `tools.json`.
+    ToolManifest(tools::ToolManifestFile),
+}
+
+impl AnyStore {
+    /// The root kind, taken from the document's `store_type` marker type, so a variant cannot disagree
+    /// with the `store_type` it serialises.
+    pub fn kind(&self) -> StoreKind {
+        fn of<M: StoreTypeMarker>(_: &M) -> StoreKind {
+            M::KIND
+        }
+        match self {
+            Self::Config(f) => of(&f.store_type),
+            Self::Repositories(f) => of(&f.store_type),
+            Self::Workflows(f) => of(&f.store_type),
+            Self::Approvals(f) => of(&f.store_type),
+            Self::Log(f) => of(&f.store_type),
+            Self::Suppressions(f) => of(&f.store_type),
+            Self::RagIndex(f) => of(&f.store_type),
+            Self::Conversations(f) => of(&f.store_type),
+            Self::Report(f) => of(&f.store_type),
+            Self::ToolManifest(f) => of(&f.store_type),
+        }
+    }
+}

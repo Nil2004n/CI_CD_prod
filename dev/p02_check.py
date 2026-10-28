@@ -563,7 +563,8 @@ def main():
         elif m == "clippy":
             r = run_cargo("clippy", ["clippy", *scope, "--all-targets", "--frozen", "--", "-D", "warnings"], a.slot, out)
         elif m == "test":
-            r = run_cargo("test", ["test", *scope, "--frozen"], a.slot, out)
+            # --no-fail-fast (P02-D06): a failing test binary must not hide the results of the later ones.
+            r = run_cargo("test", ["test", *scope, "--frozen", "--no-fail-fast"], a.slot, out)
             r["counts"] = test_counts(out / "test.log")
             log_text = (out / "test.log").read_text(errors="replace")
             r["counts"]["compile_fail_ok"] = len(re.findall(r" - compile fail \.\.\. ok$", log_text, re.M))
@@ -572,7 +573,7 @@ def main():
                     or r["counts"]["passed"] < a.min_passed or r["counts"]["compile_fail_ok"] < a.min_compile_fail):
                 r["ok"] = False
         elif m == "cli":
-            r = run_cargo("cli", ["test", "-p", "cli", "--frozen", "--tests"], a.slot, out)
+            r = run_cargo("cli", ["test", "-p", "cli", "--frozen", "--tests", "--no-fail-fast"], a.slot, out)
             r["counts"] = test_counts(out / "cli.log")
             if r["counts"]["failed"] or r["counts"]["ignored"]:
                 r["ok"] = False

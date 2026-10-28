@@ -543,7 +543,8 @@ fn url_path(p: &str) -> Check {
 }
 
 /// User part of `user@host`. A `:` (password) or `%` (encoded userinfo) is a policy violation; a leading
-/// `-` would read as an option (O4); at most 32 bytes and no key-like run (O6).
+/// `-` would read as an option (O4); at most 32 bytes (O6). P02-D05 R-D03-1: no key-run check here, because
+/// a plain 32-byte user name is legitimate (the length bound is the credential guard for this field).
 fn url_user(u: &str) -> Check {
     if u.contains(':') || u.contains('%') {
         return Err(ValueReason::Forbidden);
@@ -559,9 +560,6 @@ fn url_user(u: &str) -> Check {
         .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
     {
         return Err(ValueReason::Character);
-    }
-    if has_key_run(u) {
-        return Err(ValueReason::Forbidden);
     }
     Ok(())
 }
@@ -750,6 +748,10 @@ fn iana_timezone(s: &str) -> Check {
     if s == "UTC" {
         return Ok(());
     }
+    // P02-D05 R-D03-5: no segment may start with `-` (option-like), the first included.
+    if s.split('/').any(|p| p.starts_with('-')) {
+        return Err(ValueReason::Syntax);
+    }
     let parts = s.split('/').count();
     if (2..=3).contains(&parts) && s.split('/').all(|p| !p.is_empty()) {
         Ok(())
@@ -759,7 +761,8 @@ fn iana_timezone(s: &str) -> Check {
 }
 
 string_newtype!(
-    /// IANA time-zone name by syntax only (`UTC` or `Area/Location[/Sub]`); tzdb membership is checked later.
+    /// IANA time-zone name by syntax only (`UTC` or `Area/Location[/Sub]`, no segment starting with `-`);
+    /// tzdb membership is checked later.
     IanaTimezone,
     iana_timezone
 );
@@ -768,6 +771,11 @@ string_newtype!(
 
 fn token_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | ':' | '/' | '@' | '+' | '-')
+}
+
+/// Charset of [`Identifier`] and [`PolicyId`] (P02-D05 E-2): the token charset without `/` and `@`.
+fn id_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | ':' | '+' | '-')
 }
 
 fn lower_token_char(c: char) -> bool {
@@ -785,6 +793,16 @@ fn token(s: &str, max: usize, allowed: fn(char) -> bool) -> Check {
         return Err(ValueReason::Character);
     }
     if s.starts_with('-') || s == "." || s == ".." {
+        return Err(ValueReason::Syntax);
+    }
+    Ok(())
+}
+
+/// [`token`] over [`id_char`] plus (P02-D05 E-2) no `..` anywhere in the value, so an identifier can never
+/// read as a parent-directory step. A `/` or `@` is `Character`; a `..` (alone or inside the value) is `Syntax`.
+fn id_token(s: &str, max: usize) -> Check {
+    token(s, max, id_char)?;
+    if s.contains("..") {
         return Err(ValueReason::Syntax);
     }
     Ok(())
@@ -904,9 +922,10 @@ string_newtype!(
 );
 
 string_newtype!(
-    /// Policy or parser identifier.
+    /// Policy or parser identifier: `[A-Za-z0-9._:+-]`, at most 128 bytes, no leading `-`, no `..`
+    /// (P02-D05 E-2: `/` and `@` are rejected).
     PolicyId,
-    |s| token(s, 128, token_char)
+    |s| id_token(s, 128)
 );
 
 string_newtype!(
@@ -922,7 +941,8 @@ string_newtype!(
 );
 
 string_newtype!(
-    /// Generic machine identifier (theme, dialect, platform, native format, embedding key).
+    /// Generic machine identifier (theme, dialect, platform, native format, embedding key):
+    /// `[A-Za-z0-9._:+-]`, at most 128 bytes, no leading `-`, no `..` (P02-D05 E-2: `/` and `@` are rejected).
     Identifier,
-    |s| token(s, 128, token_char)
+    |s| id_token(s, 128)
 );

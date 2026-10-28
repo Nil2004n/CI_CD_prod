@@ -862,12 +862,14 @@ pub enum AppEvent {
     /// A trigger fired.
     TriggerFired {
         workflow_id: WorkflowId,
-        at: UtcTimestamp,
+        /// When the trigger fired. Named `fired_at` so it cannot collide with the envelope `at` (P02-D05, Q-D03-1).
+        fired_at: UtcTimestamp,
     },
     /// A trigger did not start a run.
     TriggerSkipped {
         workflow_id: WorkflowId,
-        at: UtcTimestamp,
+        /// When the trigger was due. Named `skipped_at` so it cannot collide with the envelope `at` (P02-D05, Q-D03-1).
+        skipped_at: UtcTimestamp,
         reason: TriggerSkipReason,
     },
     /// A run plan was frozen.

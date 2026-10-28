@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.4",
+  "store_type": "workflows",
+  "updated_at": "2026-10-16T05:25:00Z",
+  "workflows": [
+    {
+      "workflow_id": "9d4aa1e3-e812-57cd-96ab-bf9c1ab1d62d",
+      "revision": 1,
+      "name": "Daily configuration review",
+      "description": "Example only; framework support depends on installed approved adapters.",
+      "enabled": false,
+      "created_at": "2026-10-16T05:25:00Z",
+      "updated_at": "2026-10-16T05:25:00Z",
+      "targets": [
+        {
+          "repo_id": "526a9739-68cb-5ef8-8c3a-0fda8a207475",
+          "ref_kind": "branch",
+          "ref_value": "main",
+          "selector": {
+            "mode": "all_yaml",
+            "paths": [],
+            "include_patterns": [],
+            "exclude_patterns": []
+          }
+        }
+      ],
+      "scan_settings": {
+        "categories": [
+          "syntax",
+          "schema",
+          "secrets",
+          "misconfiguration",
+          "vulnerability"
+        ],
+        "secret_scope": "checkout",
+        "template_mode": "both",
+        "schema_mode": "both",
+        "schema_bindings": [],
+        "renderers": [],
+        "allow_reference_context": true,
+        "adapter_ids": []
+      },
+      "schedule": {
+        "kind": "daily",
+        "interval_seconds": null,
+        "daily_local_time": "10:00",
+        "timezone": "Asia/Kolkata",
+        "next_due_at": null,
+        "overlap_policy": "skip_if_running",
+        "missed_policy": "record_no_replay"
+      },
+      "approval_ids": [],
+      "output_formats": [
+        "json",
+        "md",
+        "pdf"
+      ]
+    }
+  ]
+}

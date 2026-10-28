@@ -1,11 +1,79 @@
 # Handover
 
+Checkpoint: 2026-10-27, **P02 wave 2 (T08+T09+T10) + P02-D06 closed PASS, baseline B2, all UNCOMMITTED** on `phase/P02-store` (HEAD `9537c67` = origin). Integrated 735/0/0, 32 compile_fail (`evidence/debug/P02-D06/integrated-check-closeout/` — re-run after reviews, no code change; first pass `integrated-check/`); floors 735/32 (uncommitted; control at 736 fails on the floor only). Reviews: 0 high, 0 medium; 7 correctness lows/suspected + 2 security lows/5 infos, all adjudicated no-change, no D07 (`evidence/P02/wave2/record.md` §3). Nothing committed or pushed (owner: stop before commit and push). All seven worker worktrees kept (`p02-t08-w1`, `p02-t09-w2`, `p02-t10-w3`, `p02-d06-w1`, `p02-d05-w1`, `agent-a4ba8a936ec281447`, `agent-abb89aad73dcb2554`) — B2 commit/push pending explicit owner approval. Wave 3 (T11/T12/T13), T14, T15 not approved. Re-verify the main tree: `python3 -I -B dev/p02_check.py all --slot lead --min-passed 735 --min-compile-fail 32 --out <dir>`. Lessons: `--no-fail-fast` for `cargo test` (a failing binary must not hide later ones — NC8, request §5.13); mutation controls must restore files with a fresh mtime (Cargo freshness), see D05 record.
+
+## Takeover map (read this before touching anything)
+
+Branch: `phase/P02-store`. HEAD = `origin/phase/P02-store` = `9537c67` ("status: P02-D03 state in the summary rows…"). The last three commits on this branch are all P02-D03 (`6f260e5`, `9e311ee`, `2311014`); everything since D03 (wave 1b, D04, D05 + prep, wave 2, D06) is **uncommitted** by owner order ("stop before commit and push"). `main` is untouched since the P01 merge (`7324da6`); do not merge to `main`. Work below is the B2 baseline: integrated **735 passed / 0 failed / 0 ignored, 32 compile_fail** (36 suites + `cli` 2 suites, 0 scenarios).
+
+### Index vs worktree — the trap that bites every re-verification
+
+`git status --short` shows three different layers. Do not treat them as one "dirty tree":
+
+- **Staged (index, 76 files):** wave 1b + D04 + D05-prep + wave-2 code, applied with `git apply --index`. This includes all of `workbench/` (domain store models, persistence `schema.rs`/`semantic/*`/`writer.rs`/`recovery.rs`/`report_name.rs`, all `persistence/tests/*.rs` and `fixtures/store/**`). The staged `dev/p02_baseline.json` still says **627/32** (D05+prep floors).
+- **Unstaged worktree changes (7 files):** `dev/p02_baseline.json` (627 → **735/32**), `dev/p02_check.py` (`--no-fail-fast` in `test` + `cli`, request §5.13), `handover.md`, `plan.md`, `planning/P02-T01-request.md` (§5.13), `status.md`, plus `workbench/crates/persistence/tests/store_integration.rs` (lead B2 integration, 5 tests). That last file is **intent-to-add** (`git add -N`): `git ls-files -s` records the empty blob (`e69de29…`), `git status` shows ` A`. Its content lives only in the worktree — `git diff --cached` will not show it. Never run `git reset`, `git checkout -- .`, or `git stash` here; any of them orphans the B2 work.
+- **Untracked:** `.commandcode/` (local taste dir, machine-specific, never commit), `evidence/P02/wave2/`, `evidence/debug/P02-D04/`, `evidence/debug/P02-D05/`, `evidence/debug/P02-D06/`, packets `planning/P02-packets/{D04-W1,D04-W2,D05-W1,D06-W1,T05b-W1,T06-W2,T08-W1,T09-W2,T10-W3}.md`.
+
+Consequences: the **verifying tree is HEAD + index + worktree together** (735). Checking out HEAD alone gives 523; index alone gives 627. The runner reads `dev/p02_baseline.json` from the worktree only when `--final` is passed (which fails until T14 by design on B0 stub markers) — every evidence run below passes `--min-passed/--min-compile-fail` explicitly.
+
+### Worktrees — 7 survivors, all at 9537c67, all git-excluded
+
+Excluded via `.git/info/exclude` (`.claude/worktrees/`; the repo has no `.gitignore`). Branches `p02/*` and `worktree-agent-*` all point at `9537c67` with **no commits on any of them** — every increment is uncommitted by packet rule. Keep all of them until B2 is committed, then remove only after preservation checks (empty `git status --porcelain`, branch ancestor of the B2 commit, `git worktree remove` non-force, `git branch -d`).
+
+| Worktree | Branch | Staged (same prep base everywhere) | Unstaged increment (the actual work) |
+|---|---|---|---|
+| `.claude/worktrees/p02-t08-w1` | `p02/t08-w1` | prep base (patch `9048d7a5…`) | T08: `persistence/src/schema.rs`, `tests/schema.rs`, `tests/fixtures/store/**` |
+| `.claude/worktrees/p02-t09-w2` | `p02/t09-w2` | prep base | T09: `semantic/{rules,ids,workflow,approval,evidence,ai}.rs`, `tests/semantic.rs` |
+| `.claude/worktrees/p02-t10-w3` | `p02/t10-w3` | prep base | T10: `writer.rs`, `recovery.rs`, `report_name.rs`, `atomic.rs` (DIR_MODE only), `tests/{writer,recovery,report_name}.rs` |
+| `.claude/worktrees/p02-d06-w1` | `p02/d06-w1` | integrated wave-2 state | D06: 9 `.max` fixtures + `tests/schema.rs` (+282/−31) |
+| `.claude/worktrees/p02-d05-w1` | `p02/d05-w1` | wave-1b + D04 base | D05: `store/{values,plan,provider,repository,tools,workflow}.rs`, `tests/{store_models_a,store_plan,store_values}.rs` |
+| `.claude/worktrees/agent-a4ba8a936ec281447` | `worktree-agent-a4ba8a936ec281447` | `9537c67` | wave-1b W1 residue: `store/{approval,config,repository,tools,workflow}.rs`, `tests/store_models_a.rs` (1 unstaged file) |
+| `.claude/worktrees/agent-abb89aad73dcb2554` | `worktree-agent-abb89aad73dcb2554` | `9537c67` | wave-1b W2 residue: `store/{conversation,evidence,log,rag,report,suppression}.rs`, `tests/store_models_b.rs` (2 unstaged files) |
+
+### Evidence map (what proves what)
+
+- `evidence/P02/wave2/record.md` — the B2 close-out record: per-worktree PASS (660/642/680), first-merge FAIL analysis, D06 fix, lead `store_integration.rs`, `--no-fail-fast`, test arithmetic (735 = 627+33+15+53+2+5), review adjudication §3. Start here.
+- `evidence/debug/P02-D06/record.md` — the 12 (rule, pointer) pairs that failed, each checked vs spec; why the rules were right and the fixtures were wrong.
+- `evidence/debug/P02-D06/integrated-check/` — the first full PASS (735/0/0, `summary.json`, `test.log`, `static.json`).
+- `evidence/debug/P02-D06/integrated-check-closeout/` — re-run after reviews, no code change (735/0/0); `final.stdout` = OVERALL PASS, `control-736.stdout` = OVERALL FAIL on the floor only.
+- `evidence/debug/P02-D06/integrated-check-first-fail/` — the 606+9 run that opened D06. `floor-control-736.txt`, `negative-controls/nc8-{before,after}-runner-fix/run.txt`.
+- `evidence/debug/P02-D05/` — E-1/E-2/Q-D03-1/R-D03-1/R-D03-5 record, NC4–NC7, the `copy2`-mtime staleness defect. `P02-D04/` — NC1–NC3, 603 run. `evidence/P02/{wave1a,T04,T02,cargo-audit-C-A,CA-04}/` — earlier baselines.
+- Packets are the worker contracts: `planning/P02-packets/{T08-W1,T09-W2,T10-W3,D06-W1}.md`. Request authority: `planning/P02-T01-request.md` §§5.4–5.6, 5.11–5.13, 6, 7, 9.
+
+### Re-verify (exact commands)
+
+Main tree (from repo root, output dir must not exist or must be empty):
+`python3 -I -B dev/p02_check.py all --slot lead --min-passed 735 --min-compile-fail 32 --out <dir>`
+Worker tree example: `python3 -I -B .claude/worktrees/p02-t08-w1/dev/p02_check.py all --slot w1 --repo .claude/worktrees/p02-t08-w1 --out <dir>` (final run without `--package`). All Cargo runs through the runner only: pinned 1.97.1 binaries, `env -i`, isolated `CARGO_HOME`, `unshare -rn`, `--frozen`. No network, no direct `cargo`, no edits outside owned files (packets list them).
+
+### Committing B2 (only on explicit owner "commit and push B2")
+
+1. `git status -sb`, `git worktree list` — expect the state above.
+2. `git add workbench dev evidence handover.md plan.md status.md planning` (adds the 7 unstaged files, the intent-to-add test, and all untracked evidence/packets; `.claude/` and `.commandcode/` stay excluded).
+3. Re-run the `all` check above to a fresh `--out`; confirm 735/0/0, 32 compile_fail and control-736 fails on the floor only.
+4. Commit on `phase/P02-store`, non-force push (`git push origin phase/P02-store`). Merge to `main` is separate and not approved.
+5. After the push: preservation checks per worktree (`git status --porcelain` empty, branch ancestor of the B2 commit), then `git worktree remove` (non-force) + `git branch -d`. Worktree removal is not approved yet — do not do it now.
+
+### What is next, and what is not approved
+
+Wave 3 (T11 envelope/emission, T12 CLI, T13 FR-31), T14 integration, T15 report: **no packets, no approval, not started**. Not approved: B2 commit/push (standing stop order), cargo-audit C-A2+, network, new dependencies, merge to `main`, worktree/branch removal. Open decisions table below still holds: B2, T09 dev caps (86 400 s / 64 MiB / 64 / 1024, development defaults pending FR-11 — wave-2 report written, no owner decision), O-1–O-6 (P13), Q-01/Q-02/Q-04/Q-05, B-01, B-04, B-08.
+
+Previous checkpoint (historical):
+
+Checkpoint: 2026-10-27, **P02 wave 1b + debug cycle P02-D04, integrated but UNCOMMITTED** on `phase/P02-store` (HEAD `9537c67` = origin). Owner: "stop before commit and push". Integrated check PASS 603/0/0, 32 compile_fail (`evidence/debug/P02-D04/integrated-check/`); floors 603/32 in `dev/p02_baseline.json` (uncommitted). Records: `evidence/debug/P02-D04/record.md`; status `status.md` (open decisions B1, E-1–E-3, Q-D03-1, R-D03-1/-5).
+
+Resume (P02): `git status -sb` — expect staged: 11 `domain/src/store/*.rs`, `tests/store_models_{a,b}.rs`; unstaged/untracked lead files: `store/mod.rs` (`AnyStore`), `text.rs` (allow reason), `tests/store_any.rs` (intent-to-add), `dev/p02_baseline.json`, packets `planning/P02-packets/{T05b-W1,T06-W2,D04-W1,D04-W2}.md`, `evidence/debug/P02-D04/`. Re-verify: `python3 -I -B dev/p02_check.py all --slot lead --min-passed 603 --min-compile-fail 32 --out <dir>` (baseline file is read only with `--final`). Worker worktrees `.claude/worktrees/agent-a4ba8a936ec281447` (W1) and `agent-abb89aad73dcb2554` (W2) hold the same work (staged + D04 unstaged) at `9537c67`; keep until B1 is committed. On owner approval of B1: add the lead files, commit, non-force push, then worktree cleanup after preservation checks.
+
+Lessons wave 1b: give fresh debug workers the existing worktree when work is uncommitted, and take increments as unstaged `git diff`; workers cannot mutate files they do not own, so the lead runs mutation negative controls (`evidence/debug/P02-D04/negative-controls/nc.py`); check worker test arithmetic (suites + 64 doctests).
+
+Previous checkpoint (historical):
+
 Checkpoint: 2026-10-27, **P02 after debug cycle P02-D03** on `phase/P02-store` (tip = the commit containing this file, pushed). D03 closed PASS: integrated 523/0/0, 32 compile_fail, floors 523/32 (`evidence/debug/P02-D03/record.md`). Previous P02 checkpoint B1a `d73d807` (`evidence/P02/wave1a/record.md`).
 
 Resume (P02): `git status -sb`; read `status.md` (open decisions Q-D03-1, R-D03-*, wave 1b), `planning/P02-T01-request.md` §5 incl. §5.10 (D03 amendments), packets `planning/P02-packets/`. Checks: `python3 -I -B dev/p02_check.py all --slot lead --out <dir>` (`--repo <worktree>` for a worker branch; floors `dev/p02_baseline.json`). Workers: step 0 `git merge --ff-only <base>`; hand a fixture outside the worker's files back to the lead (as in D03). Lessons D03: a rule tightening breaks fixtures in other owners' files; list cross-file fixtures in the packet.
 
 ---
-(P01 checkpoint below is historical.)
+(Earlier P02 and P01 checkpoints below are historical.)
 
 Checkpoint: 2026-10-26, **P01 accepted by the owner and merged into `main`** (`--no-ff` merge `7324da6` of `phase/P01-foundation` at `5a3e4ed`; `main` pushed to `origin/main` with this handover update). Report `evidence/P01/P01-report.md`, freeze `evidence/P01/P01-freeze.json`. CA-03 applied (store contract **1.4**, UI schema **1.1**, canonical file `schemas/workbench-store-v1.4.schema.json`, `ToolAvailability`); FR-31 for P02; readiness audit 33/33 (`evidence/P01/readiness/`). 2026-10-26 later: **D-17 headless developer CLI** added to `plan.md` §4.1 at owner request (plan only; every feature phase from P02 delivers a CLI command, scripted scenario and feature-index row; P02 creates `crates/cli`, `help`/`features`, runner `cli` mode, and proposes the spec amendment). Committed and pushed to `origin/main` at owner request. Then **P02 planned (`plan.md` §5B) and approved 2026-10-26 with A1–A10 = recommended options**; branch `phase/P02-store` from `main` `4a300cb`, planning commit pushed. 2026-10-27: **P02-T01 delivered** (`planning/P02-T01-request.md` + Appendix A `planning/P02-T01-fr31-classification.md`; uncommitted, commits with B0). T01 approved 2026-10-27 (D1–D12 recommended). Then cargo-audit C-A PASS (`evidence/P02/cargo-audit-C-A/`), T02 PASS (`evidence/P02/T02/`, lock `b34cb529…`, resolution scratch `~/.local/share/pwt-dev-tools/_p02/t02-resolve/`), T03 CA-04 draft (`planning/P02-T03-CA-04-draft.md`, not applied). All uncommitted (commit with B0). Then owner approved T04 and CA-04: CA-04 applied (`evidence/P02/CA-04/`), T04 B0 PASS (`evidence/P02/T04/record.md`; runner `python3 -I -B dev/p02_check.py all --slot lead --out <dir>`, add `--repo <worktree>` and `--slot w<N>` for workers). Wave 1a then done: T07 (W3) + T05a (W1), debug cycles P02-D01/D02, reviews (no high), **B1a PASS 497/0/0** (`evidence/P02/wave1a/record.md`), committed and pushed. **Resume point: owner decisions O1–O10, Q-T04-1, wave-1b go-ahead.** Packets live in `planning/P02-packets/`; spawn workers with a short prompt pointing to the packet file (inline-prompt spawns repeatedly hit classifier no-verdict errors). Worker permission rules: `.claude/settings.local.json` (git-excluded, as is `.claude/worktrees/`). T08/T10/T12/T13 packet requirements from the reviews: wave-1a record §6. B1 decisions recorded in `status.md`. Written by Opus directly; no Haiku documentation agent is installed.
 
@@ -13,7 +81,7 @@ Lessons (P01 wave 1): never share a Cargo target dir between checkouts (runner n
 
 Earlier checkpoint (historical): 2026-10-24, P00 accepted with qualifications and merged to `main` (`5888826`).
 
-## Resume steps
+## Resume steps (P01, historical — superseded by the P02 resume note at the top)
 1. `git status -sb`, `git log --oneline -3`, `git worktree list`. Expect branch `phase/P02-store` = `origin/phase/P02-store` at the P02 planning commit (parent `4a300cb` = `main` = `origin/main`), clean tree, no worker worktrees; `phase/P01-foundation` = `origin/phase/P01-foundation` = `5a3e4ed`.
 2. Read `status.md`, `planning/P01-T01-request.md` (frozen interfaces §5, test plan §6.3, packets §7, debug bounds §9), `evidence/P01/T04/record.md`.
 3. Checks: `python3 -I -B dev/p01_check.py all --slot lead --final (floors from dev/p01_baseline.json, 416/32) --out <dir>` (add `--repo <worktree>` to verify a worker branch) (all Cargo via direct 1.97.1 binaries, `env -i`, isolated CARGO_HOME, `unshare -rn`, `--frozen`). `static --final` must pass only at T09.

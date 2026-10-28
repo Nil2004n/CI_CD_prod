@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.4",
+  "store_type": "repositories",
+  "updated_at": "2026-10-16T05:25:00.123456789Z",
+  "repositories": [
+    {
+      "repo_id": "526a9739-68cb-5ef8-8c3a-0fda8a207475",
+      "display_name": "example-service",
+      "slug": "example-service",
+      "remote_url": "https://github.com/example/example-service.git",
+      "canonical_remote": "github.com/example/example-service",
+      "local_path": "checkouts/526a9739-68cb-5ef8-8c3a-0fda8a207475",
+      "default_ref_kind": "branch",
+      "default_ref_value": "main",
+      "registered_at": "2026-10-16T05:25:00Z",
+      "last_update_at": null,
+      "last_commit_oid": null,
+      "checkout_state": "not_cloned",
+      "last_error_redacted": null,
+      "inventory_revision": 0,
+      "inventory_at": null,
+      "files": []
+    },
+    {
+      "repo_id": "0190a3b4-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+      "display_name": "Example service — café",
+      "slug": "example-2",
+      "remote_url": "ssh://git@git.example.invalid:2222/org/repo.git",
+      "canonical_remote": "git.example.invalid/org/repo",
+      "local_path": "checkouts/0190a3b4-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+      "default_ref_kind": "tag",
+      "default_ref_value": "v1.2.3",
+      "registered_at": "2026-10-16T05:25:00Z",
+      "last_update_at": "2026-10-16T05:25:00.123456789Z",
+      "last_commit_oid": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "checkout_state": "error",
+      "last_error_redacted": "update failed: exit status 128",
+      "inventory_revision": 18446744073709551615,
+      "inventory_at": "2026-10-16T05:25:00Z",
+      "files": [
+        {
+          "file_id": "11111111-2222-4333-8444-555555555555",
+          "path": ".github/workflows/ci.yml",
+          "byte_size": 0,
+          "content_digest": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+          "commit_oid": "0123456789abcdef0123456789abcdef01234567",
+          "detected_framework": null,
+          "discovery_state": "eligible",
+          "reason": null
+        },
+        {
+          "file_id": "66666666-7777-4888-9999-aaaaaaaaaaaa",
+          "path": "charts/app/values.yaml",
+          "byte_size": 18446744073709551615,
+          "content_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "commit_oid": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+          "detected_framework": "github-actions",
+          "discovery_state": "excluded",
+          "reason": "Excluded by pattern vendor/**"
+        }
+      ]
+    }
+  ]
+}

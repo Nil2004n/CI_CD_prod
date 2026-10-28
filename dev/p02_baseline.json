@@ -1,5 +1,5 @@
 {
-  "comment": "Committed regression floors for dev/p02_check.py (raised at P02-D03 2026-10-27: 523 passed, 32 compile_fail; B1a was 497). Raise at B1/B2/T14 when tests are added; never lower without owner approval.",
-  "min_passed": 523,
+  "comment": "Committed regression floors for dev/p02_check.py (raised at P02 wave 2 + P02-D06 2026-10-27: 735 passed, 32 compile_fail; D05 + wave-2 prep was 627, wave 1b + D04 603, D03 523, B1a 497). Raise at B2/B3/T14 when tests are added; never lower without owner approval.",
+  "min_passed": 735,
   "min_compile_fail": 32
 }

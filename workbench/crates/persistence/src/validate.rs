@@ -1,7 +1,7 @@
 //! Validation results and the validator seam (frozen, `planning/P02-T01-request.md` §5.4).
 
 use domain::store::StoreKind;
-use domain::text::SanitisedText;
+use domain::text::{SanitisedText, sanitise};
 
 /// Maximum number of problems kept per document; further problems set [`Problems::truncated`].
 pub const MAX_PROBLEMS: usize = 100;
@@ -75,11 +75,70 @@ pub struct Problem {
     pub rule: Option<RuleId>,
 }
 
+impl Problem {
+    /// Builds a problem. `pointer` must be a JSON pointer built from schema property names and array
+    /// indices only (never from instance values or object keys that came from the document); it is
+    /// sanitised and cut to [`MAX_POINTER_BYTES`] on a character boundary.
+    pub fn new(layer: Layer, code: ProblemCode, pointer: &str, rule: Option<RuleId>) -> Self {
+        // Shorten the raw pointer (on character boundaries) until its sanitised form fits, so an escape
+        // sequence is never cut in half.
+        let mut end = pointer.len();
+        let text = loop {
+            let candidate = sanitise(&pointer[..end]);
+            if candidate.as_str().len() <= MAX_POINTER_BYTES {
+                break candidate;
+            }
+            end -= 1;
+            while !pointer.is_char_boundary(end) {
+                end -= 1;
+            }
+        };
+        Self {
+            layer,
+            code,
+            pointer: text,
+            rule,
+        }
+    }
+}
+
 /// Problems of one document, capped at [`MAX_PROBLEMS`].
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct Problems {
     pub items: Vec<Problem>,
     pub truncated: bool,
+}
+
+impl Problems {
+    /// A list holding exactly `problem`.
+    pub fn one(problem: Problem) -> Self {
+        let mut p = Self::default();
+        p.push(problem);
+        p
+    }
+
+    /// Appends `problem`, or sets [`Problems::truncated`] once [`MAX_PROBLEMS`] are held.
+    pub fn push(&mut self, problem: Problem) {
+        if self.items.len() < MAX_PROBLEMS {
+            self.items.push(problem);
+        } else {
+            self.truncated = true;
+        }
+    }
+
+    /// Appends every problem of `other`, keeping the cap; truncation in either list carries over.
+    pub fn extend(&mut self, other: Problems) {
+        let was_truncated = other.truncated;
+        for problem in other.items {
+            self.push(problem);
+        }
+        self.truncated |= was_truncated;
+    }
+
+    /// Whether no problem was recorded.
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty() && !self.truncated
+    }
 }
 
 /// Outcome of validating one document. `SchemaUnavailable` is never treated as valid (FR-15).
