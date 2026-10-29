@@ -464,17 +464,17 @@ fn golden_cases() -> Vec<(AppEvent, Value)> {
         (
             AppEvent::TriggerFired {
                 workflow_id: workflow(),
-                at: at(),
+                fired_at: at(),
             },
-            json!({"event_type": "TriggerFired", "workflow_id": U_WORKFLOW, "at": "2023-11-14T22:13:20Z"}),
+            json!({"event_type": "TriggerFired", "workflow_id": U_WORKFLOW, "fired_at": "2023-11-14T22:13:20Z"}),
         ),
         (
             AppEvent::TriggerSkipped {
                 workflow_id: workflow(),
-                at: at_fraction(),
+                skipped_at: at_fraction(),
                 reason: TriggerSkipReason::MissedWhileClosed,
             },
-            json!({"event_type": "TriggerSkipped", "workflow_id": U_WORKFLOW, "at": "2023-11-14T22:13:20.5Z", "reason": "missed_while_closed"}),
+            json!({"event_type": "TriggerSkipped", "workflow_id": U_WORKFLOW, "skipped_at": "2023-11-14T22:13:20.5Z", "reason": "missed_while_closed"}),
         ),
         (
             AppEvent::RunPlanned {
@@ -487,9 +487,9 @@ fn golden_cases() -> Vec<(AppEvent, Value)> {
         (
             AppEvent::RunStarted {
                 run_id: run(),
-                at: at(),
+                started_at: at(),
             },
-            json!({"event_type": "RunStarted", "run_id": U_RUN, "at": "2023-11-14T22:13:20Z"}),
+            json!({"event_type": "RunStarted", "run_id": U_RUN, "started_at": "2023-11-14T22:13:20Z"}),
         ),
         (
             AppEvent::RunStateChanged {
@@ -682,9 +682,30 @@ fn serialised<T: Serialize>(value: T) -> Value {
 // Name completeness.
 // ---------------------------------------------------------------------------------------------
 
+/// The envelope fields added at emission (CA-04, Architecture §6). An event payload that used one of these
+/// names would be overwritten or duplicated when the envelope is flattened beside it (Q-T04-1, Q-D03-1).
+const ENVELOPE_FIELDS: [&str; 3] = ["event_id", "at", "level"];
+
 #[test]
-fn contract_version_is_1_0() {
-    assert_eq!(APP_CONTRACT_VERSION, "1.0");
+fn no_event_payload_uses_an_envelope_field_name() {
+    // `golden_cases` covers every event name (`constructed_events_cover_the_architecture_names_exactly`).
+    for (event, _) in golden_cases() {
+        let json = to_json(&event);
+        let obj = json.as_object().expect("events serialise as objects");
+        for name in ENVELOPE_FIELDS {
+            assert!(
+                !obj.contains_key(name),
+                "{} uses envelope field `{name}`",
+                event_type(&event)
+            );
+        }
+    }
+}
+
+#[test]
+fn contract_version_is_1_1() {
+    // 1.0 -> 1.1 by CA-04 (Data Schema §25), applied 2026-10-27.
+    assert_eq!(APP_CONTRACT_VERSION, "1.1");
 }
 
 #[test]

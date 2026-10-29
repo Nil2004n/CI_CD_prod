@@ -115,7 +115,7 @@ P15a (demo TUI on mocks) may start after P01; P18 (Figma) after P15a + Figma del
 |---|---|---|---|---|
 | P00 | pilot | Decisions frozen, spike protocols, install/crate requests, spikes, tool/crate freeze (detail §5) | Spike records per protocol | Phase approval; T02 needs Q-06; spikes need D-10/crate approvals |
 | P01 | pilot | Cargo workspace (crates per Tech §4), pinned toolchain, typed IDs/states, canonical command/event DTOs (Arch §6), `RedactedText`/`SanitisedText` newtypes so unsanitised text cannot reach persistence types | fmt, clippy `-D warnings`, test, build verified; DTO round-trip tests; cargo-audit if installed | Crate download approval |
-| P02 | pilot | **Headless CLI crate `crates/cli` created (D-17, §4.1).** JSON store v1.4 (CA-03): typed models, schema + semantic validation (Data §11, §18), single writer, lock, temp+replace, recovery, export manifests | Schema conformance of all roots; interruption/malformed/full-disk fixtures; same-day naming | P01 |
+| P02 | pilot | **Detail and approval: §5B.** **Headless CLI crate `crates/cli` created (D-17, §4.1).** JSON store v1.4 (CA-03): typed models, schema + semantic validation (Data §11, §18), single writer, lock, temp+replace, recovery, export manifests | Schema conformance of all roots; interruption/malformed/full-disk fixtures; same-day naming | P01 |
 | P03 | pilot | Permission evaluator (scope/revision/fingerprint), child-env sanitiser (strip model key/unrelated secrets), credential abstraction (session-only; keyring behind spike result) | Scope-match tables; env-strip tests; no key in any serialised output | P01, P02 |
 | P04 | pilot | URL validation (HTTPS/SSH only), clone/fast-forward update, unsafe-state detection, per-repo locks, provenance, Git safety controls from P00-T04 | Local fixture repos (dirty, diverged, hooks, filters, submodules); no source mutation | P00-T04, P02 |
 | P05 | pilot | Inventory, exclusions/symlinks/limits, classifier (generic/Actions/Kubernetes; Compose/Helm reported conditional), tristate selection + selectors, reference detection recorded as gaps (SCAN-05) | Hostile filenames, symlink escape, limits, selector semantics | P04 |
@@ -204,7 +204,7 @@ A test in the CLI crate checks that every index row names an existing command an
 | P17 | `chat context set …`, `chat send` with citations | Cross-repo isolation; invalid citation flagged; injection fixtures inert |
 | P19/P20 | Hardening of CLI paths; owner decision whether the CLI ships in the release or stays development-only | Full regression includes all CLI scenarios |
 
-**Specification follow-up.** A short amendment is needed: Tech §4 (crate list), Architecture §3/§4 (the CLI as a second presentation adapter) and UI Schema §17 (CLI/TUI parity). It will be proposed in the P02 request for owner approval. Until then this section is plan-level only.
+**Specification follow-up.** A short amendment is needed: Tech §4 (crate list), Architecture §3/§4 (the CLI as a second presentation adapter) and UI Schema §17 (CLI/TUI parity). It will be proposed in the P02 request for owner approval. Until then this section is plan-level only. **Done 2026-10-27:** amendment CA-04 approved by the owner and applied (Data Schema §25; app contract 1.1, document 0.3.5; record `evidence/P02/CA-04/check.md`).
 
 ## 5. P00 — decisions, protocols and spikes
 
@@ -289,11 +289,13 @@ FR-18–FR-24 come from the P00-T07 acceptance (owner, 2026-10-24). They are man
 | FR-29 | P00-T09 self-test (S2) | P06 (with FR-02) | Process-group cleanup does not contain descendants that leave the group (`setsid`); a bounded harness return is not proof of containment; production containment remains a separate requirement |
 | FR-30 | P00-T10 finding R-1 (accepted 2026-10-24) | P13 (mandatory acceptance requirement) | Before production schema lookup is enabled: manifest entries identify the complete API group, version and kind; lookup matches the complete identity, never a truncated group prefix; unknown or ambiguous identities return unsupported/not assessed and never fall back to a similarly named built-in schema; regression tests include the `apps.example.com/v1` Deployment and `networking.istio.io/v1` Ingress collisions plus valid built-in controls. Until then, unknown API groups must not be routed through the T10 filename mapping. The T10 prototype does not fix R-1 |
 
-FR-31 comes from the P01 conformance check (owner approval 2026-10-26). It makes the plan §4 P01 intent ("unsanitised text cannot reach persistence types") enforceable in P02.
+FR-31 comes from the P01 conformance check (owner approval 2026-10-26); FR-32/FR-33 from the P02-T14 security review (owner 2026-10-28, Q-T14-2/-3). It makes the plan §4 P01 intent ("unsanitised text cannot reach persistence types") enforceable in P02.
 
 | ID | Source | Assigned | Requirement |
 |---|---|---|---|
 | FR-31 | P01 conformance check | P02 (mandatory acceptance requirement) | **Safe text in store models.** (1) A reviewed classification table assigns every plain-string field of the store schema to: closed enum; validated newtype (relative/confined path, Git ref, credential-free remote URL, IANA timezone, slug, model ID, redaction version, parser/command-policy IDs); `RedactedText` (all text from users, tools or models, including workflow descriptions and approval purposes); or `SanitisedText` (application-derived display text only). (2) `RedactedText` read-back only through a persistence-crate-private path (sealed token), re-escaping on read; a public `Deserialize` stays impossible (compile_fail guard kept); the trust assumption (app-owned store, Architecture trust boundary 3) is recorded. (3) Enforcement: the static field-type allowlist extended to every store-model struct (bare `String`/`&str`/`Cow`/`serde_json::Value` rejected, with negative controls); a schema-completeness test that fails when a plain-string schema property has no classification entry; compile_fail guards for representative fields |
+| FR-32 | P02-T14 security review S-L2; owner Q-T14-2 (2026-10-28) | P06 (with the real redactor) or P19 hardening at the latest | **Default-ignorable code points in terminal text.** Extend the `domain::text` sanitise escape set to the remaining default-ignorable/invisible code points (U+206A–206F, U+180B–180D, variation selectors VS1–VS256, U+17B4/U+17B5, U+FFFC) with positive/negative tests. Visual-disguise risk only; no terminal-control effect today. |
+| FR-33 | P02-T14 security review S-L3 (disclosed T07 limitation); owner Q-T14-3 (2026-10-28) | P03 | **Root against a foreign data directory.** The `.app.lock` uid ownership proxy does not hold when the process runs as euid 0. Refuse to open a data directory not owned by root when euid is 0 (typed error, exit code per CLI table), with tests. |
 
 Process rule from T07 (owner, 2026-10-24): future spike requests enumerate every helper tool and operation, including verification utilities; an unlisted tool is not covered by approval of the surrounding stage.
 
@@ -321,6 +323,92 @@ Detail, interfaces, parallel waves and approvals A1–A7: `planning/P01-executio
 
 P01 total about 10–15 h hands-on, against the §7.1 estimate of 6–10 h. The difference is the request, dependency and cargo-audit work. Confidence is low.
 
+## 5B. P02 — JSON store v1.4, validation, writer, recovery and CLI skeleton (planned 2026-10-26; **approved for execution 2026-10-26**, A1–A10 = recommended options)
+
+Prepared by Opus at owner request from Arch §3/§4/§6/§11/§12, Tech §4/§13/§14/§22, Data §2/§4/§6/§11–§13/§15/§17–§19/§24, PRD RES-03/RES-04/RES-05, UI §17, this plan (§4, §4.1, §5.2) and `status.md`/`handover.md`. **Owner approval 2026-10-26:** "I approve all recommended options, commit and push in a new phase branch" — A1=1a, A2=2a, A3=3a, A4=4a, A5=5a, A6=6a, A7=7a, A8=8a, A9=9a, A10=10a. Phase branch `phase/P02-store` created from `main` (`4a300cb`). Network steps stay limited to what A2/A8 name (cargo-audit stage C-A; offline resolution); anything else still needs separate approval. **Progress (2026-10-27):** T01 approved with T01-D1–D12 = recommended (`planning/P02-T01-request.md`); cargo-audit C-A PASS; T02 PASS; T03 CA-04 approved and applied; T04 B0 PASS (`a9ea9ce`, pushed); wave 1a (T05a+T07) B1a PASS 497/32 (`d73d807`, pushed, `evidence/P02/wave1a/record.md`); P02-D03 PASS 523/32 (O1–O10 + Q-T04-1, pushed); wave 1b (T05b+T06) + P02-D04 PASS 603/32; P02-D05 + prep PASS 627/32; **wave 2 (T08+T09+T10) + P02-D06 PASS 735/32, close-out `evidence/P02/wave2/record.md`**. Everything after B1a is **uncommitted** (stop-before-commit order); wave 3, T14, T15 not started — `status.md`.
+
+### 5B.1 Scope
+**In P02** (plan §4 P02 row, D-17, FR-15/FR-16/FR-31, P01 B1 decision 2):
+- Typed Rust models for all ten store roots of `schemas/workbench-store-v1.4.schema.json` (Config, Repository, Workflow, Approval, Log, Suppression (reserved; read/validate only, never written), RagIndex, Conversation, Report, ToolManifest) and their 63 `$defs`, with FR-31 safe-text field types. *(Corrected 2026-10-27, P02-T01-D2: only 57 of the 63 `$defs` are reachable from the store roots; the six wrapper-protocol defs (WrapperRequest, WrapperControl, TerminationRecord, StreamRecord, DescendantCleanup, TerminationPolicy) are modelled in P06, and `Check` references none of them. FR-31 covers 104 plain-string properties, Appendix A `planning/P02-T01-fr31-classification.md`.)*
+- Schema validation against the embedded canonical 1.4 schema (FR-15: `format` assertions on, external `$ref` compiled out, unavailable schema → `schema_unavailable`, never valid) and version gate (unknown/newer `schema_version` rejected).
+- Semantic validation of Data §11 rules 1–25 and §18 rules 1–18 as pure functions over the models, each rule with an ID and positive/negative tests.
+- Persistence protocol (Data §12, Arch §11): exclusive `.app.lock`, single serialised writer, validate → same-directory temp → flush → replace → directory sync, recovery copy; startup reconciliation (leftover temp files, log ↔ `backup/` report IDs, abandoned runs → `interrupted`, pending approvals stay pending).
+- Report naming and export manifests (Data §13): `YYYYMMDDTHHMMSSZ_<slug>_<run-id>`, bounded slug, same-second collision check, independent `json_written`/`md_written`/`pdf_written`. P02 writes manifests and JSON only; Markdown/PDF generation is P10–P12.
+- Event envelope (B1 decision 2): `event_id`/`at`/`level` added at emission; mapping `AppEvent` → store `Event` record; emission-time validation (e.g. `RunFinished` only with a terminal state).
+- D-17 CLI skeleton (§4.1): `workbench/crates/cli`, binary `pwt-workbench-cli`, `--version`, `help`, `features` + feature index and staleness test, runner `cli` mode, `store init|validate|show|recover` (labelled `dev`, since Arch §6 has no store commands); scripted scenarios `tests/p02_*.rs`.
+
+**Not in P02:** permission scope matching and grant consumption (P03; P02 checks only approval record shape and static invariants), credentials (P03), Git/inventory (P04/P05), process supervision and real redactor (P06), Markdown/PDF rendering (P10–P12), RAG content (P17), migrations from 1.0–1.3 (no such stores exist; Data §19), retention/compaction (open policy, Data §16), the TUI.
+
+### 5B.2 Facts established for this plan (read-only, 2026-10-26)
+| Fact | Basis |
+|---|---|
+| Workspace has 7 crates; `persistence` and `application` are empty stubs; `domain` holds ids, time, text, vocab, states, contract v1.0, versions | `workbench/crates/*/src` |
+| Canonical schema has 10 roots in `oneOf` and 63 `$defs` | `schemas/workbench-store-v1.4.schema.json` |
+| The P00 T06 graph (jsonschema 0.60.1 defaults off + serde_json + saphyr-parser) is 88 packages incl. regex, fancy-regex, referencing, uuid-simd, getrandom, num-*; built in P00 from the isolated cache | `spikes/rust/Cargo.lock`, `evidence/P00/P00-T06/` |
+| `sha2` 0.11.1, `tempfile` 3.27.0, `uuid` 1.29.0, `getrandom` 0.4.3 are in the P00 lockfile; sha2/tempfile are **provisional** (no spike exercised them) | `spikes/p00-freeze/crates.md` §3 | *(Corrected 2026-10-27, P02-T02: the sha2 0.11.1 chain was built as a dependency in the accepted T07/T08 graphs; no spike called its API.)*
+| Runner `dev/p01_check.py` modes: env, fmt, clippy, test, build, static, all; floors in `dev/p01_baseline.json` (416/32) | `dev/p01_check.py` |
+| Rust 1.97.1 std provides `File::lock`/`try_lock` (stable since 1.89) and `sync_all`; exclusive lock, temp+replace and directory sync need no extra crate on Linux | toolchain version; to be confirmed by a T04 build |
+| cargo-audit not installed; stage C-A recommended before P02, not yet approved | `status.md`, `planning/P01-T03-cargo-audit-request.md` |
+
+### 5B.3 Tasks
+Waves follow §3.8: up to three `sonnet-implementer` workers, disjoint owned files, own worktree/branch from a common baseline, lead integration and verification after each wave.
+
+| Task | Content | Owner | Network/installs | Hours |
+|---|---|---|---|---|
+| P02-T01 | P02 request: module layout, frozen interfaces (model module map, `StoreWriter`, `FsOps` failure-injection seam, validation result types, envelope struct, CLI command table), FR-31 classification method, version/migration policy, durability policy, test plan, packets, debug bounds, decisions | Lead | None | 1.5–2 |
+| P02-T02 | Dependency request: `jsonschema` 0.60.1 defaults off (graph as accepted in T06), `sha2` 0.11.1 (report/manifest digests); offline resolution from the isolated cache; lock delta, build-exposure review, RustSec screening (cargo-audit if C-A–C-E approved and done) | Lead | Option-dependent (A2/A3) | 1–2 |
+| P02-T03 | Contract amendment CA-04 draft: envelope fields vs Data `Event` def, D-17 CLI in Tech §4, Arch §3/§4, UI §17; contract-version effects (expected: app contract minor or none, store 1.4 unchanged) | Lead | None | 0.5–1 |
+| P02-T04 | Scaffold: `persistence` module skeleton with frozen stubs, `crates/cli` + binary stub, workspace manifest, lockfile, runner `dev/p02_check.py` (P01 runner + `cli` mode + P02 floors + extended static allowlist hook), baseline **B0** | Lead | None | 1.5–2 |
+| P02-T05 | Wave 1 — models A: shared value `$defs` (Id, Digest, GitOid, RelativePath, Timestamp via domain types), Config, Repository/FileRecord, ToolManifest/LicenseRecord, Approval/InferenceScope, Workflow/Schedule/Selector/RepoTarget/ScanSettings; round-trip against Data §8/§9 examples | W1 | None | 1.5–2.5 |
+| P02-T06 | Wave 1 — models B: Log/RunSummary/Event, Report/Check/Finding/Artifact/SourceRef/ReportManifest/Engine/Target/Plan snapshots, TerminationRecord/StreamRecord/WrapperControl subset used by Check, Suppression (read-only), RagIndex/Chunk, Conversation/Message/ChatContext, Provider/ProviderPolicy/AIEnrichment | W2 | None | 2–3 |
+| P02-T07 | Wave 1 — atomic file layer: `.app.lock` (exclusive, non-blocking, second instance → typed error), same-directory temp, flush, replace, directory sync, recovery copy, data-dir path confinement, `FsOps` seam for injected interruption/ENOSPC/EACCES | W3 | None | 1.5–2 |
+| P02-T08 | Wave 2 — schema validation: embedded 1.4 schema (checksum-pinned), FR-15 settings, version gate, root discrimination by `store_type`, FR-16 fixtures J11–J13/J16 + differential check, typed errors with JSON pointer (no value echo) | W1 | None | 1.5–2 | **Done 2026-10-27** (W1 `p02-t08-w1`, per-worktree 660/0/0): `schema.rs`, `tests/schema.rs`, `tests/fixtures/store/**` (33 tests) — integrated B2, uncommitted |
+| P02-T09 | Wave 2 — semantic validation: Data §11 rules 1–25, §18 rules 1–18; rule-ID table marking each rule implemented / store-level part only / producer phase; positive + negative test per rule | W2 | None | 2–3 | **Done 2026-10-27** (W2 `p02-t09-w2`, per-worktree 642/0/0): `semantic/{rules,ids,workflow,approval,evidence,ai}.rs` (44 IDs), `tests/semantic.rs` (15 tests) — integrated B2, uncommitted |
+| P02-T10 | Wave 2 — writer and recovery: `StoreWriter` (serialised, validate → write, storage errors never swallowed, Data §11 rule 25), startup reconciliation, report naming + collision check, export-manifest status updates | W3 | None | 2–2.5 | **Done 2026-10-27** (W3 `p02-t10-w3`, per-worktree 680/0/0): `writer/recovery/report_name/atomic.rs`, `tests/{writer,recovery,report_name}.rs` (53 incl. 1 doctest) — integrated B2, uncommitted |
+| P02-T11 | Wave 3 — envelope and emission: `application` emitter adding `event_id`/`at`/`level`, UUID v4 + UTC clock behind injectable traits (deterministic in tests), `AppEvent` → `Event` mapping for every pilot event, emission-time state validation | W1 | None | 1.5–2 | **Done 2026-10-28** (W1 `p02-t11-w1`, lead integrated 765/0/0, 32): `application/src/emit.rs`, `application/tests/emit.rs` (30 tests) — on B2 `2448abf`, uncommitted (`evidence/P02/T11/record.md`) |
+| P02-T12 | Wave 3 — CLI: argument parser (std only), `--version`, `help`, `features`, `--json` JSON Lines, `--data-dir` required, exit-code table, `store init|validate|show|recover`, feature index + staleness test, scenarios `tests/p02_*.rs` | W2 | None | 2–3 | **Done 2026-10-28** (W2 `p02-t12-w2`, lead integrated 805/0/0, 32, cli 34; first `--final` PASS): `application/src/dev_store.rs`, `cli/src/*`, `cli/tests/p02_scenarios.rs` (40 tests) — uncommitted (`evidence/P02/T12/record.md`) |
+| P02-T13 | Wave 3 — FR-31 enforcement: classification table for every plain-string schema property, schema-completeness test, sealed `RedactedText` read-back path in `persistence`, compile_fail guards; runner static-allowlist extension is lead-owned (done in T14) | W3 | None | 1.5–2 | **Done 2026-10-28** (W3 `p02-t13-w3`, lead integrated `--final` 840/0/0, 39 compile_fail): `domain/src/store/classes.rs` (105 rows, 7 guards), `domain/tests/fr31.rs` (21 tests); read-back stays in `domain::text::store_read` per T01-D1 — on B3 `49b8cba`, uncommitted (`evidence/P02/T13/record.md`) |
+| P02-T14 | Integration: merge waves, runner static extension with negative controls, fixtures (interrupted write, malformed JSON, ENOSPC, EACCES, stale lock, leftover temp, same-second reports, Unicode/hostile paths), full check, reviewer + security-reviewer, debug cycles | Lead | None | 2–3 | **Done 2026-10-28** (W1 fixtures + lead static extension/differential B; D07 F-1 fix, D08 flaky-test fix; reviews 0 high; `--final` 866/0/0, 39, cli 48) — committed locally as B4 `0cc562e` (`evidence/P02/T14/record.md`) |
+| P02-T15 | P02 report, freeze update, status/handover; stop for acceptance | Lead | None | 0.5–1 | **Done 2026-10-29** (lead; `--final` 866/0/0, 39, cli 48, static 28/28; `evidence/P02/P02-report.md`, `P02-freeze.json`) — uncommitted, awaiting P02 acceptance |
+
+Dependencies: T01 → T02, T03, T04; T04 → wave 1 (T05, T06, T07); wave 1 → wave 2 (T08 needs T05+T06; T09 needs T05+T06; T10 needs T07 + model stubs); wave 2 → wave 3 (T11 needs T06 Event; T12 needs T08–T10; T13 needs T05+T06); T14 → T15. Lead commits a baseline after each wave (B1 after wave 1, B2 after wave 2) as in P01. *(Revised 2026-10-27, P02-T01-D3: wave 1 split into 1a — W1 values/plan/provider (T05a) ∥ W3 fs/lock/atomic (T07), baseline B1a — and 1b — W1 config-side roots (T05b) ∥ W2 evidence-side roots (T06), baseline B1; wave 3 ends with baseline B3. Packets and ownership: `planning/P02-T01-request.md` §10.)*
+
+**Estimate:** 22–34 h hands-on (§7.1 had 10–16 h + CLI 2–3 h; P01 ran 10–15 h against 6–10 h, and P02 covers 10 roots and 43 semantic rules). Confidence low; §7.1 to be updated at P02 approval. *(Revised at T01, 2026-10-27: 23–35.5 h, low confidence — +0.5–1 h for B1a, +0.5 h for the domain additions.)*
+
+### 5B.4 Acceptance criteria (proposed)
+1. fmt, clippy `-D warnings`, test, build PASS through `dev/p02_check.py all --final`; P01 floors not lowered; new P02 floors committed.
+2. Every store root: valid examples (Data §8–§10 plus generated minimal/maximal records) pass schema **and** typed round trip; each root has at least one schema-negative and one version-negative fixture (newer version, 1.3 label).
+3. FR-15 and FR-16 (J11–J13, J16) pass; a fixture with an external `$ref` never triggers a fetch and never validates.
+4. Every Data §11/§18 rule appears in the rule table; every rule marked implemented has passing positive and negative tests; deferred parts name their phase.
+5. Recovery: injected interruption at each write step leaves the last validated copy readable; malformed/foreign files are reported, never overwritten; ENOSPC/EACCES produce `StorageFailure` and stop further writes; abandoned runs become `interrupted`; pending approvals are never turned into grants.
+6. Two reports in the same second for the same repo get distinct names; slugs are bounded and never raw paths.
+7. FR-31 (1)–(3) met, including the schema-completeness test and its negative control.
+8. Envelope: every pilot `AppEvent` maps to a schema-valid `Event`; non-terminal `RunFinished` and similar are rejected at emission.
+9. CLI: §4.1 definition of done met for every P02 feature; `dev/p02_check.py cli` runs all scenarios headless; no command reads the real app-data dir; no secret appears in any CLI output fixture.
+10. reviewer + security-reviewer: no unresolved high findings; medium findings fixed or accepted by the owner.
+11. cargo-audit result recorded, or "not run" with the reason (as in P01 criterion 8).
+
+### 5B.5 Risks
+- jsonschema graph is large (88 packages, regex engines, build scripts); exposure reviewed by pattern only, no filesystem sandbox (as P00/P01).
+- Rename/directory-sync durability is tested on this Linux host and filesystem only; no crash-proof or multi-file ACID claim (Data §12).
+- ENOSPC is simulated through the `FsOps` seam; a real small-tmpfs test inside `unshare -rm` is optional (A5).
+- Semantic rules that depend on later producers (approvals, runs, findings) are tested on synthetic records only until those phases exist.
+- Worker velocity: models B (T06) and semantic rules (T09) are the largest tasks; split further if a wave-1 report shows overrun.
+
+### 5B.6 Owner decisions needed (recommended option first)
+| # | Decision | Options |
+|---|---|---|
+| A1 | Scope | **1a** §5B.1 as written (T01–T15); 1b defer RagIndex/Conversation models to P17 (saves ~1 h; FR-31 completeness then covers only written roots) |
+| A2 | Dependencies | **2a** jsonschema 0.60.1 (defaults off) + sha2 0.11.1, offline from the isolated cache, every lock entry equal to P00; stop if anything is missing; 2b also `uuid`/`getrandom` instead of std `/dev/urandom` for IDs |
+| A3 | Build exposure | **3a** accepted for an offline netns build if every build script/proc-macro was in an accepted P00 graph; else stop and report |
+| A4 | Version policy | **4a** accept 1.4 only; reject everything else with `unsupported_version` (no 1.3 stores exist); 4b also read 1.3 read-only |
+| A5 | Durability tests | **5a** `FsOps` injection + real rename/sync on this host; 5b additionally a real ENOSPC test on a small tmpfs in `unshare -rm` |
+| A6 | Workers | **6a** up to 3 `sonnet-implementer` workers per wave in worktrees, local commits on own branches (as P01 A6) |
+| A7 | Commits/pushes | **7a** lead commits at B0/B1/B2/report, each with non-force push of `phase/P02-store`; merge to `main` separate |
+| A8 | cargo-audit | **8a** approve stage C-A before T02; 8b keep deferred, criterion 11 = "not run" |
+| A9 | Debug cycles | **9a** pre-authorise debug cycles for anomalies the lead finds after a worker task, bounds as P01 §9 (two attempts per defect, then owner) |
+| A10 | CA-04 | **10a** draft in T03, apply only after owner approval, before wave 3 |
+
 ## 6. Pilot acceptance anchors
 Release gates PRD §9 and §15 apply. Mocks never satisfy real-scan acceptance. Manual terminal/mouse/PDF checks stay listed as manual-pending until performed. Real OpenRouter behaviour is unverified until a separately approved real-API acceptance check.
 
@@ -334,7 +422,7 @@ Unit: hands-on hours (Opus orchestration + Sonnet implementation + Opus review/v
 |---|---|---|---|
 | P00 | 38–61 | P11 | 6–10 |
 | P01 | 6–10 | P12 | 6–10 |
-| P02 | 10–16 | P13 | 10–16 |
+| P02 | 22–34 (revised at approval 2026-10-26, §5B.3; §7.2 totals not yet recomputed) | P13 | 10–16 |
 | P03 | 8–12 | P14 | 10–14 |
 | P04 | 10–16 | P15a | 14–22 |
 | P05 | 8–12 | P15b | 10–16 |
@@ -401,3 +489,9 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 | P01-D04 | Final-review guards: RedactedText/SanitisedText construction routes, weak doctest controls, unguarded traits, untested versions, over-escaping sampled, private doc link | Completed 2026-10-26: D04a (`e5d7ba5`, `9c47fcd`) + D04b (`6694b34`), fresh `sonnet-implementer` instances in W2/W1′ scopes; integrated run 415/0/0, 32 compile_fail |
 | P01-D05 | Four test-file `#[allow]` without `reason` after owner-approved lint tightening (`deny` + `allow_attributes_without_reason`) | Completed 2026-10-26: reasons added (`38851f3`); integrated `--final` run 415/0/0, 32 compile_fail |
 | P01-D06 | CA-03 domain migration (`ToolStatus` → `ToolAvailability`; store 1.4 / UI 1.1 in tests) | Completed 2026-10-26: `4b4b3fe`; integrated `--final` 416/0/0, 32 compile_fail; CA-03 check 29/0/0 |
+| P02-D01 | Lead defect in FR-31 Appendix A rev 1: string-valued maps not covered; `RendererSetting.parameters_redacted` typed S (should be R) | Completed 2026-10-27, attempt 1: generator `dev/p02_fr31_appendix.py` rev 2 (105 rows), `store_read::redacted_map`, worker `8d22da8`; 489/0/0 (`evidence/debug/P02-D01/`) |
+| P02-D02 | Wave-1a review findings within pre-authorisation: serde error echo (store_read, markers, ConstFalse/ConstTrue), unpinned D01 type, ASCII-only bound tests, nullable-key behaviour, unrecorded FsOps deviations; container-level echo assigned to T08 read boundary | Completed 2026-10-27, attempt 1: lead `8043ebd` + worker `3ab305a`; B1a check 497/0/0, 32 compile_fail; 11 rule/dependency items held for owner (`evidence/debug/P02-D02/`) |
+| P02-D03 | Owner-approved O1–O10 (value-rule hardening, data-dir ownership/mode, hardened opens, escape set) and Q-T04-1 (`RunStarted.started_at`) | Completed 2026-10-27, attempt 1: lead `b50f64c`, W3 `b7a9174`, W1 `2311014`; integrated 523/0/0, 32 compile_fail (`evidence/debug/P02-D03/record.md`; entry added 2026-10-27 with D04) |
+| P02-D04 | Wave-1b review findings within pre-authorisation: field order untested, vacuous asserts, `EventType` sync blind spots, W1 nullable/R-field checks, overstated no-echo doc; lead rustdoc/allow reason | Completed 2026-10-27, attempt 1 (uncommitted): integrated 603/0/0, 32 compile_fail; negative controls NC1–NC3 fail as intended (`evidence/debug/P02-D04/record.md`) |
+| P02-D05 | Owner-approved E-1 (`closed_enum!` for all store enums), E-2 (`Identifier`/`PolicyId` no `/`, `@`, `..`), Q-D03-1 (`fired_at`/`skipped_at` + envelope-name guard), R-D03-1/-5, plus wave-2 prep (§5.12 lead seams) | Completed 2026-10-27, attempt 1 (uncommitted): lead + W1 (`p02-d05-w1`); integrated 627/0/0, 32 compile_fail; negative controls NC4–NC7 fail as intended; runner mtime staleness defect found and fixed (`evidence/debug/P02-D05/record.md`) |
+| P02-D06 | Wave-2 merge: T08 maximal fixtures violated T09 semantic rules (rules correct, fixtures fixed); lead test defect (queued run in `log.max`); runner hid later binaries without `--no-fail-fast` | Completed 2026-10-27, attempt 1 (uncommitted): fresh W1 on T08 test files only; lead `store_integration.rs` (5 tests) + runner fix; integrated 735/0/0, 32 compile_fail; NC8 replayed green-to-red-to-green (`evidence/debug/P02-D06/record.md`; wave record `evidence/P02/wave2/record.md`) |

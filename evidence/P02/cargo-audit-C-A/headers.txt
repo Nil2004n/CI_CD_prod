@@ -1,0 +1,19 @@
+HTTP/2 200 
+x-cache-hits: 418
+last-modified: Sun, 28 Jun 2026 15:49:23 GMT
+x-amz-id-2: RqdPY/ckA/BoNlwTpiGIttIk/TJwvxb6ccWPnPLnE0PoE89RIGso2gCkLR7Qt9aqlyL9pFYIIqOC6qG9Q+Pr3g8NLg6VkOGE
+x-amz-request-id: GMD3SHTX80PKQNB1
+server: AmazonS3
+date: Wed, 21 Oct 2026 11:38:09 GMT
+x-amz-server-side-encryption: AES256
+x-amz-replication-status: COMPLETED
+etag: "e2ebca79b0c0cb1a9792cc1714f64d41"
+x-amz-version-id: WTFpM36GC.Svo_ur3nN1Xoo35QXMoqu0
+accept-ranges: bytes
+content-type: application/gzip
+cache-control: public,max-age=31536000,immutable
+age: 505835
+x-cache: HIT
+x-served-by: cache-bom-vanm7210060-BOM
+content-length: 63768
+

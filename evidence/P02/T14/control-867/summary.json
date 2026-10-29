@@ -1,0 +1,633 @@
+{
+  "tool": "dev/p02_check.py",
+  "repo": "/home/kali/Desktop/CI_CD_prod",
+  "target_dir": "/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c",
+  "mode": "all",
+  "slot": "lead",
+  "package": null,
+  "final": false,
+  "repo_head": "bf6130bd8e9568e3271faccfd7e5b220a9f4915c",
+  "dirty": [
+    " M dev/p02_baseline.json",
+    " M dev/p02_check.py",
+    " M evidence/P02/T13/record.md",
+    " M status.md",
+    " M workbench/crates/application/src/dev_store.rs",
+    " M workbench/crates/cli/src/features.rs",
+    " M workbench/crates/cli/tests/p02_scenarios.rs",
+    " M workbench/crates/persistence/src/atomic.rs",
+    " M workbench/crates/persistence/tests/fs_atomic.rs",
+    "?? .commandcode/",
+    "?? dev/p02_differential.py",
+    "?? evidence/P02/T14/",
+    "?? evidence/debug/P02-D07/",
+    "?? planning/P02-packets/D07-W1.md",
+    "?? planning/P02-packets/D08-W2.md",
+    "?? planning/P02-packets/T14-W1.md",
+    "?? workbench/crates/application/tests/dev_store_faults.rs",
+    "?? workbench/crates/cli/tests/p02_failures.rs"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.97.1 (c980f4866 2026-06-30)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.97 (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "errno 101",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "fmt",
+      "command": "cargo fmt --all -- --check",
+      "exit": 0,
+      "log": "fmt.log",
+      "seconds": 0.26,
+      "protected_files_unchanged": true,
+      "ok": true
+    },
+    {
+      "step": "clippy",
+      "command": "cargo clippy --workspace --all-targets --frozen -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log",
+      "seconds": 0.13,
+      "protected_files_unchanged": true,
+      "ok": true
+    },
+    {
+      "step": "test",
+      "command": "cargo test --workspace --frozen --no-fail-fast",
+      "exit": 0,
+      "log": "test.log",
+      "seconds": 17.08,
+      "protected_files_unchanged": true,
+      "ok": false,
+      "counts": {
+        "suites": 41,
+        "passed": 866,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "compile_fail_ok": 39
+      },
+      "floors": {
+        "min_passed": 867,
+        "min_compile_fail": 39
+      }
+    },
+    {
+      "step": "build",
+      "command": "cargo build --workspace --frozen",
+      "exit": 0,
+      "log": "build.log",
+      "seconds": 0.06,
+      "protected_files_unchanged": true,
+      "ok": true
+    },
+    {
+      "step": "cli",
+      "command": "cargo test -p cli --frozen --tests --no-fail-fast",
+      "exit": 0,
+      "log": "cli.log",
+      "seconds": 2.97,
+      "protected_files_unchanged": true,
+      "ok": true,
+      "counts": {
+        "suites": 4,
+        "passed": 48,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    },
+    {
+      "step": "static",
+      "checks": [
+        {
+          "check": "no `unsafe` in code (comments stripped)",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "no print/dbg/stdout/stderr in src",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "no todo!/unimplemented!/allow(clippy::todo) (informational before T09)",
+          "hits": 0,
+          "ok": true
+        },
+        {
+          "check": "CredentialSecret::expose not referenced in src outside domain/src/contract.rs",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "no Redactor impl or alias in src outside #[cfg(test)] modules (until P06)",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "redact_static called only from allowlisted files with a literal or ALL_CAPS const",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "no Box::leak / .leak() in src",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "#[allow] in src == the approved list",
+          "found": [
+            [
+              "crates/domain/src/contract.rs",
+              "clippy::result_large_err"
+            ],
+            [
+              "crates/domain/src/text.rs",
+              "dead_code"
+            ]
+          ],
+          "unapproved": [],
+          "stale": [],
+          "ok": true
+        },
+        {
+          "check": "RedactedText trait impls == {Display, Serialize}; derives == {Clone, Debug, Eq, Hash, PartialEq}",
+          "impls": [
+            [
+              "crates/domain/src/text.rs",
+              "fmt::Display"
+            ],
+            [
+              "crates/domain/src/text.rs",
+              "serde::Serialize"
+            ]
+          ],
+          "derives": [
+            "Clone",
+            "Debug",
+            "Eq",
+            "Hash",
+            "PartialEq"
+          ],
+          "ok": true
+        },
+        {
+          "check": "no workspace build.rs, proc-macro crate, .cargo/config or rust-toolchain file (repo and ancestors)",
+          "build_rs": [],
+          "proc_macro": [],
+          "config": [],
+          "ok": true
+        },
+        {
+          "check": "AppEvent field types allowlisted",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "AppCommand field types allowlisted",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "store-model fields: no bare String/str/Cow/Value (FR-31 (3))",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "text::store_read used only in domain/src/text.rs and domain/src/store/",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "serde_json::from_* only in persistence/src/{read,schema}.rs",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "std::fs / File / OpenOptions only in persistence/src/fs.rs and application/src/emit.rs",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "no environment/home/temp/cwd lookups in cli, application, persistence src",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "cli src does not reference persistence (CLI -> application only)",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "no process::exit/abort in src (exit codes via ExitCode)",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "/dev/urandom only in persistence/src/fs.rs and application/src/emit.rs",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "store log Event records constructed only in application/src/emit.rs (to_store_event)",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "store RedactedText fields deserialise through text::store_read (FR-31 (2))",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "dev_store *_with fault seams called only from dev_store.rs and tests",
+          "hits": [],
+          "ok": true
+        },
+        {
+          "check": "static checker self-test",
+          "cases": [
+            {
+              "case": "rejects tuple variant",
+              "ok": true
+            },
+            {
+              "case": "rejects comma generic",
+              "ok": true
+            },
+            {
+              "case": "rejects multi-line type",
+              "ok": true
+            },
+            {
+              "case": "rejects alias",
+              "ok": true
+            },
+            {
+              "case": "rejects path type",
+              "ok": true
+            },
+            {
+              "case": "rejects OsString",
+              "ok": true
+            },
+            {
+              "case": "rejects PathBuf",
+              "ok": true
+            },
+            {
+              "case": "rejects Vec<u8>",
+              "ok": true
+            },
+            {
+              "case": "rejects Arc<str>",
+              "ok": true
+            },
+            {
+              "case": "rejects Box<dyn Error>",
+              "ok": true
+            },
+            {
+              "case": "rejects brace in doc comment",
+              "ok": true
+            },
+            {
+              "case": "rejects local enum with data",
+              "ok": true
+            },
+            {
+              "case": "rejects raw string in command",
+              "ok": true
+            },
+            {
+              "case": "rejects SanitisedText in event",
+              "ok": true
+            },
+            {
+              "case": "rejects tuple variant in SelectionChange",
+              "ok": true
+            },
+            {
+              "case": "rejects CredentialSecret outside CredentialAction",
+              "ok": true
+            },
+            {
+              "case": "accepts allowlisted contract",
+              "ok": true
+            },
+            {
+              "case": "final requires both enums",
+              "ok": true
+            },
+            {
+              "case": "unsafe after // in string is visible",
+              "ok": true
+            },
+            {
+              "case": "println after // in string is visible",
+              "ok": true
+            },
+            {
+              "case": "comment text is removed",
+              "ok": true
+            },
+            {
+              "case": "Redactor impl inside #[cfg(test)] mod is ignored",
+              "ok": true
+            },
+            {
+              "case": "Redactor impl outside test module is caught",
+              "ok": true
+            },
+            {
+              "case": "wrapped Redactor impl header is caught",
+              "ok": true
+            },
+            {
+              "case": "lifetime is not a char literal",
+              "ok": true
+            },
+            {
+              "case": "store field rejects String field",
+              "ok": true
+            },
+            {
+              "case": "store field rejects Option<String>",
+              "ok": true
+            },
+            {
+              "case": "store field rejects Vec<String>",
+              "ok": true
+            },
+            {
+              "case": "store field rejects Cow",
+              "ok": true
+            },
+            {
+              "case": "store field rejects Box<str>",
+              "ok": true
+            },
+            {
+              "case": "store field rejects serde_json::Value",
+              "ok": true
+            },
+            {
+              "case": "store field rejects multi-line",
+              "ok": true
+            },
+            {
+              "case": "store field accepts typed fields",
+              "ok": true
+            },
+            {
+              "case": "store field ignores String in a doc comment",
+              "ok": true
+            },
+            {
+              "case": "serde from_* caught: let x = serde_json::from_str::",
+              "ok": true
+            },
+            {
+              "case": "serde from_* caught: let x: R = from_value::<R>(v);",
+              "ok": true
+            },
+            {
+              "case": "serde from_* caught: serde_json :: from_slice(b)",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: std::fs::read(p)",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: use std::fs;",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: File::open(p)",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: OpenOptions::new()",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: fs::rename(a, b)",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: use std::{fs, io};",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: fs::read_to_string(p)",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: fs::create_dir_all(p)",
+              "ok": true
+            },
+            {
+              "case": "fs use caught: fs::set_permissions(p, m)",
+              "ok": true
+            },
+            {
+              "case": "fs regex ignores FsOps trait use",
+              "ok": true
+            },
+            {
+              "case": "fs regex ignores the persistence::fs module path",
+              "ok": true
+            },
+            {
+              "case": "env lookup caught: std::env::var(\"HOME\")",
+              "ok": true
+            },
+            {
+              "case": "env lookup caught: env::var_os(k)",
+              "ok": true
+            },
+            {
+              "case": "env lookup caught: std::env::temp_dir()",
+              "ok": true
+            },
+            {
+              "case": "env lookup caught: env::home_dir()",
+              "ok": true
+            },
+            {
+              "case": "env lookup caught: std::env::current_dir()",
+              "ok": true
+            },
+            {
+              "case": "env regex allows args_os",
+              "ok": true
+            },
+            {
+              "case": "print macro regex catches println in main",
+              "ok": true
+            },
+            {
+              "case": "print macro regex allows stdout handle in main",
+              "ok": true
+            },
+            {
+              "case": "layer rule catches: use persistence::writer::StoreWr",
+              "ok": true
+            },
+            {
+              "case": "layer rule catches: let w = persistence :: writer::o",
+              "ok": true
+            },
+            {
+              "case": "layer rule catches: extern crate persistence;",
+              "ok": true
+            },
+            {
+              "case": "layer rule allows application::dev_store",
+              "ok": true
+            },
+            {
+              "case": "exit rule catches: std::process::exit(2)",
+              "ok": true
+            },
+            {
+              "case": "exit rule catches: process::abort()",
+              "ok": true
+            },
+            {
+              "case": "exit rule catches: std :: process :: exit(1);",
+              "ok": true
+            },
+            {
+              "case": "exit rule allows ExitCode",
+              "ok": true
+            },
+            {
+              "case": "exit rule catches a brace import",
+              "ok": true
+            },
+            {
+              "case": "urandom rule catches a literal",
+              "ok": true
+            },
+            {
+              "case": "store Event literal caught",
+              "ok": true
+            },
+            {
+              "case": "store Event definition ignored",
+              "ok": true
+            },
+            {
+              "case": "EventEnvelope literal not a store Event",
+              "ok": true
+            },
+            {
+              "case": "store R field rule catches missing helper",
+              "ok": true
+            },
+            {
+              "case": "store R field rule catches wrong helper",
+              "ok": true
+            },
+            {
+              "case": "store R field rule catches Option without helper",
+              "ok": true
+            },
+            {
+              "case": "store R field rule catches helper on the wrong field",
+              "ok": true
+            },
+            {
+              "case": "store R field rule accepts helpered fields",
+              "ok": true
+            },
+            {
+              "case": "seam rule catches: dev_store::validate_with(fs,",
+              "ok": true
+            },
+            {
+              "case": "seam rule catches: recover_with (a, b, c, d)",
+              "ok": true
+            },
+            {
+              "case": "seam rule allows the production entry points",
+              "ok": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "check": "Cargo.lock registry set == approved (version, source, checksum)",
+          "extra": [],
+          "missing": [],
+          "ok": true
+        },
+        {
+          "check": "Cargo.lock members == 8 workspace crates",
+          "ok": true
+        },
+        {
+          "check": "Cargo.lock sha256 == T02-accepted lock",
+          "value": "6c9d4998d89e67d3b3c6598cbc266a6bbc7943766244e724402b26deb3877545",
+          "ok": true
+        },
+        {
+          "check": "manifest dependencies within the P02 allowlist",
+          "found": [
+            "application",
+            "domain",
+            "jsonschema",
+            "libc",
+            "persistence",
+            "serde",
+            "serde_json",
+            "sha2"
+          ],
+          "ok": true
+        }
+      ],
+      "ok": true
+    }
+  ],
+  "ok": false
+}

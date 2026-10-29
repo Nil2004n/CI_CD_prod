@@ -1,0 +1,28 @@
+FAIL 01_PRD.md header 0.3.5 with app contract 1.1 
+FAIL 01_PRD.md no 0.3.4 header left 
+PASS 02_Technical_Specification.md header 0.3.5 with app contract 1.1 
+PASS 02_Technical_Specification.md no 0.3.4 header left 
+PASS 03_Architecture.md header 0.3.5 with app contract 1.1 
+PASS 03_Architecture.md no 0.3.4 header left 
+PASS 04_UI_Schema.md header 0.3.5 with app contract 1.1 
+PASS 04_UI_Schema.md no 0.3.4 header left 
+PASS 05_Database_Data_Schema.md header 0.3.5 with app contract 1.1 
+PASS 05_Database_Data_Schema.md no 0.3.4 header left 
+PASS 03_Architecture.md:204 app-contract 1.0 mention is historical 
+PASS 05_Database_Data_Schema.md:4024 app-contract 1.0 mention is historical 
+PASS 05_Database_Data_Schema.md:4041 app-contract 1.0 mention is historical 
+PASS Arch §6 heading v1.1 
+PASS Arch §6 envelope paragraph 
+PASS Arch §3 CLI paragraph 
+PASS Arch §4 CLI row 
+PASS Arch A-11 1.1 
+PASS Tech §4 cli/ 
+PASS UI §17 parity paragraph 
+PASS UI §17 app contract v1.1 
+PASS Data §17 v0.3.5 / app 1.1 
+PASS Data §25 present once 
+PASS schemas/workbench-store-v1.4.schema.json unchanged 
+PASS schemas/wrapper-control-v1.1.schema.json unchanged 
+PASS schemas/wrapper-request-v1.1.schema.json unchanged 
+PASS store schema pinned hash 
+summary 25/2/0

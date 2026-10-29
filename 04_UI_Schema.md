@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.4 (amendments CA-01, CA-02, CA-03; store contract 1.4, wrapper protocol 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed UI design
+Version: 0.3.5 (amendments CA-01, CA-02, CA-03, CA-04; store contract 1.4, wrapper protocol 1.1, app contract 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed UI design
 Foundation: dashboard-first terminal with mouse-responsive panels and expandable chat. UI team supplies Figma designs; developer implements the demo/final terminal UI. Exact visual design remains subject to review.
 
 ## 1. Experience principles
@@ -89,7 +89,7 @@ Draggable splits are deferred for the pilot; always offer keyboard/configuration
 
 ## 5. Declarative UI schema
 
-The following YAML is a proposed implementation configuration/contract, not repository content to execute or a Ratatui-native format. Its version line is `ui_schema_version` (1.1), independent of the store contract (`schema_version` 1.4), wrapper protocol 1.1 and app command/event contract 1.0 (CA-01, resolves C6; 1.0 → 1.1 by CA-03, Data Schema §24).
+The following YAML is a proposed implementation configuration/contract, not repository content to execute or a Ratatui-native format. Its version line is `ui_schema_version` (1.1), independent of the store contract (`schema_version` 1.4), wrapper protocol 1.1 and app command/event contract 1.1 (CA-04; CA-01, resolves C6; 1.0 → 1.1 by CA-03, Data Schema §24).
 
 ```yaml
 ui_schema_version: "1.1"
@@ -355,9 +355,11 @@ Developer implements a minimal functional demo now against stable typed mocks an
 
 When design arrives: record revision -> map terminal-cell layout/tokens -> identify deviations -> request approval for contract changes -> update presentation -> run snapshot/input/resize tests -> perform manual terminal checks. Preserve selection, scan state, approvals and conversation provenance. Delayed design does not block scanner integration; retaining demo styling for pilot requires owner approval.
 
-Commands and events: the single canonical vocabulary, with pilot versus reserved (deferred) status and delivery rules, is Architecture §6 "Canonical application command/event contract" (app contract v1.0). This document does not keep a separate list. Reserved commands are not rendered as available actions; designers may show them only as clearly labelled future/deferred states.
+Commands and events: the single canonical vocabulary, with pilot versus reserved (deferred) status and delivery rules, is Architecture §6 "Canonical application command/event contract" (app contract v1.1). This document does not keep a separate list. Reserved commands are not rendered as available actions; designers may show them only as clearly labelled future/deferred states.
 
 Widgets do not invoke shell/Git/scanners/OpenRouter or write authoritative JSON. Extend DTOs only through reviewed contract changes.
+
+CLI parity (CA-04). The developer CLI uses the same Architecture §6 commands and events. From P15a/P15b, a parity test runs one scripted command sequence through the CLI and through the TUI reducer and requires the same event sequence. CLI scenarios do not replace snapshot, input, resize or manual terminal checks.
 
 ## 18. UI verification additions
 

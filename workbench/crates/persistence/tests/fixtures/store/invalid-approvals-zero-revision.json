@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.4",
+  "store_type": "approvals",
+  "updated_at": "2026-10-16T05:25:00Z",
+  "approvals": [
+    {
+      "approval_id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+      "status": "approved",
+      "capability": "git_acquire",
+      "workflow_id": "9d4aa1e3-e812-57cd-96ab-bf9c1ab1d62d",
+      "workflow_revision": 0,
+      "run_id": null,
+      "repo_ids": [],
+      "purpose": "Clone the registered repository",
+      "operation_fingerprint": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "destinations": [],
+      "resource_constraints": [],
+      "data_categories": [],
+      "lifetime": "workflow_revision",
+      "requested_at": "2026-10-16T05:25:00Z",
+      "decided_at": "2026-10-16T05:25:00Z",
+      "expires_at": null,
+      "actor": "local user",
+      "consumed": false,
+      "inference_scope": null
+    }
+  ]
+}

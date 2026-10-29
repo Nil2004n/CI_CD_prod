@@ -1,0 +1,106 @@
+FAIL ahash 0.8.12 Xa15f179cd60c458 
+FAIL aho-corasick 1.1.5 X982642fa9e86060 
+FAIL allocator-api2 0.2.21 X83d7910e743518b 
+LOCAL application 0.1.0
+FAIL autocfg 1.5.1 X2032f911046de80 
+FAIL bit-set 0.8.0 X8807e080ed7f9d5 
+FAIL bit-vec 0.8.0 Xe764a1d40d510da 
+FAIL bitflags 2.13.2 Xded4057c258ba19 
+FAIL block-buffer 0.12.1 X2f6c7dbe95a6ed6 
+FAIL borrow-or-share 0.2.4 Xc0b364ead187451 
+FAIL bumpalo 3.20.3 X2f5acc6cb2ba439 
+FAIL bytecount 0.6.9 X75812e0be2bccb6 
+FAIL cfg-if 1.0.5 Xe7648175b45a9a4 
+LOCAL cli 0.1.0
+FAIL cpufeatures 0.3.1 Xca28b0ae3115b88 
+FAIL crypto-common 0.2.2 Xe6e4c961d6cd6c9 
+FAIL data-encoding 2.11.1 X583a4551df46e27 
+FAIL digest 0.11.3 X1dd6dbb58419379 
+LOCAL domain 0.1.0
+FAIL email_address 0.2.9 X079f19b08ca6239 
+FAIL equivalent 1.0.3 X0d174d5400e5e8f 
+FAIL fancy-regex 0.19.2 X301f5bf187b3c29 
+FAIL fluent-uri 0.4.1 Xc74ac4d8359ae70 
+FAIL foldhash 0.2.0 X7ce24cb58228fbb 
+FAIL fraction 0.17.0 X246562084dde8eb 
+FAIL getrandom 0.3.4 X99def5c37c4fd7b 
+FAIL hashbrown 0.17.1 Xd5909b6e89a2db4 
+FAIL heck 0.5.0 X304e00983f87ffb 
+FAIL hybrid-array 0.4.15 X7f864f10dfb5672 
+FAIL itoa 1.0.18 Xf42a60cbdf9a97f 
+FAIL js-sys 0.3.106 X883d941dae510fb 
+FAIL jsonschema 0.60.1 X5de752665c4a065 
+FAIL jsonschema-regex 0.60.1 Xf8a848331614144 
+FAIL jsonschema-value 0.60.1 Xa5a947ef798eeac 
+FAIL libc 0.2.191 X5cd87c9a6d60536 
+FAIL lock_api 0.4.14 X24399e74b87b5f3 
+FAIL memchr 2.8.3 Xf8baf1c55e62ffc 
+FAIL micromap 0.3.0 X2a86d3146ed3995 
+FAIL num 0.4.3 X5bd024e8b2ff755 
+FAIL num-bigint 0.4.8 X89e69e7e0f03bea 
+FAIL num-cmp 0.1.0 X3335b2e2c34fae2 
+FAIL num-complex 0.4.6 X3f88a1307638156 
+FAIL num-integer 0.1.47 Xce2d95d4b3734dc 
+FAIL num-iter 0.1.46 X92800bd69a1eac9 
+FAIL num-rational 0.4.2 X83d14da390562dc 
+FAIL num-traits 0.2.19 X71dfc062690e90b 
+FAIL once_cell 1.21.4 Xf7c3e4beb33f85d 
+FAIL outref 0.5.2 Xa80800c0488c3a2 
+FAIL parking_lot 0.12.5 X3857453250e3077 
+FAIL parking_lot_core 0.9.12 X621685985a2ebf1 
+FAIL percent-encoding 2.3.2 Xb4f627cb1b25917 
+LOCAL persistence 0.1.0
+FAIL proc-macro2 1.0.107 X85e7ec9bb745e6c 
+FAIL quote 1.0.47 Xfbf4db142a473a8 
+FAIL r-efi 5.3.0 X9cdb34c158ceb28 
+FAIL redox_syscall 0.5.18 Xd2bf2547551a705 
+FAIL ref-cast 1.0.27 Xe440fb4e4b41472 
+FAIL ref-cast-impl 1.0.27 X2ecd8964f845372 
+FAIL referencing 0.60.1 X22268812b6f9e20 
+FAIL regex 1.13.1 X020237b6c8eed93 
+FAIL regex-automata 0.4.18 Xd8553b9b2641325 
+FAIL regex-syntax 0.8.11 X6f6ff9a378485b2 
+LOCAL repositories 0.1.0
+LOCAL retrieval 0.1.0
+FAIL rustversion 1.0.23 Xf54715a573b99ac 
+LOCAL scanning 0.1.0
+FAIL scopeguard 1.2.0 X4143f37725109f9 
+FAIL serde 1.0.229 X148590afebada38 
+FAIL serde_core 1.0.229 X7dca2c9c51e58a4 
+FAIL serde_derive 1.0.229 X7a5d71263a5a7d4 
+FAIL serde_json 1.0.154 X7e9cc8b1b852640 
+FAIL sha2 0.11.1 X7d7069beb7d6ac7 
+FAIL smallvec 1.16.4 X0d5d4b1981b8bbb 
+FAIL strum 0.28.0 X628de9b8791db39 
+FAIL strum_macros 0.28.0 Xb85eea0270ee175 
+FAIL syn 2.0.119 X72831b642d1a079 
+FAIL syn 3.0.9 X78c8dee4c7bf0e1 
+LOCAL terminal-ui 0.1.0
+FAIL typenum 1.20.1 X6f5e870be6c3b37 
+FAIL unicode-general-category 1.1.0 Xb993bddc193ae5b 
+FAIL unicode-ident 1.0.27 X2c754d6c33795a1 
+FAIL uuid-simd 0.8.0 X3b082222b4f6619 
+FAIL version_check 0.9.5 Xb928f33d975fc6a 
+FAIL vsimd 0.8.0 Xc3082ca00d5a5ef 
+FAIL wasip2 1.0.4+wasi-0.2.12 X67efb37e106e55c 
+FAIL wasm-bindgen 0.2.129 Xbb54f33acc68fd4 
+FAIL wasm-bindgen-macro 0.2.129 Xe29d0c35b16e224 
+FAIL wasm-bindgen-macro-support 0.2.129 Xf501a8bc3719dba 
+FAIL wasm-bindgen-shared 0.2.129 X3f0c9c52aa7cd7d 
+FAIL windows-link 0.2.1 X0805222e57f7521 
+FAIL wit-bindgen 0.57.1 Xebf944e87a7c253 
+FAIL zerocopy 0.8.63 X5fe1f8f1b06191a 
+FAIL zerocopy-derive 0.8.63 X63ad3ac83293fb4 
+FAIL zmij 1.0.23 X9666d0abbfad1e3 
+FAIL P01 entry changed: ('itoa', '1.0.18')
+FAIL P01 entry changed: ('memchr', '2.8.3')
+FAIL P01 entry changed: ('proc-macro2', '1.0.107')
+FAIL P01 entry changed: ('quote', '1.0.47')
+FAIL P01 entry changed: ('serde', '1.0.229')
+FAIL P01 entry changed: ('serde_core', '1.0.229')
+FAIL P01 entry changed: ('serde_derive', '1.0.229')
+FAIL P01 entry changed: ('serde_json', '1.0.154')
+FAIL P01 entry changed: ('syn', '3.0.9')
+FAIL P01 entry changed: ('unicode-ident', '1.0.27')
+FAIL P01 entry changed: ('zmij', '1.0.23')
+summary pass=7 fail=97; P01 registry entries with changed dependency edges: [('serde_derive', '1.0.229')]

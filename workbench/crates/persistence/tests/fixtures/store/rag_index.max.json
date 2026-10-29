@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.4",
+  "store_type": "rag_index",
+  "updated_at": "2026-10-16T05:25:00.123456789Z",
+  "chunks": [
+    {
+      "chunk_id": "00000000-0000-4000-8000-000000000082",
+      "source": {
+        "source_id": "00000000-0000-4000-8000-000000000001",
+        "kind": "repository_file",
+        "repo_id": "00000000-0000-4000-8000-00000000000a",
+        "commit_oid": null,
+        "run_id": null,
+        "file_path": ".github/workflows/ci.yml",
+        "artifact_id": null,
+        "document_index": null,
+        "line_start": null,
+        "line_end": null,
+        "resource_identifier": null,
+        "content_digest": null,
+        "retrieved_at": "2026-10-16T05:25:00Z",
+        "approval_id": null,
+        "redaction_version": "redact-1",
+        "stale": false
+      },
+      "text_redacted": "",
+      "content_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redaction_version": "redact-1",
+      "embedding_key": null,
+      "indexed_at": "2026-10-16T05:25:00Z"
+    },
+    {
+      "chunk_id": "00000000-0000-4000-8000-000000000083",
+      "source": {
+        "source_id": "00000000-0000-4000-8000-000000000002",
+        "kind": "external_reference",
+        "repo_id": "00000000-0000-4000-8000-00000000000a",
+        "commit_oid": "0123456789abcdef0123456789abcdef01234567",
+        "run_id": "00000000-0000-4000-8000-000000000014",
+        "file_path": ".github/workflows/ci.yml",
+        "artifact_id": "00000000-0000-4000-8000-00000000001e",
+        "document_index": 2,
+        "line_start": 3,
+        "line_end": 18446744073709551615,
+        "resource_identifier": "https://example.invalid/advisory/FAKE-0001",
+        "content_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "retrieved_at": "2026-10-16T05:25:00.123456789Z",
+        "approval_id": "00000000-0000-4000-8000-000000000028",
+        "redaction_version": "redact-1",
+        "stale": true
+      },
+      "text_redacted": "synthetic: value",
+      "content_digest": "76a028f382744c5722fedff815e791bb409dbae4850892a613097cbecf8be540",
+      "redaction_version": "redact-1",
+      "embedding_key": null,
+      "indexed_at": "2026-10-16T05:25:00.123456789Z"
+    }
+  ]
+}

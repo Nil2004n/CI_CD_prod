@@ -1,0 +1,141 @@
+   Compiling memchr v2.8.3
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling itoa v1.0.18
+   Compiling num-traits v0.2.19
+   Compiling cfg-if v1.0.5
+   Compiling libc v0.2.191
+   Compiling typenum v1.20.1
+   Compiling num-integer v0.1.47
+   Compiling regex-syntax v0.8.11
+   Compiling num-bigint v0.4.8
+   Compiling hybrid-array v0.4.15
+   Compiling getrandom v0.3.4
+   Compiling num-iter v0.1.46
+   Compiling num-complex v0.4.6
+   Compiling aho-corasick v1.1.5
+   Compiling zerocopy v0.8.63
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling domain v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/domain)
+   Compiling num-rational v0.4.2
+   Compiling once_cell v1.21.4
+   Compiling smallvec v1.16.4
+   Compiling scopeguard v1.2.0
+   Compiling parking_lot_core v0.9.12
+   Compiling lock_api v0.4.14
+   Compiling num v0.4.3
+   Compiling ref-cast v1.0.27
+   Compiling regex-automata v0.4.18
+   Compiling equivalent v1.0.3
+   Compiling bit-vec v0.8.0
+   Compiling foldhash v0.2.0
+   Compiling borrow-or-share v0.2.4
+   Compiling allocator-api2 v0.2.21
+   Compiling fluent-uri v0.4.1
+   Compiling bit-set v0.8.0
+   Compiling parking_lot v0.12.5
+   Compiling hashbrown v0.17.1
+   Compiling fraction v0.17.0
+   Compiling ahash v0.8.12
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling micromap v0.3.0
+   Compiling percent-encoding v2.3.2
+   Compiling outref v0.5.2
+   Compiling num-cmp v0.1.0
+   Compiling vsimd v0.8.0
+   Compiling bytecount v0.6.9
+   Compiling referencing v0.60.1
+   Compiling jsonschema-value v0.60.1
+   Compiling uuid-simd v0.8.0
+   Compiling digest v0.11.3
+   Compiling unicode-general-category v1.1.0
+   Compiling strum v0.28.0
+   Compiling email_address v0.2.9
+   Compiling jsonschema-regex v0.60.1
+   Compiling cpufeatures v0.3.1
+   Compiling regex v1.13.1
+   Compiling fancy-regex v0.19.2
+   Compiling data-encoding v2.11.1
+   Compiling sha2 v0.11.1
+   Compiling terminal-ui v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/terminal-ui)
+   Compiling repositories v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/repositories)
+   Compiling scanning v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/scanning)
+   Compiling retrieval v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/retrieval)
+   Compiling jsonschema v0.60.1
+   Compiling persistence v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/persistence)
+   Compiling application v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/application)
+   Compiling cli v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.75s
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/application-89262e09fe603e2e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/cli-1f8737b3e8b8b62e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/pwt_workbench_cli-7961a0b2f3b5ea7f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/domain-1e81d07675beb44a)
+
+running 3 tests
+test text::tests::redact_static_equals_redact_with_identity ... ok
+test text::tests::redact_static_escapes_control_characters ... ok
+test text::tests::redact_static_passes_literal_through_unchanged ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contract.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/contract-af0c03f9ca5f0956)
+
+running 23 tests
+test adapter_ids_serialise_to_the_data_registry_ids ... ok
+test command_status_matches_the_literal_table ... ok
+test constructed_commands_cover_the_architecture_names_exactly ... ok
+test a_redactor_keeps_markers_out_of_serialised_events ... ok
+test contract_enums_serialise_to_snake_case_strings ... ok
+test constructed_events_cover_the_architecture_names_exactly ... ok
+test contract_version_is_1_0 ... FAILED
+test credential_commands_debug_hides_the_key ... ok
+test credential_secret_debug_hides_the_key ... ok
+test dispatch_guard_is_repeatable_and_does_not_consume_the_command ... ok
+test dispatch_guard_accepts_every_pilot_command ... ok
+test dispatch_guard_agrees_with_status_for_every_command ... ok
+test delivery_classes_are_pinned ... ok
+test events_with_control_characters_serialise_escaped_text ... ok
+test dispatch_guard_rejects_every_reserved_command_with_deferred ... ok
+test event_status_and_delivery_match_the_literal_table ... ok
+test literal_tables_have_expected_sizes_and_unique_names ... ok
+test event_clone_and_equality_hold ... ok
+test raw_input_debug_shows_only_the_length ... ok
+test optional_fields_serialise_when_present ... ok
+test raw_input_commands_debug_hides_the_text ... ok
+test every_event_variant_serialises_to_its_golden_json ... ok
+test tool_availability_values_equal_the_store_schema_enum_in_order ... ok
+
+failures:
+
+---- contract_version_is_1_0 stdout ----
+
+thread 'contract_version_is_1_0' (61574) panicked at crates/domain/tests/contract.rs:687:5:
+assertion `left == right` failed
+  left: "1.1"
+ right: "1.0"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    contract_version_is_1_0
+
+test result: FAILED. 22 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p domain --test contract`

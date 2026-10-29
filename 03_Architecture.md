@@ -2,7 +2,7 @@
 
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
-Version: 0.3.4 (amendments CA-01, CA-02, CA-03; store contract 1.4, wrapper protocol 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed architecture
+Version: 0.3.5 (amendments CA-01, CA-02, CA-03, CA-04; store contract 1.4, wrapper protocol 1.1, app contract 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed architecture
 Scope: Single-user local application; Rust-oriented reference design, subject to language sign-off.
 
 ## 1. Architectural intent
@@ -71,11 +71,14 @@ flowchart TB
 
 Every network/process operation must be authorised before execution. Adapters that perform their own network I/O must expose/enforce equivalent policy; merely drawing a gateway does not constrain their internal traffic.
 
+A headless developer CLI (`pwt-workbench-cli`, D-17, CA-04) is a second presentation adapter at the same level as the TUI: it turns arguments into the commands of §6, sends them through the same coordinator and prints the resulting events (human-readable, or one JSON event per line). It does not call Git, scanners, the store or HTTP itself. Commands with no §6 equivalent are labelled `dev`, call only domain/application entry points and are excluded from release builds unless the owner decides otherwise at P20.
+
 ## 4. Ownership and interfaces
 
 | Component | Owns | Must not own |
 |---|---|---|
 | UI | Focus/layout/input, projections of app state | Git execution, scanner business logic, direct data-file writes |
+| CLI (developer, D-17) | Argument parsing, event printing, exit codes | Git/scanner/store/HTTP access, implicit approvals, default app-data location |
 | Coordinator | Use-case sequencing, active run ownership | Raw terminal rendering |
 | Scheduler | Due-time evaluation while app is alive | Background services, implicit catch-up scans |
 | Repo manager | Managed checkout identity, locks and safe Git invocation | Credential storage, force-reset behaviour |
@@ -139,9 +142,9 @@ Denied tasks do not become passes. Dynamic discoveries that introduce new networ
 - Per-repo locks prevent app-owned updates overlapping assessment.
 - Terminating the parent must not leave unattended assessment intentionally running; platform-specific child-tree cleanup is a release test.
 
-### Canonical application command/event contract (app contract v1.0, CA-01)
+### Canonical application command/event contract (app contract v1.1, CA-01, CA-04)
 
-This section is the single canonical command/event vocabulary (resolves C4/C5). UI Schema §17, the demo TUI and mocks refer to it; on conflict this section wins. The contract has its own version line (`app_contract_version` 1.0), independent of the document revision, store schema v1.4, wrapper protocol v1.1 and UI schema v1.1. Commands are typed requests from the UI reducer to the coordinator; events are typed projections back. Field-level DTOs are defined in code during P01 and reviewed as a shared contract.
+This section is the single canonical command/event vocabulary (resolves C4/C5). UI Schema §17, the demo TUI and mocks refer to it; on conflict this section wins. The contract has its own version line (`app_contract_version` 1.1; 1.0 → 1.1 by CA-04, additive), independent of the document revision, store schema v1.4, wrapper protocol v1.1 and UI schema v1.1. Commands are typed requests from the UI reducer to the coordinator; events are typed projections back. Field-level DTOs are defined in code during P01 and reviewed as a shared contract.
 
 Status: **pilot** = command/event is implemented in the pilot. **reserved (deferred)** = name and intent reserved so later work does not invent a conflicting interface; it is not implemented, is not shown as available in the UI and returns an explicit `OperationFailed{code="deferred"}` if dispatched.
 
@@ -205,6 +208,8 @@ Status: **pilot** = command/event is implemented in the pilot. **reserved (defer
 Persisted `log.json` events use these names in `event_type`; mock events in the demo TUI carry a visible mock marker and cannot satisfy real-scan acceptance.
 
 No event includes raw secret values or raw child-process output. Progress can be coalesced; findings, permission decisions and terminal run states cannot be silently dropped.
+
+Event envelope (CA-04). The coordinator adds three fields to every event at emission: `event_id` (UUID v4 from the operating system's random source; no fallback if it is unavailable), `at` (UTC RFC 3339, `Z` form) and `level` (`error` for `StorageFailure`, `OperationFailed`, `ChatFailed`; `warning` for `TriggerSkipped` and for `RunFinished` with `failed`, `partial` or `interrupted`; otherwise `info`). Serialised events carry the envelope fields beside `event_type`. Emission rejects an event whose payload contradicts the state machines of §7 (for example `RunFinished` or `CheckCompleted` with a non-terminal state, or a `RunStateChanged` pair §7 does not allow) and reserved events; such a rejection is a programming error, reported as `OperationFailed`. Must-deliver events except `Chat*` are persisted to `log.json` as Data Schema `Event` records (`message_redacted` = the event's detail text or a fixed per-event summary; `code` = its failure code or null). Coalescible and latest-value events and chat events are not persisted to the run log.
 
 ## 7. State machines
 
@@ -357,7 +362,7 @@ Directory root is resolved by the platform application-data mechanism or explici
 | A-08 | No implicit all-network grant | Approval matches requested external access requirement |
 | A-09 | Native Rust process adapters implement protocol v1.1 DTOs | Accepted (D-03); supervisor owns timeout/cancel/process-tree kill out-of-band (CA-01) |
 | A-10 | Linux x86_64 first pilot target, portable interfaces | Accepted (D-02); Windows/macOS unverified extensions (X5) |
-| A-11 | Independent version lines: document 0.3.x, store 1.4, wrapper protocol 1.1, app command/event contract 1.0, UI schema 1.1 (CA-03) | Resolves C6; see Data Schema §17 and §22 |
+| A-11 | Independent version lines: document 0.3.x, store 1.4, wrapper protocol 1.1, app command/event contract 1.1 (CA-04), UI schema 1.1 (CA-03) | Resolves C6; see Data Schema §17 and §22 |
 
 Physical deployment matrix, scanner/framework coverage, OpenRouter inference-model choice and performance budgets are sign-off gates, not architecture facts established by this draft.
 

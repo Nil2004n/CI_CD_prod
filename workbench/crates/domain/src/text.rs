@@ -355,8 +355,10 @@ pub fn redact(raw: &str, redactor: &dyn Redactor) -> RedactedText {
     RedactedText(escape(&redactor.redact(raw)))
 }
 
-/// Whether `c` belongs to the frozen escape set (`planning/P01-T01-request.md` §5.3).
-fn needs_escape(c: char) -> bool {
+/// Whether `c` belongs to the frozen escape set (`planning/P01-T01-request.md` §5.3, extended by P02-D03
+/// O8 with invisible fillers, invisible operators, interlinear annotation and tag characters). Shared with
+/// the store value newtypes so the two sets cannot diverge.
+pub(crate) fn needs_escape(c: char) -> bool {
     matches!(
         c,
         '\u{0000}'..='\u{0008}'
@@ -373,6 +375,17 @@ fn needs_escape(c: char) -> bool {
             | '\u{FEFF}'
             | '\u{2028}'
             | '\u{2029}'
+            // P02-D03 O8: invisible or default-ignorable code points that can hide or disguise text.
+            | '\u{00AD}'
+            | '\u{034F}'
+            | '\u{115F}'
+            | '\u{1160}'
+            | '\u{180E}'
+            | '\u{2061}'..='\u{2064}'
+            | '\u{3164}'
+            | '\u{FFA0}'
+            | '\u{FFF9}'..='\u{FFFB}'
+            | '\u{E0000}'..='\u{E007F}'
     )
 }
 
@@ -383,6 +396,101 @@ fn needs_escape(c: char) -> bool {
 /// from a `String` with `Box::leak`, so this is a discipline rule backed by review.
 pub(crate) fn redact_static(text: &'static str) -> RedactedText {
     RedactedText(escape(text))
+}
+
+/// Read-back of [`RedactedText`] from the application-owned JSON store (FR-31 (2), P02-T01 §5.1, §6.6).
+///
+/// `pub(crate)`: only `domain::store` models use these as `#[serde(deserialize_with = ...)]` helpers, so no
+/// other crate can deserialise a bare `RedactedText`. Text is re-escaped on read (not re-redacted): the store
+/// is trusted as application-owned (Architecture trust boundary 3).
+#[allow(
+    dead_code,
+    reason = "P02 B1 (P02-D04): `redacted_vec` has no store field yet (reserved for list-valued class R fields); the other helpers are used"
+)]
+pub(crate) mod store_read {
+    use super::{RedactedText, escape};
+    use serde::de::{Deserialize, Deserializer, Visitor};
+    use std::fmt;
+
+    /// A JSON string read without echoing a wrong-typed value in the error (P02-D02: `String::deserialize`
+    /// makes serde_json report e.g. ``invalid type: integer `123` ``). `deserialize_any` routes numbers and
+    /// booleans to the fixed-message methods below.
+    struct Plain(String);
+
+    struct PlainVisitor;
+
+    impl Visitor<'_> for PlainVisitor {
+        type Value = Plain;
+
+        fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str("a string")
+        }
+
+        fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Plain, E> {
+            Ok(Plain(v.to_owned()))
+        }
+
+        fn visit_bool<E: serde::de::Error>(self, _: bool) -> Result<Plain, E> {
+            Err(E::custom("expected a string"))
+        }
+
+        fn visit_i64<E: serde::de::Error>(self, _: i64) -> Result<Plain, E> {
+            Err(E::custom("expected a string"))
+        }
+
+        fn visit_u64<E: serde::de::Error>(self, _: u64) -> Result<Plain, E> {
+            Err(E::custom("expected a string"))
+        }
+
+        fn visit_f64<E: serde::de::Error>(self, _: f64) -> Result<Plain, E> {
+            Err(E::custom("expected a string"))
+        }
+    }
+
+    impl<'de> Deserialize<'de> for Plain {
+        fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+            d.deserialize_any(PlainVisitor)
+        }
+    }
+
+    fn wrap(p: Plain) -> RedactedText {
+        RedactedText(escape(&p.0))
+    }
+
+    /// One `RedactedText` field.
+    pub(crate) fn redacted<'de, D: Deserializer<'de>>(d: D) -> Result<RedactedText, D::Error> {
+        Plain::deserialize(d).map(wrap)
+    }
+
+    /// One nullable `RedactedText` field.
+    pub(crate) fn redacted_opt<'de, D: Deserializer<'de>>(
+        d: D,
+    ) -> Result<Option<RedactedText>, D::Error> {
+        Ok(Option::<Plain>::deserialize(d)?.map(wrap))
+    }
+
+    /// An array of `RedactedText`.
+    pub(crate) fn redacted_vec<'de, D: Deserializer<'de>>(
+        d: D,
+    ) -> Result<Vec<RedactedText>, D::Error> {
+        Ok(Vec::<Plain>::deserialize(d)?
+            .into_iter()
+            .map(wrap)
+            .collect())
+    }
+
+    /// A string-valued map with validated keys (e.g. `RendererSetting.parameters_redacted`, P02-D01).
+    /// Keys deserialise through their own type; values are re-escaped like every `RedactedText`.
+    pub(crate) fn redacted_map<'de, D, K>(
+        d: D,
+    ) -> Result<std::collections::BTreeMap<K, RedactedText>, D::Error>
+    where
+        D: Deserializer<'de>,
+        K: Deserialize<'de> + Ord,
+    {
+        let m = std::collections::BTreeMap::<K, Plain>::deserialize(d)?;
+        Ok(m.into_iter().map(|(k, p)| (k, wrap(p))).collect())
+    }
 }
 
 /// Escapes every code point of the frozen escape set as `<U+XXXX>` (uppercase hex, at least four digits).
@@ -502,6 +610,90 @@ mod tests {
     fn redact_static_equals_redact_with_identity() {
         for lit in ["plain", "a\u{1b}[31mb", "x\u{202e}y\u{2028}", "한국어", ""] {
             assert_eq!(redact_static(lit), redact(lit, &Identity));
+        }
+    }
+
+    /// P02-D02: the store read-back helpers re-escape and never echo a wrong-typed value in their error.
+    mod store_read_no_echo {
+        use super::super::RedactedText;
+        use super::super::store_read::{redacted, redacted_map, redacted_opt, redacted_vec};
+        use std::collections::BTreeMap;
+
+        #[derive(serde::Deserialize, Debug)]
+        struct One {
+            #[serde(deserialize_with = "redacted")]
+            v: RedactedText,
+        }
+        #[derive(serde::Deserialize, Debug)]
+        struct Opt {
+            #[serde(deserialize_with = "redacted_opt")]
+            v: Option<RedactedText>,
+        }
+        #[derive(serde::Deserialize, Debug)]
+        struct Many {
+            #[serde(deserialize_with = "redacted_vec")]
+            v: Vec<RedactedText>,
+        }
+        #[derive(serde::Deserialize, Debug)]
+        struct Map {
+            #[serde(deserialize_with = "redacted_map")]
+            v: BTreeMap<String, RedactedText>,
+        }
+
+        const MARKERS: [&str; 4] = ["987654321", "true", "4.25e3", "-77"];
+
+        fn err_text<T: std::fmt::Debug>(r: Result<T, serde_json::Error>) -> String {
+            r.expect_err("wrong-typed value must be rejected")
+                .to_string()
+        }
+
+        /// Element-level values: a wrong-typed text value is rejected with fixed text. A wrong-typed
+        /// *container* (a number where the array/map is expected) is reported by serde_json itself with the
+        /// value quoted, for every derived type in the crate; the guard for that is the read boundary
+        /// (`persistence::read` never forwards serde messages, `ProblemCode::TypedDecode`), tested in T08.
+        #[test]
+        fn wrong_typed_values_are_rejected_without_echo() {
+            for m in MARKERS {
+                let errs = [
+                    err_text(serde_json::from_str::<One>(&format!(r#"{{"v": {m}}}"#))),
+                    err_text(serde_json::from_str::<Opt>(&format!(r#"{{"v": {m}}}"#))),
+                    err_text(serde_json::from_str::<Many>(&format!(
+                        r#"{{"v": ["ok", {m}]}}"#
+                    ))),
+                    err_text(serde_json::from_str::<Map>(&format!(
+                        r#"{{"v": {{"k": {m}}}}}"#
+                    ))),
+                ];
+                for e in errs {
+                    assert!(!e.contains(m), "error echoes {m}: {e}");
+                }
+            }
+        }
+
+        /// Records the boundary of the guarantee above: serde_json quotes a scalar given where a
+        /// container is expected. If this ever stops holding, the T08 read-boundary test still applies.
+        #[test]
+        fn container_type_mismatch_is_rejected() {
+            assert!(serde_json::from_str::<Many>(r#"{"v": 5}"#).is_err());
+            assert!(serde_json::from_str::<Map>(r#"{"v": 5}"#).is_err());
+        }
+
+        #[test]
+        fn strings_are_re_escaped_and_null_is_none() {
+            let one: One = serde_json::from_str(r#"{"v": "a\u001bb"}"#).unwrap();
+            assert_eq!(one.v.as_str(), "a<U+001B>b");
+            let opt: Opt = serde_json::from_str(r#"{"v": null}"#).unwrap();
+            assert!(opt.v.is_none());
+            let opt: Opt = serde_json::from_str(r#"{"v": "x\u202ey"}"#).unwrap();
+            assert_eq!(
+                opt.v.map(|t| t.as_str().to_owned()).as_deref(),
+                Some("x<U+202E>y")
+            );
+            let many: Many = serde_json::from_str(r#"{"v": ["\u0007", "ok"]}"#).unwrap();
+            let got: Vec<&str> = many.v.iter().map(RedactedText::as_str).collect();
+            assert_eq!(got, ["<U+0007>", "ok"]);
+            let map: Map = serde_json::from_str(r#"{"v": {"k": "\u2028"}}"#).unwrap();
+            assert_eq!(map.v.get("k").map(RedactedText::as_str), Some("<U+2028>"));
         }
     }
 }

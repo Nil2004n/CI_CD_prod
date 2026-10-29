@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.4",
+  "store_type": "approvals",
+  "updated_at": "2026-10-16T05:25:00.123456789Z",
+  "approvals": [
+    {
+      "approval_id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+      "status": "pending",
+      "capability": "git_acquire",
+      "workflow_id": null,
+      "workflow_revision": null,
+      "run_id": null,
+      "repo_ids": [],
+      "purpose": "Clone the registered repository",
+      "operation_fingerprint": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "destinations": ["github.com:443"],
+      "resource_constraints": [],
+      "data_categories": [],
+      "lifetime": "once",
+      "requested_at": "2026-10-16T05:25:00Z",
+      "decided_at": null,
+      "expires_at": null,
+      "actor": "local user",
+      "consumed": false,
+      "inference_scope": null
+    },
+    {
+      "approval_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      "status": "approved",
+      "capability": "model_transmission",
+      "workflow_id": "9d4aa1e3-e812-57cd-96ab-bf9c1ab1d62d",
+      "workflow_revision": 18446744073709551615,
+      "run_id": "12345678-1234-4234-8234-123456789abc",
+      "repo_ids": [
+        "526a9739-68cb-5ef8-8c3a-0fda8a207475",
+        "0190a3b4-5c6d-7e8f-9a0b-1c2d3e4f5a6b"
+      ],
+      "purpose": "Explain findings with the configured model",
+      "operation_fingerprint": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+      "destinations": ["openrouter.ai:443", "https://openrouter.ai/api/v1"],
+      "resource_constraints": ["At most 20 chunks.", "Single run only."],
+      "data_categories": [
+        "repository_metadata",
+        "redacted_source",
+        "redacted_findings",
+        "schema_documents",
+        "public_artifact_identifiers",
+        "redacted_chat_context",
+        "app_metadata"
+      ],
+      "lifetime": "once",
+      "requested_at": "2026-10-16T05:25:00Z",
+      "decided_at": "2026-10-16T05:25:00.123456789Z",
+      "expires_at": "2026-11-16T05:25:00Z",
+      "actor": "local user",
+      "consumed": true,
+      "inference_scope": {
+        "provider_id": "openrouter",
+        "model_id": "openai/gpt-4o:free",
+        "routing_policy": {
+          "data_collection": "deny",
+          "zdr": true,
+          "allow_fallbacks": false,
+          "only": ["openrouter"]
+        },
+        "source_ids": ["01234567-89ab-4cde-8f01-23456789abcd"],
+        "redaction_version": "2026.10-a"
+      }
+    }
+  ]
+}

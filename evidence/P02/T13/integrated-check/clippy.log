@@ -1,0 +1,5 @@
+    Checking domain v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/domain)
+    Checking persistence v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/persistence)
+    Checking application v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/application)
+    Checking cli v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.21s

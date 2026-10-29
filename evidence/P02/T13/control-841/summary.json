@@ -1,0 +1,84 @@
+{
+  "tool": "dev/p02_check.py",
+  "repo": "/home/kali/Desktop/CI_CD_prod",
+  "target_dir": "/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c",
+  "mode": "test",
+  "slot": "lead",
+  "package": null,
+  "final": false,
+  "repo_head": "49b8cba3f0e828dba4a4638fcff1837e3766d33b",
+  "dirty": [
+    " M status.md",
+    " M workbench/crates/domain/src/store/classes.rs",
+    "?? .commandcode/",
+    "?? evidence/P02/T13/",
+    "?? planning/P02-packets/T13-W3.md",
+    "?? workbench/crates/domain/tests/fr31.rs"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.97.1 (c980f4866 2026-06-30)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.97 (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "errno 101",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "test",
+      "command": "cargo test --workspace --frozen --no-fail-fast",
+      "exit": 0,
+      "log": "test.log",
+      "seconds": 10.29,
+      "protected_files_unchanged": true,
+      "ok": false,
+      "counts": {
+        "suites": 39,
+        "passed": 840,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "compile_fail_ok": 39
+      },
+      "floors": {
+        "min_passed": 841,
+        "min_compile_fail": 39
+      }
+    }
+  ],
+  "ok": false
+}

@@ -1,0 +1,47 @@
+   Compiling domain v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/domain)
+   Compiling persistence v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/persistence)
+   Compiling application v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/application)
+   Compiling cli v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.56s
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/application-89262e09fe603e2e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/cli-1f8737b3e8b8b62e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/pwt_workbench_cli-7961a0b2f3b5ea7f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/domain-1e81d07675beb44a)
+
+running 5 tests
+test text::tests::redact_static_escapes_control_characters ... ok
+test text::tests::redact_static_equals_redact_with_identity ... ok
+test text::tests::redact_static_passes_literal_through_unchanged ... ok
+test text::tests::store_read_no_echo::strings_are_re_escaped_and_null_is_none ... ok
+test text::tests::store_read_no_echo::wrong_typed_values_are_rejected_without_echo ... FAILED
+
+failures:
+
+---- text::tests::store_read_no_echo::wrong_typed_values_are_rejected_without_echo stdout ----
+
+thread 'text::tests::store_read_no_echo::wrong_typed_values_are_rejected_without_echo' (110927) panicked at crates/domain/src/text.rs:651:25:
+error echoes 987654321: invalid type: integer `987654321`, expected a sequence at line 1 column 15
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    text::tests::store_read_no_echo::wrong_typed_values_are_rejected_without_echo
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p domain --lib`
