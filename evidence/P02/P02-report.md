@@ -55,7 +55,7 @@ Evidence: `evidence/P02/T15/final/` (`summary.json`, `env.json`, `static.json`, 
 
 **Negative controls** (the checks can fail) are in the task records: floor controls at every baseline (e.g. 867 in T14), NC1–NC8, static planted violations (`evidence/P02/T14/nc-static-planted/`), D07 revert control, T13 model-file control, T11/T12 behaviour controls.
 
-**Manual-pending:** `real_storage_failure_exits_4_when_permissions_are_enforced` returns early inside the runner (the user namespace maps to root) and counts as passed there; run it once as an unprivileged user outside `unshare`. Exit 4 is otherwise pinned by the application fault matrix, `application_storage_failures_map_to_exit_4` and the `Exit::for_failure` unit test.
+**Manual-pending → closed 2026-10-29 (after acceptance):** PASS with permissions enforced, branch execution observed, root-mapped control skipped as expected (`evidence/P02/manual-exit4/record.md`). Original note: `real_storage_failure_exits_4_when_permissions_are_enforced` returns early inside the runner (the user namespace maps to root) and counts as passed there; run it once as an unprivileged user outside `unshare`. Exit 4 is otherwise pinned by the application fault matrix, `application_storage_failures_map_to_exit_4` and the `Exit::for_failure` unit test.
 
 ## 4. Acceptance criteria (plan §5B.4)
 | # | Criterion | Status and evidence |
@@ -96,7 +96,7 @@ All on attempt 1; none reached the two-cycle limit. Lead-side defects (different
 A1–A10 (recommended); T01-D1–D12; T04 + CA-04; O1–O10, Q-T04-1; E-1, E-2, Q-D03-1, R-D03-1/-5; Q-T12-1..5 (accepted as implemented); Q-T14-1 (keep exit 4 for an over-long path under an accepted dir), Q-T14-2 → FR-32 (P06, P19 at the latest), Q-T14-3 → FR-33 (P03); commits B2–B4 and push of `phase/P02-store` (2026-10-28); T15 approved 2026-10-28, resumed 2026-10-29.
 
 ## 8. Known limitations and carry-forward
-- **Manual-pending:** the unprivileged exit-4 test (§3).
+- **Manual-pending (closed 2026-10-29):** the unprivileged exit-4 test passed (`evidence/P02/manual-exit4/record.md`); the runner still skips that branch inside `unshare -rn`.
 - **Fault injection:** ENOSPC/EACCES/interruption are simulated through `FsOps`; rename/directory-sync durability is tested on this Linux host and filesystem only. No crash-proof or multi-file ACID claim (Data §12).
 - **Build-code exposure:** 15 build scripts, 3 proc-macros (72-crate host graph), all from accepted built P00 graphs; pattern-level review only, no filesystem sandbox. No advisory scan in P02.
 - **Static checks:** regex/parser accident guards, not adversarial or type-aware (S-I7); the FR-31 model parser is textual (L-T13-2).
