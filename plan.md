@@ -1,6 +1,6 @@
 # PWT YAML Security Workbench — Development Plan
 
-Plan revision: 1 (2026-10-23), with updates of 2026-10-24, 2026-10-26, 2026-10-27/28 (P02 progress, FR-32/FR-33) and 2026-10-29 (P02 accepted and merged; **P03 planned, §5C, not approved**) (P01 progress, D-16/CA-03, FR-31, **D-17 headless CLI §4.1**): status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries (§5.2). Scope/estimate change on 2026-10-26: D-17 adds a headless CLI increment to every feature phase from P02 (§4.1, §7.1); no phases added or removed. Current Git state: see `status.md`.
+Plan revision: 1 (2026-10-23), with updates of 2026-10-24, 2026-10-26, 2026-10-27/28 (P02 progress, FR-32/FR-33) and 2026-10-29 (P02 accepted and merged; **P03 planned, §5C; C1–C10 = recommended**) (P01 progress, D-16/CA-03, FR-31, **D-17 headless CLI §4.1**): status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries (§5.2). Scope/estimate change on 2026-10-26: D-17 adds a headless CLI increment to every feature phase from P02 (§4.1, §7.1); no phases added or removed. Current Git state: see `status.md`.
 
 This plan is a schedule and control proposal, not evidence of implemented code or passed tests. No phase starts without explicit owner approval. Specification references are to the v0.3.1 documents (`01_PRD.md` … `05_Database_Data_Schema.md`).
 
@@ -116,7 +116,7 @@ P15a (demo TUI on mocks) may start after P01; P18 (Figma) after P15a + Figma del
 | P00 | pilot | Decisions frozen, spike protocols, install/crate requests, spikes, tool/crate freeze (detail §5) | Spike records per protocol | Phase approval; T02 needs Q-06; spikes need D-10/crate approvals |
 | P01 | pilot | Cargo workspace (crates per Tech §4), pinned toolchain, typed IDs/states, canonical command/event DTOs (Arch §6), `RedactedText`/`SanitisedText` newtypes so unsanitised text cannot reach persistence types | fmt, clippy `-D warnings`, test, build verified; DTO round-trip tests; cargo-audit if installed | Crate download approval |
 | P02 | pilot | **Accepted and merged 2026-10-29; detail §5B.** **Headless CLI crate `crates/cli` created (D-17, §4.1).** JSON store v1.4 (CA-03): typed models, schema + semantic validation (Data §11, §18), single writer, lock, temp+replace, recovery, export manifests | Schema conformance of all roots; interruption/malformed/full-disk fixtures; same-day naming | P01 |
-| P03 | pilot | **Planned 2026-10-29, not approved; detail §5C.** Permission evaluator (scope/revision/fingerprint), child-env sanitiser (strip model key/unrelated secrets), credential abstraction (session-only; keyring behind spike result) | Scope-match tables; env-strip tests; no key in any serialised output | P01, P02 |
+| P03 | pilot | **Planned 2026-10-29, C1–C10 = recommended; execution not started; detail §5C.** Permission evaluator (scope/revision/fingerprint), child-env sanitiser (strip model key/unrelated secrets), credential abstraction (session-only; keyring behind spike result) | Scope-match tables; env-strip tests; no key in any serialised output | P01, P02 |
 | P04 | pilot | URL validation (HTTPS/SSH only), clone/fast-forward update, unsafe-state detection, per-repo locks, provenance, Git safety controls from P00-T04 | Local fixture repos (dirty, diverged, hooks, filters, submodules); no source mutation | P00-T04, P02 |
 | P05 | pilot | Inventory, exclusions/symlinks/limits, classifier (generic/Actions/Kubernetes; Compose/Helm reported conditional), tristate selection + selectors, reference detection recorded as gaps (SCAN-05) | Hostile filenames, symlink escape, limits, selector semantics | P04 |
 | P06 | pilot | Process supervisor (timeout/cancel/process-tree kill per CA-01/CA-02), adapter trait + protocol DTOs, output bounds, preflight + `tools.json`, **minimal redaction module and coverage ledger core**; must satisfy FR-01–FR-03 (§5.2) | Fake-tool fixtures: crash, timeout, oversized/malformed output, ANSI, early stdout close, secret-bearing stderr, tree kill; regression RC-FLOOD (FR-01) | P00-T05, P02 |
@@ -409,9 +409,9 @@ Dependencies: T01 → T02, T03, T04; T04 → wave 1 (T05, T06, T07); wave 1 → 
 | A9 | Debug cycles | **9a** pre-authorise debug cycles for anomalies the lead finds after a worker task, bounds as P01 §9 (two attempts per defect, then owner) |
 | A10 | CA-04 | **10a** draft in T03, apply only after owner approval, before wave 3 |
 
-## 5C. P03 — permission evaluator, child-environment sanitiser, session credentials and CLI (planned 2026-10-29; **not approved**)
+## 5C. P03 — permission evaluator, child-environment sanitiser, session credentials and CLI (planned 2026-10-29; **C1–C10 = recommended options recorded 2026-10-29**; execution not started)
 
-Prepared by Opus at owner request ("plan p03 into multiple subtasks") from plan §4 (P03 row), §4.1 (P03 CLI row), §5.2 (FR-18–FR-24, FR-33), PRD §8 and KEY-01, Tech §11 and §20, Arch §6 (`ResolveApproval`, `RevokeApproval`, `ConfigureCredential`, `Approval*` and `CredentialStatusChanged` events), Arch §7 (approval state machine) and §10, Data §11 rules 12–17 and 23, UI §10, the P01 report §8 (KEY-01 hardening carried to P03) and the P02 report §8. Phase branch `phase/P03-permissions-credentials` was created from `main` `01a3cbd` to hold this plan. **Nothing in this section is approved.** Execution starts only after the owner decides C1–C10 (§5C.6).
+Prepared by Opus at owner request ("plan p03 into multiple subtasks") from plan §4 (P03 row), §4.1 (P03 CLI row), §5.2 (FR-18–FR-24, FR-33), PRD §8 and KEY-01, Tech §11 and §20, Arch §6 (`ResolveApproval`, `RevokeApproval`, `ConfigureCredential`, `Approval*` and `CredentialStatusChanged` events), Arch §7 (approval state machine) and §10, Data §11 rules 12–17 and 23, UI §10, the P01 report §8 (KEY-01 hardening carried to P03) and the P02 report §8. Phase branch `phase/P03-permissions-credentials` was created from `main` `01a3cbd` to hold this plan. **Owner 2026-10-29: "update plan with the recommendations"** — C1=1a, C2=2a, C3=3a, C4=4a, C5=5a, C6=6a, C7=7a, C8=8a, C9=9a, C10=10a are recorded as the plan's decisions (§5C.6). Starting T01 still waits for an explicit owner go; network, installs, new crates and anything outside these decisions still need separate approval.
 
 ### 5C.1 Scope
 **In P03:**
@@ -509,19 +509,19 @@ Dependencies: T01 → T02, T03, T04; T04 → wave 1 (T05 ∥ T06 ∥ T07); wave 
 - The evaluator has no real callers until P04 (Git) and P16 (OpenRouter), so tests use synthetic requests only.
 - Changing the semantic registry counts touches P02 tests. Arithmetic must be explicit, and no assertion may be weakened.
 
-### 5C.6 Owner decisions needed (recommended option first)
+### 5C.6 Owner decisions (recommended option first; **chosen 2026-10-29: all recommended**)
 | ID | Topic | Options |
 |---|---|---|
-| C1 | Scope | **1a** §5C.1 as written (T01–T12); 1b defer the CLI `approvals` commands to P14 (saves about 1 h; breaks the D-17 rule) |
-| C2 | Credential mode | **2a** session-only; OS-store mode, FR-18–FR-23 and the keyring dependency stay out (record "not adopted"; FR-24 re-screen not applicable); 2b plan OS-store mode as a later P03b with its own approval |
-| C3 | Dependencies | **3a** no new crates; `application` gets a direct `sha2` edge (lock edges only); best-effort clearing with std only; 3b request `zeroize` (needs a network fetch and a new crate approval) |
-| C4 | CLI credential lifetime | **4a** `credential set --session` holds the key for that one invocation and says so; scenarios run set/status/delete inside one process via a scripted `--then` sequence or the test harness; 4b a background dev agent holding the key (rejected: new IPC surface) |
-| C5 | CLI key input | **5a** stdin pipe only; refuse when stdin is a TTY (no-echo input needs `unsafe` termios; masked entry is the TUI's job, P15); 5b read a TTY with echo (rejected: shows the key) |
-| C6 | Destination normalisation | **6a** ASCII-only hosts, lower-cased, one trailing dot removed, scheme default ports made explicit; userinfo, IP-literal shortcuts outside the allowlist and non-ASCII/punycode hosts rejected; 6b full IDNA processing (needs a crate) |
-| C7 | Grant lifetimes | **7a** `once`, `run` and `workflow` (with ID/revision) as in the schema; no time-only "session" grant; expiry checked against the injected clock; 7b add a session lifetime (contract change) |
-| C8 | Contract changes | **8a** CA-05 drafted in T03 only if the frozen interfaces need it; applied only after owner approval (as A10/CA-04); 8b no contract change allowed, interfaces adapted instead |
-| C9 | Workers and commits | **9a** up to three `sonnet-implementer` workers per wave in lead-prepared worktrees; lead commits B0/B1/B2/B3/report on `phase/P03-permissions-credentials` with non-force pushes; merge to `main` separate; 9b lead-only |
-| C10 | Debug cycles | **10a** pre-authorised, two attempts per defect, then owner (as P02 A9); 10b each cycle needs owner approval |
+| C1 | Scope | **1a (chosen)** §5C.1 as written (T01–T12); 1b defer the CLI `approvals` commands to P14 (saves about 1 h; breaks the D-17 rule) |
+| C2 | Credential mode | **2a (chosen)** session-only; OS-store mode, FR-18–FR-23 and the keyring dependency stay out (record "not adopted"; FR-24 re-screen not applicable); 2b plan OS-store mode as a later P03b with its own approval |
+| C3 | Dependencies | **3a (chosen)** no new crates; `application` gets a direct `sha2` edge (lock edges only); best-effort clearing with std only; 3b request `zeroize` (needs a network fetch and a new crate approval) |
+| C4 | CLI credential lifetime | **4a (chosen)** `credential set --session` holds the key for that one invocation and says so; scenarios run set/status/delete inside one process via a scripted `--then` sequence or the test harness; 4b a background dev agent holding the key (rejected: new IPC surface) |
+| C5 | CLI key input | **5a (chosen)** stdin pipe only; refuse when stdin is a TTY (no-echo input needs `unsafe` termios; masked entry is the TUI's job, P15); 5b read a TTY with echo (rejected: shows the key) |
+| C6 | Destination normalisation | **6a (chosen)** ASCII-only hosts, lower-cased, one trailing dot removed, scheme default ports made explicit; userinfo, IP-literal shortcuts outside the allowlist and non-ASCII/punycode hosts rejected; 6b full IDNA processing (needs a crate) |
+| C7 | Grant lifetimes | **7a (chosen)** `once`, `run` and `workflow` (with ID/revision) as in the schema; no time-only "session" grant; expiry checked against the injected clock; 7b add a session lifetime (contract change) |
+| C8 | Contract changes | **8a (chosen)** CA-05 drafted in T03 only if the frozen interfaces need it; applied only after owner approval (as A10/CA-04); 8b no contract change allowed, interfaces adapted instead |
+| C9 | Workers and commits | **9a (chosen)** up to three `sonnet-implementer` workers per wave in lead-prepared worktrees; lead commits B0/B1/B2/B3/report on `phase/P03-permissions-credentials` with non-force pushes; merge to `main` separate; 9b lead-only |
+| C10 | Debug cycles | **10a (chosen)** pre-authorised, two attempts per defect, then owner (as P02 A9); 10b each cycle needs owner approval |
 
 ## 6. Pilot acceptance anchors
 Release gates PRD §9 and §15 apply. Mocks never satisfy real-scan acceptance. Manual terminal/mouse/PDF checks stay listed as manual-pending until performed. Real OpenRouter behaviour is unverified until a separately approved real-API acceptance check.

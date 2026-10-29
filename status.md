@@ -1,13 +1,13 @@
 # Status
 
-Updated: 2026-10-29 by Opus directly (no Haiku documentation agent installed). **P02 closed:** accepted by the owner, merged into `main` and pushed. **P03 planned (plan §5C, 12 tasks T01–T12, decisions C1–C10) on `phase/P03-permissions-credentials`; not approved for execution.**
+Updated: 2026-10-29 by Opus directly (no Haiku documentation agent installed). **P02 closed:** accepted by the owner, merged into `main` and pushed. **P03 planned (plan §5C, 12 tasks T01–T12, decisions C1–C10 = recommended options, recorded 2026-10-29) on `phase/P03-permissions-credentials`; T01 not started (waits for the owner's go).**
 
 Full history up to P02 close, verbatim: `evidence/P02/continuity/status-at-P02-close.md` (sha256 `ca2fb867…`). P00/P01 detail lives there and in `evidence/P00/P00-report.md`, `evidence/P01/P01-report.md`.
 
 | Item | State |
 |---|---|
-| Stage | **P03 planned 2026-10-29, awaiting owner approval** (plan §5C: permission evaluator + fingerprint, approval lifecycle, child-environment sanitiser, session-only credentials with KEY-01 hardening, FR-33, CLI `approvals`/`credential`/`dev env-preview`). Waves: T05 ∥ T06 ∥ T07, then T08 ∥ T09, then T10; T11 integration, T12 report. Estimate 16–24 h (low confidence). No code written |
-| P03 | Planned, **not approved**. Branch `phase/P03-permissions-credentials` from `main` `01a3cbd` (planning commit only). Open: C1–C10 (§5C.6) |
+| Stage | **P03 planned 2026-10-29; C1–C10 = recommended recorded; T01 awaits the owner's go** (plan §5C: permission evaluator + fingerprint, approval lifecycle, child-environment sanitiser, session-only credentials with KEY-01 hardening, FR-33, CLI `approvals`/`credential`/`dev env-preview`). Waves: T05 ∥ T06 ∥ T07, then T08 ∥ T09, then T10; T11 integration, T12 report. Estimate 16–24 h (low confidence). No code written |
+| P03 | Planned; **C1–C10 = 1a…10a** (owner: "update plan with the recommendations"): full scope, session-only credentials (no OS store/keyring), no new crates (`application → sha2` edge only, std-only clearing), one-invocation CLI key, stdin-only key input, ASCII-only hosts, once/run/workflow lifetimes, CA-05 only if needed and owner-approved, up to 3 workers + phase-branch commits/pushes, pre-authorised debug cycles (2 attempts). Branch `phase/P03-permissions-credentials` from `main` `01a3cbd` |
 | P00 | Accepted 2026-10-24 with qualifications; merged `5888826`. Report `evidence/P00/P00-report.md` |
 | P01 | Accepted 2026-10-26; merged `7324da6`. Report `evidence/P01/P01-report.md`, freeze `evidence/P01/P01-freeze.json` |
 | P02 | **Accepted 2026-10-29** ("I accept p02, commit and push to the phase branch, merge to the main branch"); T15 `84fedd4` pushed to `phase/P02-store`; `--no-ff` merge `4747214` into `main` (tree = `84fedd4`); `main` pushed (owner: "commit and push main"). Report `evidence/P02/P02-report.md`, freeze `evidence/P02/P02-freeze.json` |
@@ -29,7 +29,7 @@ Full history up to P02 close, verbatim: `evidence/P02/continuity/status-at-P02-c
 ## Open owner decisions
 | ID | Item | Recommended |
 |---|---|---|
-| P03 | Plan §5C written; C1–C10 open | Approve P03 with C1–C10 = recommended (1a, 2a, 3a, 4a, 5a, 6a, 7a, 8a, 9a, 10a), or name changes |
+| P03 start | Decisions recorded; no task started | Say "start P03" (T01 request, lead only) |
 | Dev caps | T09 resource caps (timeout ≤ 86 400 s, output ≤ 64 MiB, ≤ 64 scanner processes, ≤ 1 024 active repositories) are development defaults pending FR-11 | Confirm or replace |
 | cargo-audit | C-A2–C-E (native C build exposure `aws-lc-sys`, `ring`; install; advisory-DB fetch) | Decide before a phase that needs an advisory scan |
 | Questions | Q-01 cadence, Q-02 AI narration deferral, Q-04 OpenRouter model ID, Q-05 scope exchanges (plan §1) | Owner |
@@ -39,4 +39,4 @@ Full history up to P02 close, verbatim: `evidence/P02/continuity/status-at-P02-c
 B-01 (installs beyond P00 tools), B-04 (worker models unverified), B-08 (schedule fit; Q-01/Q-05) open; B-02, B-03, B-05–B-07, B-09 resolved or scoped (plan §8).
 
 ## Next permitted action
-None without the owner. Next on owner go: P03-T01 (request, lead only). Not approved: P03 execution, cargo-audit C-A2+, network, new dependencies.
+None without the owner. Next on owner go: P03-T01 (request, lead only). Not approved: starting P03 tasks, cargo-audit C-A2+, network, new dependencies.
