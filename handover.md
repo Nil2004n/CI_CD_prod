@@ -1,5 +1,17 @@
 # Handover
 
+Checkpoint: 2026-10-29, **P02 accepted by the owner** ("I accept p02, commit and push to the phase branch, merge to the main branch"). T15 committed and pushed to `phase/P02-store`; `--no-ff` merge into `main` approved (push of `main` not stated). Before acceptance: HEAD `6b3fd98` = `origin/phase/P02-store` (B4 `0cc562e` + docs commit; code identical to B4). `main` untouched.
+
+## Resume here
+- Uncommitted: `evidence/P02/P02-report.md`, `evidence/P02/P02-freeze.json`, `evidence/P02/T15/` (`final/` = the verdict run; `differential-b/` PASS; `final-check/` = aborted 2026-10-28 start, not evidence), `status.md`, `handover.md`, `plan.md` (T15 row). `.commandcode/` local, never commit.
+- Final run: `python3 -I -B dev/p02_check.py all --slot lead --final --out evidence/P02/T15/final` → OVERALL PASS, 866/0/0, 39 compile_fail, cli 48, static 28/28.
+- Report §4: criteria 1–11 met (criterion 8 per T11 packet scope; criterion 11 = cargo-audit not run). Manual-pending: `real_storage_failure_exits_4_when_permissions_are_enforced` (run once unprivileged outside `unshare`).
+- Freeze regenerable with a lead script (not in repo); values cross-checked against the runner pins (lock `6c9d4998…`, schema `909e2a55…`).
+- Lead Cargo target dir rebuilt (`_cargo-target/p02-lead-*`, 3.0 GB); no worktrees.
+- **Next on owner go:** push `main` (if not yet approved), then P03 planning (includes FR-33). Neither is approved yet.
+
+Previous checkpoint (historical): 2026-10-28 (late), below.
+
 Checkpoint: 2026-10-28 (late), **B4 committed locally (`0cc562e`); T15 started, then STOPPED by the owner** ("stop before you start p002t14", read as T15 because T14 was already done and committed). B2–B4 and the docs commit pushed to `origin/phase/P02-store`; `main` untouched.
 
 ## Takeover map (read this before touching anything)
