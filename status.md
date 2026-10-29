@@ -1,12 +1,13 @@
 # Status
 
-Updated: 2026-10-29 by Opus directly (no Haiku documentation agent installed). **P02 closed:** accepted by the owner, merged into `main` and pushed. No phase is active. Next is P03 planning, which is not yet approved.
+Updated: 2026-10-29 by Opus directly (no Haiku documentation agent installed). **P02 closed:** accepted by the owner, merged into `main` and pushed. **P03 planned (plan §5C, 12 tasks T01–T12, decisions C1–C10) on `phase/P03-permissions-credentials`; not approved for execution.**
 
 Full history up to P02 close, verbatim: `evidence/P02/continuity/status-at-P02-close.md` (sha256 `ca2fb867…`). P00/P01 detail lives there and in `evidence/P00/P00-report.md`, `evidence/P01/P01-report.md`.
 
 | Item | State |
 |---|---|
-| Stage | **Between phases.** P02 closed 2026-10-29. P03 (permission evaluator, child-env sanitiser, credential abstraction; FR-18–FR-24, FR-33) not planned yet |
+| Stage | **P03 planned 2026-10-29, awaiting owner approval** (plan §5C: permission evaluator + fingerprint, approval lifecycle, child-environment sanitiser, session-only credentials with KEY-01 hardening, FR-33, CLI `approvals`/`credential`/`dev env-preview`). Waves: T05 ∥ T06 ∥ T07, then T08 ∥ T09, then T10; T11 integration, T12 report. Estimate 16–24 h (low confidence). No code written |
+| P03 | Planned, **not approved**. Branch `phase/P03-permissions-credentials` from `main` `01a3cbd` (planning commit only). Open: C1–C10 (§5C.6) |
 | P00 | Accepted 2026-10-24 with qualifications; merged `5888826`. Report `evidence/P00/P00-report.md` |
 | P01 | Accepted 2026-10-26; merged `7324da6`. Report `evidence/P01/P01-report.md`, freeze `evidence/P01/P01-freeze.json` |
 | P02 | **Accepted 2026-10-29** ("I accept p02, commit and push to the phase branch, merge to the main branch"); T15 `84fedd4` pushed to `phase/P02-store`; `--no-ff` merge `4747214` into `main` (tree = `84fedd4`); `main` pushed (owner: "commit and push main"). Report `evidence/P02/P02-report.md`, freeze `evidence/P02/P02-freeze.json` |
@@ -14,7 +15,7 @@ Full history up to P02 close, verbatim: `evidence/P02/continuity/status-at-P02-c
 | Manual check | **Closed 2026-10-29: PASS.** `real_storage_failure_exits_4_when_permissions_are_enforced` run with uid 1000 in `unshare -Un --map-current-user` (network still isolated); the enforced branch is shown to have run (`eacces-read`/`eacces-write` temp dirs observed); root-mapped control skipped it as expected. `evidence/P02/manual-exit4/record.md`. The runner itself still skips this branch |
 | Specs / contracts | Spec v0.3.5 (CA-01–CA-04); store 1.4, wrapper protocol 1.1, app contract 1.1, UI schema 1.1; schema `schemas/workbench-store-v1.4.schema.json` sha256 `909e2a55…` |
 | Dependencies | `serde =1.0.229`, `serde_json =1.0.154`, `jsonschema =0.60.1`, `sha2 =0.11.1`, `libc =0.2.191`; `Cargo.lock` sha256 `6c9d4998…` (94 packages, 86 registry). cargo-audit: stage C-A only; C-A2–C-E not approved |
-| Git | `main` = `origin/main` (tip: the commit containing this file). Phase branches `phase/P00-decisions-spikes`, `phase/P01-foundation`, `phase/P02-store` (`84fedd4`) kept locally and on origin, all merged. No worktrees. Untracked `.commandcode/` (local, never commit) |
+| Git | `phase/P03-permissions-credentials` = the planning commit containing this file, pushed; `main` = `origin/main` = `01a3cbd`. Phase branches `phase/P00-decisions-spikes`, `phase/P01-foundation`, `phase/P02-store` (`84fedd4`) kept locally and on origin, all merged. No worktrees. Untracked `.commandcode/` (local, never commit) |
 | Disk / tools | Clean-up 2026-10-29: lead Cargo target dir deleted (next runner call rebuilds offline from `_cargo-home`), `git gc`. `pwt-dev-tools` 819 MB; disk 68 %. Worktree archive `~/.local/share/pwt-dev-tools/_archive/p02-worktrees-2026-10-28.tar.gz` kept |
 | Agents | `sonnet-implementer` configured `model: claude-sonnet-5-5` for every P02 spawn; resolution not observable, no substitution notice; self-reports unverified. `haiku-docs` still a proposal |
 
@@ -28,7 +29,7 @@ Full history up to P02 close, verbatim: `evidence/P02/continuity/status-at-P02-c
 ## Open owner decisions
 | ID | Item | Recommended |
 |---|---|---|
-| P03 | Planning not approved | Approve P03 planning |
+| P03 | Plan §5C written; C1–C10 open | Approve P03 with C1–C10 = recommended (1a, 2a, 3a, 4a, 5a, 6a, 7a, 8a, 9a, 10a), or name changes |
 | Dev caps | T09 resource caps (timeout ≤ 86 400 s, output ≤ 64 MiB, ≤ 64 scanner processes, ≤ 1 024 active repositories) are development defaults pending FR-11 | Confirm or replace |
 | cargo-audit | C-A2–C-E (native C build exposure `aws-lc-sys`, `ring`; install; advisory-DB fetch) | Decide before a phase that needs an advisory scan |
 | Questions | Q-01 cadence, Q-02 AI narration deferral, Q-04 OpenRouter model ID, Q-05 scope exchanges (plan §1) | Owner |
@@ -38,4 +39,4 @@ Full history up to P02 close, verbatim: `evidence/P02/continuity/status-at-P02-c
 B-01 (installs beyond P00 tools), B-04 (worker models unverified), B-08 (schedule fit; Q-01/Q-05) open; B-02, B-03, B-05–B-07, B-09 resolved or scoped (plan §8).
 
 ## Next permitted action
-None without the owner. Not approved: P03 planning, cargo-audit C-A2+, network, new dependencies.
+None without the owner. Next on owner go: P03-T01 (request, lead only). Not approved: P03 execution, cargo-audit C-A2+, network, new dependencies.
