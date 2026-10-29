@@ -1,6 +1,6 @@
 # Handover
 
-Checkpoint: 2026-10-29, **P02 accepted by the owner** ("I accept p02, commit and push to the phase branch, merge to the main branch"). T15 committed and pushed to `phase/P02-store`; `--no-ff` merge into `main` approved (push of `main` not stated). Before acceptance: HEAD `6b3fd98` = `origin/phase/P02-store` (B4 `0cc562e` + docs commit; code identical to B4). `main` untouched.
+Checkpoint: 2026-10-29, **P02 accepted by the owner** ("I accept p02, commit and push to the phase branch, merge to the main branch"). T15 committed and pushed to `phase/P02-store`; `--no-ff` merge into `main` approved (push of `main` not stated). **Done:** merge `4747214` on `main` (tree = `84fedd4`), check on `main` PASS 866/0/0, 39, cli 48 (`evidence/P02/merge/check-main`); note + evidence committed on `main`, `main` pushed 2026-10-29 (owner: "commit and push main"). Before acceptance: HEAD `6b3fd98` = `origin/phase/P02-store` (B4 `0cc562e` + docs commit; code identical to B4). `main` untouched.
 
 ## Resume here
 - Uncommitted: `evidence/P02/P02-report.md`, `evidence/P02/P02-freeze.json`, `evidence/P02/T15/` (`final/` = the verdict run; `differential-b/` PASS; `final-check/` = aborted 2026-10-28 start, not evidence), `status.md`, `handover.md`, `plan.md` (T15 row). `.commandcode/` local, never commit.

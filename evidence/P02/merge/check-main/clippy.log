@@ -1,0 +1,9 @@
+    Checking domain v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/domain)
+    Checking repositories v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/repositories)
+    Checking scanning v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/scanning)
+    Checking terminal-ui v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/terminal-ui)
+    Checking retrieval v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/retrieval)
+    Checking persistence v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/persistence)
+    Checking application v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/application)
+    Checking cli v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.68s
