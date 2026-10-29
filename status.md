@@ -101,5 +101,7 @@ Updated: 2026-10-29 by Opus directly (no Haiku documentation agent installed). L
 ## Blockers
 B-01 resolved for P00 baseline tools (cargo-audit pending P01), B-02 crates (libc resolved/built; others pending per spike), B-08 schedule fit. B-03 resolved for read-only lookups only. B-09 resolved: Checkov runs on standalone CPython 3.12.15 — see `plan.md` §8. Q-06 answered (read-only lookups approved). Q-01–Q-05 open.
 
+- **Clean-up 2026-10-29 (owner: "perform a stable clean up, and push to the main"):** deleted the lead Cargo target dir `_cargo-target/p02-lead-47835b267e4c` (3.5 GB, cache-tagged, no cargo/rustc running; next runner call rebuilds offline from `_cargo-home`); `git gc` (default prune window, 2502 loose objects packed, `fsck --connectivity-only` clean; 2 dangling blobs left for the normal expiry). Kept: all local and remote phase branches (merged, equal to origin), `_cargo-home`, `_staging`, `_artifacts`, `_private-evidence`, `_archive`, tools, evidence. `pwt-dev-tools` 4.3 GB → 819 MB; disk 71 % → 68 % (31 GB free).
+
 ## Next permitted action
 **P02 accepted 2026-10-29; T15 committed and pushed to `phase/P02-store`; merge to `main` approved.** Not approved: push of `main` (not stated), P03 planning, cargo-audit C-A2+, network, new dependencies, P03 planning. Open (later phases): manual exit-4 run, dev caps (FR-11), O-1–O-6 (P13), Q-01/Q-02/Q-04/Q-05, B-01, B-04, B-08; FR-32 (P06/P19), FR-33 (P03).

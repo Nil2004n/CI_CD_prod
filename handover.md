@@ -10,6 +10,8 @@ Checkpoint: 2026-10-29, **P02 accepted by the owner** ("I accept p02, commit and
 - Lead Cargo target dir rebuilt (`_cargo-target/p02-lead-*`, 3.0 GB); no worktrees.
 - **Next on owner go:** push `main` (if not yet approved), then P03 planning (includes FR-33). Neither is approved yet.
 
+- **Clean-up 2026-10-29 (owner: "perform a stable clean up, and push to the main"):** deleted the lead Cargo target dir `_cargo-target/p02-lead-47835b267e4c` (3.5 GB, cache-tagged, no cargo/rustc running; next runner call rebuilds offline from `_cargo-home`); `git gc` (default prune window, 2502 loose objects packed, `fsck --connectivity-only` clean; 2 dangling blobs left for the normal expiry). Kept: all local and remote phase branches (merged, equal to origin), `_cargo-home`, `_staging`, `_artifacts`, `_private-evidence`, `_archive`, tools, evidence. `pwt-dev-tools` 4.3 GB → 819 MB; disk 71 % → 68 % (31 GB free).
+
 Previous checkpoint (historical): 2026-10-28 (late), below.
 
 Checkpoint: 2026-10-28 (late), **B4 committed locally (`0cc562e`); T15 started, then STOPPED by the owner** ("stop before you start p002t14", read as T15 because T14 was already done and committed). B2–B4 and the docs commit pushed to `origin/phase/P02-store`; `main` untouched.
