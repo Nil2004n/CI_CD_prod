@@ -9,7 +9,7 @@ Checkpoint: 2026-10-30, **P03-T01–T04 done and owner-accepted; B0 `5e29908` PA
 4. On the owner's go for wave 1: write packets `planning/P03-packets/T05-W1.md`, `T06-W2.md`, `T07-W3.md` (template `T04b-W1.md`), create three worktrees from `5e29908`, spawn three `sonnet-implementer` workers with short prompts, then integrate, verify with `dev/p03_check.py all`, raise floors and commit B1.
 
 ## Verified state
-- **P03 runner:** `python3 -I -B dev/p03_check.py all --slot lead --out <new dir>` → B0 PASS 866/39, cli 48, static self-test 167. Use `--final` only at T11 (B0 stubs fail it by design). Lead target dir `p03-lead` is kept (warm).
+- **P03 runner:** `python3 -I -B dev/p03_check.py all --slot lead --out <new dir>` → B0 PASS 866/39, cli 48, static self-test 167. Use `--final` only at T11 (B0 stubs fail it by design). No Cargo target dir exists after the 2026-10-30 clean-up; the first run rebuilds offline (slower, no network).
 - `main` check (P02 runner): `python3 -I -B dev/p02_check.py all --slot lead --final --out <new dir>` → PASS 866/0/0, 39 compile_fail, cli 48, static 28/28 (`evidence/P02/merge/check-main`). The lead Cargo target dir was deleted on 2026-10-29, so the next run rebuilds offline (slower first run; no network).
 - Cargo only through the runner (pinned 1.97.1, `env -i`, isolated `CARGO_HOME`, `unshare -rn`, `--frozen`). Worker trees: add `--repo <worktree> --slot w<N>`.
 - Differential B: `python3 -I -B dev/p02_differential.py --out <new dir>` (host jsonschema 4.26.0).
