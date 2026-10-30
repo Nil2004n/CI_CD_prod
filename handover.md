@@ -1,6 +1,6 @@
 # Handover
 
-Checkpoint: 2026-10-30, **P03-T01–T04 done; B0 `5e29908` PASS; stopped before wave 1.** Earlier: 2026-10-29, **P02 closed.** Accepted by the owner, merged into `main` (`4747214`, `--no-ff`, tree = phase tip `84fedd4`) and pushed. **P03 planned (plan §5C), C1–C10 = recommended recorded 2026-10-29, no task started;** planning commit on `phase/P03-permissions-credentials` (from `main` `01a3cbd`), pushed. The previous handover, verbatim (includes all P00–P02 checkpoints and lessons): `evidence/P02/continuity/handover-at-P02-close.md` (sha256 `69bb8973…`).
+Checkpoint: 2026-10-30, **P03-T01–T04 done and owner-accepted; B0 `5e29908` PASS; stopped before wave 1.** Earlier: 2026-10-29, **P02 closed.** Accepted by the owner, merged into `main` (`4747214`, `--no-ff`, tree = phase tip `84fedd4`) and pushed. **P03 planned (plan §5C), C1–C10 = recommended recorded 2026-10-29, no task started;** planning commit on `phase/P03-permissions-credentials` (from `main` `01a3cbd`), pushed. The previous handover, verbatim (includes all P00–P02 checkpoints and lessons): `evidence/P02/continuity/handover-at-P02-close.md` (sha256 `69bb8973…`).
 
 ## Resume here
 1. `git status -sb` on `phase/P03-permissions-credentials`: expect up to date with origin and only `?? .commandcode/` (local, never commit).

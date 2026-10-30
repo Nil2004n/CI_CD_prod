@@ -1,12 +1,12 @@
 # Status
 
-Updated: 2026-10-30 by Opus directly (no Haiku documentation agent installed). **P03-T01–T04 done** (owner approval 2026-10-30): request, lock edge, contract check (no CA-05), B0 scaffold + `dev/p03_check.py`; B0 check PASS. **Stopped before wave 1 (T05–T07), which needs the owner's go.**
+Updated: 2026-10-30 by Opus directly (no Haiku documentation agent installed). **P03-T01–T04 done and accepted by the owner 2026-10-30** ("I approve p003 t01 to t04, commit and push to phase branch"): request, lock edge, contract check (no CA-05), B0 scaffold + `dev/p03_check.py`; B0 check PASS. **Stopped before wave 1 (T05–T07), which needs the owner's go.**
 
 Full history up to P02 close, verbatim: `evidence/P02/continuity/status-at-P02-close.md` (sha256 `ca2fb867…`). P00/P01 detail lives there and in `evidence/P00/P00-report.md`, `evidence/P01/P01-report.md`.
 
 | Item | State |
 |---|---|
-| Stage | **P03 T01–T04 complete (B0 `5e29908`); wave 1 (T05 ∥ T06 ∥ T07) awaits the owner's go.** Request `planning/P03-T01-request.md` (frozen interfaces §5, scope-match table §6, env policy §7, test plan §8, lead decisions T01-D1–D9). T02 `evidence/P03/T02/record.md`, T03 `evidence/P03/T03/record.md`, B0 `evidence/P03/B0/record.md`. Estimate for the rest 13–20 h (low confidence) |
+| Stage | **P03 T01–T04 complete and owner-accepted 2026-10-30 (B0 `5e29908`); wave 1 (T05 ∥ T06 ∥ T07) awaits the owner's go.** Request `planning/P03-T01-request.md` (frozen interfaces §5, scope-match table §6, env policy §7, test plan §8, lead decisions T01-D1–D9). T02 `evidence/P03/T02/record.md`, T03 `evidence/P03/T03/record.md`, B0 `evidence/P03/B0/record.md`. Estimate for the rest 13–20 h (low confidence) |
 | P03 | Planned; **C1–C10 = 1a…10a** (owner: "update plan with the recommendations"): full scope, session-only credentials (no OS store/keyring), no new crates (`application → sha2` edge only, std-only clearing), one-invocation CLI key, stdin-only key input, ASCII-only hosts, once/run/workflow lifetimes, CA-05 only if needed and owner-approved, up to 3 workers + phase-branch commits/pushes, pre-authorised debug cycles (2 attempts). Branch `phase/P03-permissions-credentials` from `main` `01a3cbd` |
 | P00 | Accepted 2026-10-24 with qualifications; merged `5888826`. Report `evidence/P00/P00-report.md` |
 | P01 | Accepted 2026-10-26; merged `7324da6`. Report `evidence/P01/P01-report.md`, freeze `evidence/P01/P01-freeze.json` |
