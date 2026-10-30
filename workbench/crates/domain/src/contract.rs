@@ -161,7 +161,8 @@ impl Drop for CredentialSecret {
 }
 
 /// Raw text typed by the user (URL, names, chat message). Validated, sanitised or redacted by the
-/// subsystem that consumes it; never logged: `Debug` shows only the length. No serde, no `Display`.
+/// subsystem that consumes it; never logged: `Debug` shows neither the text nor its length (KEY-01
+/// hardening, P03). No serde, no `Display`. Cleared on drop, best effort (not a secure erase).
 ///
 /// # Compile-time guards
 ///
@@ -264,7 +265,62 @@ impl RawInput {
 
 impl fmt::Debug for RawInput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "RawInput(<{} bytes>)", self.0.len())
+        f.write_str("RawInput(<redacted>)")
+    }
+}
+
+impl Drop for RawInput {
+    fn drop(&mut self) {
+        let mut bytes = std::mem::take(&mut self.0).into_bytes();
+        let capacity = bytes.capacity();
+        bytes.clear();
+        bytes.resize(capacity, 0);
+        std::hint::black_box(&bytes);
+    }
+}
+
+/// Fixed, application-authored approval texts (`planning/P03-T01-request.md` §5.1). The only way code
+/// outside `domain` obtains a [`RedactedText`] for an approval's `actor` or `purpose` before the real
+/// redactor exists (P06); never user, repository, child or provider text.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum FixedText {
+    /// The `actor` of a request that is still pending.
+    ActorRequester,
+    /// A local user deciding through the developer CLI.
+    ActorLocalUserCli,
+    /// A local user deciding through the TUI.
+    ActorLocalUserTui,
+    /// The `purpose` of a `dev permission-check` request.
+    PurposeDeveloperCheck,
+}
+
+impl FixedText {
+    /// Every value.
+    pub const ALL: [Self; 4] = [
+        Self::ActorRequester,
+        Self::ActorLocalUserCli,
+        Self::ActorLocalUserTui,
+        Self::PurposeDeveloperCheck,
+    ];
+
+    /// The fixed text.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ActorRequester => "requester",
+            Self::ActorLocalUserCli => "local-user/cli",
+            Self::ActorLocalUserTui => "local-user/tui",
+            Self::PurposeDeveloperCheck => "developer permission check",
+        }
+    }
+
+    /// The fixed text as a [`RedactedText`].
+    pub fn redacted(self) -> RedactedText {
+        match self {
+            Self::ActorRequester => crate::text::redact_static("requester"),
+            Self::ActorLocalUserCli => crate::text::redact_static("local-user/cli"),
+            Self::ActorLocalUserTui => crate::text::redact_static("local-user/tui"),
+            Self::PurposeDeveloperCheck => crate::text::redact_static("developer permission check"),
+        }
     }
 }
 

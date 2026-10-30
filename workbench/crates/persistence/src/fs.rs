@@ -114,6 +114,31 @@ pub trait FsOps: Send + Sync + std::fmt::Debug {
     /// Opens (creating it with `mode` if absent, never truncating) the lock file. (Protocol step
     /// [`WriteStep::Lock`].)
     fn open_lock_file(&self, path: &Path, mode: u32) -> io::Result<LockHandle>;
+    /// The effective uid of this process (FR-33, `planning/P03-T01-request.md` §5.6), read from the
+    /// `Uid:` line of `/proc/self/status` because `geteuid` needs `unsafe`. Provided so that test doubles
+    /// inherit the real value; FR-33 tests override it.
+    fn effective_uid(&self) -> io::Result<u32> {
+        process_effective_uid()
+    }
+}
+
+/// Reads the effective uid from `/proc/self/status` (bounded read; any failure or an unparsable line is an
+/// error, so callers fail closed).
+pub fn process_effective_uid() -> io::Result<u32> {
+    #[expect(clippy::todo, reason = "B0 stub")]
+    {
+        todo!("P03-T09")
+    }
+}
+
+/// Parses the effective uid (second field of the `Uid:` line) from the bytes of `/proc/<pid>/status`.
+/// `None` if the line is missing, repeated or malformed.
+pub fn parse_status_euid(status: &[u8]) -> Option<u32> {
+    let _ = status;
+    #[expect(clippy::todo, reason = "B0 stub")]
+    {
+        todo!("P03-T09")
+    }
 }
 
 /// The real file system. The only production code that touches `std::fs`.

@@ -45,6 +45,8 @@ pub enum StoreError {
     PathRejected,
     /// The existing root file is malformed or foreign; it is never overwritten (restore explicitly).
     Malformed(StoreKind),
+    /// The process runs with effective uid 0 and the data directory is not owned by root (FR-33).
+    RootForeignDataDir,
 }
 
 impl fmt::Display for StoreError {
@@ -59,6 +61,9 @@ impl fmt::Display for StoreError {
             Self::ReportNameCollision => "a report with the same name already exists",
             Self::PathRejected => "the path was rejected",
             Self::Malformed(_) => "the existing store file is malformed",
+            Self::RootForeignDataDir => {
+                "refusing to use a data directory not owned by root while running as root"
+            }
         };
         f.write_str(text)
     }

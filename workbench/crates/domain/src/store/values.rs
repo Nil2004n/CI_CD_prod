@@ -692,6 +692,15 @@ string_newtype!(
     destination
 );
 
+impl Destination {
+    /// The destination as event text (`ApprovalRequested.destinations`). The grammar already excludes
+    /// userinfo, query and fragment; the text is escaped again like any [`crate::text::RedactedText`]. A
+    /// path segment can still carry a token-like string: the real redactor (P06) is not applied here.
+    pub fn to_redacted(&self) -> crate::text::RedactedText {
+        crate::text::redact_validated(self.as_str())
+    }
+}
+
 // --- small syntaxes -------------------------------------------------------------------------------------
 
 fn slug(s: &str) -> Check {

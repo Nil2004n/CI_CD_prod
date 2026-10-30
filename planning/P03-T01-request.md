@@ -74,7 +74,7 @@ These are the lead-authored B0 stubs. Names, signatures, derives and visibility 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum FixedText { ActorRequester, ActorLocalUserCli, ActorLocalUserTui, PurposeDeveloperCheck }
 impl FixedText { pub fn as_str(self) -> &'static str; pub fn redacted(self) -> RedactedText; }
-// "requester", "local-user (cli)", "local-user (tui)", "developer permission check"
+// "requester", "local-user/cli", "local-user/tui", "developer permission check"
 
 impl Drop for RawInput { /* best-effort clearing, same as CredentialSecret */ }
 impl fmt::Debug for RawInput { /* "RawInput(<redacted>)", no length */ }
@@ -183,14 +183,14 @@ pub trait CredentialStore: SecretProbe + fmt::Debug {
     fn delete(&mut self) -> CredentialStatus;
 }
 pub struct SessionCredentialStore { /* Option<CredentialSecret> */ }    // new(); Default; Debug shows status only
-pub enum KeyFormatError { Empty, TooLong, Character, TerminalInput, Read }
+pub enum KeyFormatError { Empty, TooShort, TooLong, Character, TerminalInput, Read }
 pub fn read_key(input: &mut dyn Read, is_terminal: bool) -> Result<CredentialSecret, KeyFormatError>;
 // persistence
 pub trait FsOps { … fn effective_uid(&self) -> io::Result<u32> { process_effective_uid() } }   // provided method
 pub fn parse_status_euid(status: &[u8]) -> Option<u32>;    // fs.rs, pure, tested
 StoreError::RootForeignDataDir;  DevError::RootForeignDataDir (class Operation → exit 5)
 ```
-- **Key format (C3/C5).** Read at most 4 097 bytes, then remove one trailing `\n` or `\r\n`. The key must be 16–4 096 bytes of ASCII graphic characters (0x21–0x7E). Any other input is rejected without keeping it: the read buffer is cleared on every path. TTY stdin → `TerminalInput`, and nothing is read.
+- **Key format (C3/C5).** Read at most 4 099 bytes (`MAX_KEY_BYTES` + 3, enough to see a line break and one byte too many), then remove one trailing `\n` or `\r\n`. The key must be 16–4 096 bytes of ASCII graphic characters (0x21–0x7E). Any other input is rejected without keeping it: the read buffer is cleared on every path. TTY stdin → `TerminalInput`, and nothing is read.
 - **Event.** `CredentialStatusChanged { status }` is emitted on `set`/`delete`. It carries status only.
 - **Hardening (KEY-01).** No key in argv, environment, logs, stdout/stderr, store files or `Debug`. Clearing is best effort and is never described as secure erase.
 - **FR-33.** `DataDir::new` calls `fs.effective_uid()`. If that fails → `PathRejected` (fail closed). If euid == 0 and the directory's uid ≠ 0 → `RootForeignDataDir`. In all other cases, behaviour is unchanged.

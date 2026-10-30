@@ -1079,14 +1079,15 @@ fn credential_secret_debug_hides_the_key() {
     assert_eq!(secret.expose(), SECRET_MARKER);
 }
 
+/// P03 KEY-01 hardening (`planning/P03-T01-request.md` §5.1): the length is no longer shown either. Fails if
+/// `Debug` shows the text, its byte length or anything but the fixed placeholder.
 #[test]
-fn raw_input_debug_shows_only_the_length() {
+fn raw_input_debug_shows_neither_text_nor_length() {
     let input = raw(SECRET_MARKER);
     assert_debug_clean("RawInput", &input);
-    assert_eq!(
-        format!("{input:?}"),
-        format!("RawInput(<{} bytes>)", SECRET_MARKER.len())
-    );
+    let shown = format!("{input:?}");
+    assert_eq!(shown, "RawInput(<redacted>)");
+    assert!(!shown.contains(&SECRET_MARKER.len().to_string()));
     assert_eq!(input.as_str(), SECRET_MARKER);
 }
 
@@ -1146,13 +1147,16 @@ fn raw_input_commands_debug_hides_the_text() {
             },
         },
     ];
+    // P03 KEY-01 hardening: the masked placeholder must be shown, and no byte length (was "<N bytes>").
     for cmd in &commands {
         assert_debug_clean(command_name(cmd), cmd);
+        let shown = format!("{cmd:?}");
         assert!(
-            format!("{cmd:?}").contains("bytes"),
+            shown.contains("RawInput(<redacted>)"),
             "{}",
             command_name(cmd)
         );
+        assert!(!shown.contains("bytes>"), "{}", command_name(cmd));
     }
 }
 

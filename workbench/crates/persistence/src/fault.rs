@@ -137,4 +137,8 @@ impl FsOps for FaultFs {
         self.check(WriteStep::Lock)?;
         self.inner.open_lock_file(path, mode)
     }
+
+    fn effective_uid(&self) -> io::Result<u32> {
+        self.inner.effective_uid()
+    }
 }
