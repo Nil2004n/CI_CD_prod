@@ -1,0 +1,20 @@
+   Compiling auditable-info v0.10.0
+   Compiling cargo-lock v11.0.1
+   Compiling quitters v0.1.0
+   Compiling secrecy v0.10.3
+   Compiling platforms v3.10.0
+   Compiling cvss v2.2.0
+   Compiling wasmparser v0.247.0
+   Compiling wait-timeout v0.2.1
+   Compiling home v0.5.12
+   Compiling canonical-path v2.0.2
+   Compiling termcolor v1.4.1
+   Compiling abscissa_core v0.9.0
+   Compiling rustsec v0.33.0
+   Compiling display-error-chain v0.2.2
+   Compiling cargo-audit v0.22.2 (/home/kali/.local/share/pwt-dev-tools/cargo-audit/staging-C-B/src/cargo-audit-0.22.2)
+    Finished `release` profile [optimized] target(s) in 3m 58s
+  Installing /home/kali/.local/share/pwt-dev-tools/cargo-audit/0.22.2/bin/cargo-audit
+   Installed package `cargo-audit v0.22.2 (/home/kali/.local/share/pwt-dev-tools/cargo-audit/staging-C-B/src/cargo-audit-0.22.2)` (executable `cargo-audit`)
+warning: be sure to add `/home/kali/.local/share/pwt-dev-tools/cargo-audit/0.22.2/bin` to your PATH to be able to run the installed binaries
+exit=0

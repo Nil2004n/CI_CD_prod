@@ -1,5 +1,5 @@
 {
-  "comment": "Committed regression floors for dev/p03_check.py. Start = P02 floors (866 passed, 39 compile_fail); raised at B0 and after each P03 wave. Never lower without owner approval.",
-  "min_passed": 866,
-  "min_compile_fail": 39
+  "comment": "Committed regression floors for dev/p03_check.py. Start = P02 floors (866 passed, 39 compile_fail); raised at B0 and after each P03 wave. Never lower without owner approval. B1 (wave 1, 2026-10-31): 998/41.",
+  "min_passed": 998,
+  "min_compile_fail": 41
 }

@@ -1,0 +1,3 @@
+      Loaded 1395 security advisories (from /home/kali/.local/share/pwt-dev-tools/cargo-audit/advisory-db/clone)
+warning: couldn't open crates.io index: registry: failed to request cargo version information
+    Scanning workbench/Cargo.lock for vulnerabilities (94 crate dependencies)
