@@ -19,6 +19,7 @@ use std::path::{Path, PathBuf};
 use application::child_env::{
     ChildEnv, EnvError, HostEnv, Origin, SecretProbe, ToolDirs, ToolProfile, build,
 };
+use domain::store::values::IanaTimezone;
 
 // ---------------------------------------------------------------------------------------------------------
 // Helpers.
@@ -438,14 +439,14 @@ fn no_seeded_value_or_key_appears_in_any_output() {
 fn byte_search_control_can_fail() {
     // The sweeps above only mean something if the search finds a value that is present. Here `TZ` is
     // inherited by `internal`, and the same helpers must see it. Would fail if `contains` never matched.
-    let host = HostEnv::from_pairs([pair("TZ", "seedval-tz-clean")]);
+    let host = HostEnv::from_pairs([pair("TZ", "seedval/tz-clean")]);
     let env = build_ok(ToolProfile::Internal, &dirs(), &host);
     let found = value_bytes(&env)
         .iter()
-        .any(|v| contains(v, b"seedval-tz-clean"));
+        .any(|v| contains(v, b"seedval/tz-clean"));
     assert!(found);
     let result = std::panic::catch_unwind(|| {
-        assert_free_of(&env, &[b"seedval-tz-clean".to_vec()], "control");
+        assert_free_of(&env, &[b"seedval/tz-clean".to_vec()], "control");
     });
     assert!(
         result.is_err(),
@@ -462,9 +463,10 @@ fn clean_tz_is_inherited_by_internal_only() {
     for tz in [
         "Europe/Berlin",
         "UTC",
-        "EST5EDT,M3.2.0,M11.1.0",
-        "<+03>-3",
-        "a=b",
+        "America/Argentina/Buenos_Aires",
+        "Etc/GMT+5",
+        "Etc/GMT-14",
+        "America/Port-au-Prince",
     ] {
         let host = HostEnv::from_pairs([pair("TZ", tz), pair("HOME", "/host")]);
         for profile in ToolProfile::ALL {
@@ -490,14 +492,25 @@ fn clean_tz_is_inherited_by_internal_only() {
 
 #[test]
 fn tz_holding_the_key_is_dropped_everywhere() {
-    // Would fail if the probe were not applied to inherited values (exact key, embedded key, key at the
-    // start and at the end).
-    let values = [
-        KEY.to_owned(),
-        format!("prefix-{KEY}-suffix"),
+    // Would fail if the probe were not applied to inherited values. The values marked "valid zone" pass
+    // the `TZ` syntax rule on their own (asserted below), so only the probe can drop them: key at the
+    // start, at the end, in the middle, and in every segment. The first two are dropped by the syntax rule
+    // as well; they stay as the plain cases.
+    let valid_zone = [
         format!("{KEY}/Europe"),
         format!("Europe/{KEY}"),
+        format!("Etc/pre-{KEY}-suf"),
+        format!("{KEY}/{KEY}"),
+        format!("Europe/Berlin/{KEY}"),
     ];
+    for tz in &valid_zone {
+        assert!(
+            IanaTimezone::parse(tz).is_ok(),
+            "control: the syntax rule alone accepts this value"
+        );
+    }
+    let mut values = vec![KEY.to_owned(), format!("prefix-{KEY}-suffix")];
+    values.extend(valid_zone);
     for tz in &values {
         let host = HostEnv::from_pairs([pair("TZ", tz)]);
         for profile in ToolProfile::ALL {
@@ -542,11 +555,133 @@ fn only_a_tz_that_passes_is_inherited_and_the_first_occurrence_decides() {
         "a failing duplicate after a good first one changes nothing"
     );
     assert_eq!(internal(vec![pair("TZ", KEY), pair("TZ", "UTC")]), base);
+    let keyed_zone = format!("Europe/{KEY}");
+    assert!(IanaTimezone::parse(&keyed_zone).is_ok(), "control");
+    assert_eq!(
+        internal(vec![pair("TZ", &keyed_zone), pair("TZ", "UTC")]),
+        base,
+        "a first value dropped by the probe alone also drops the name"
+    );
+    assert_eq!(
+        internal(vec![pair("TZ", "UTC"), pair("TZ", &keyed_zone)]),
+        with_tz("UTC")
+    );
+    assert_eq!(
+        internal(vec![pair("TZ", "utc"), pair("TZ", "UTC")]),
+        base,
+        "a first value dropped by the TZ rule drops the name"
+    );
+    assert_eq!(
+        internal(vec![pair("TZ", "Europe/Berlin"), pair("TZ", "utc")]),
+        with_tz("Europe/Berlin")
+    );
+    assert_eq!(
+        internal(vec![(OsString::from("TZ"), os(b"\xff")), pair("TZ", "UTC")]),
+        base,
+        "a non-UTF-8 first value drops the name"
+    );
     assert_eq!(
         internal(vec![(OsString::from("TZ"), os(b"a\0b")), pair("TZ", "UTC")]),
         base,
         "NUL in the first value drops the name"
     );
+}
+
+#[test]
+fn tz_value_must_be_valid_utf8_and_an_iana_timezone() {
+    // Contract: an inherited `TZ` is kept only if its value is valid UTF-8 and `IanaTimezone::parse`
+    // accepts it (`UTC` or `Area/Location[/Sub]`, at most 64 bytes, no segment starting with `-`);
+    // otherwise it is dropped without an error. Would fail if the value were passed on unchecked, if the
+    // check were skipped for non-UTF-8 bytes, or if it were looser (POSIX forms, newline, length, dash).
+    let internal = |tz: &OsStr| {
+        let host = HostEnv::from_pairs([(OsString::from("TZ"), tz.to_os_string())]);
+        snapshot(&build_ok(ToolProfile::Internal, &dirs(), &host))
+    };
+    let base = expected(ToolProfile::Internal);
+    let long_ok = format!("Area/{}", "a".repeat(59));
+    let long_bad = format!("Area/{}", "a".repeat(60));
+    assert_eq!(long_ok.len(), 64);
+    assert_eq!(long_bad.len(), 65);
+    let kept = [
+        "UTC",
+        "Europe/Berlin",
+        "America/Argentina/Buenos_Aires",
+        "Etc/GMT+5",
+        // Syntax only: tzdb membership is not checked here.
+        "Nowhere/Land",
+        long_ok.as_str(),
+    ];
+    for tz in kept {
+        let mut want = base.clone();
+        want.push(t("TZ", tz, Origin::Inherited));
+        want.sort_by(|a, b| a.0.cmp(&b.0));
+        assert_eq!(internal(OsStr::new(tz)), want, "kept: {tz}");
+    }
+    let long_name = "Area/".to_owned() + &"b".repeat(100_000);
+    let dropped = [
+        "",
+        // Pinned against `IanaTimezone`: a bare name other than `UTC`, in any case, is not accepted.
+        "utc",
+        "Utc",
+        "Europe",
+        "GMT",
+        ":/etc/localtime",
+        ":Europe/Berlin",
+        "EST5EDT",
+        "EST5EDT,M3.2.0,M11.1.0",
+        "<+03>-3",
+        "a=b",
+        "Europe/Berlin\nX=1",
+        "Europe/Berlin\n",
+        "Europe/Berlin\r",
+        "Europe/Berlin\0",
+        "\0",
+        " Europe/Berlin",
+        "Europe/Berlin ",
+        "Europe//Berlin",
+        "/Europe/Berlin",
+        "Europe/Berlin/",
+        "a/b/c/d",
+        "-x/y",
+        "x/-y",
+        "-UTC",
+        "Europe/B\u{e9}rlin",
+        long_bad.as_str(),
+        long_name.as_str(),
+    ];
+    for tz in dropped {
+        assert_eq!(internal(OsStr::new(tz)), base, "dropped: {tz:?}");
+    }
+    // Not valid UTF-8, in a zone-like shape and bare, and a valid zone with one invalid byte.
+    for bytes in [
+        &b"Europe/Berlin\xff"[..],
+        b"\xff",
+        b"Europe/\xc0\xaf",
+        b"\xffEurope/Berlin",
+        b"Europe/B\xe9rlin",
+        b"\xed\xa0\x80/x",
+    ] {
+        assert!(std::str::from_utf8(bytes).is_err(), "control: {bytes:?}");
+        assert_eq!(internal(&os(bytes)), base, "non-UTF-8 {bytes:?}");
+    }
+}
+
+#[test]
+fn tz_is_never_inherited_by_a_scanner_profile_whatever_its_value() {
+    // Only `internal` lists `TZ`. A value that passes every rule still does not reach any other profile.
+    // Would fail if a scanner profile started to inherit `TZ`.
+    let host = HostEnv::from_pairs([pair("TZ", "Europe/Berlin")]);
+    for profile in ToolProfile::ALL {
+        let names: Vec<String> = build_ok(profile, &dirs(), &host)
+            .vars()
+            .map(|(k, _)| k.to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(
+            names.iter().any(|n| n == "TZ"),
+            profile == ToolProfile::Internal,
+            "{profile:?}"
+        );
+    }
 }
 
 #[test]

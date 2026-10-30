@@ -95,12 +95,25 @@ impl ArgName {
 
 /// One normalised operation argument. The value is hashed into the fingerprint and never persisted; values
 /// over [`MAX_ARG_VALUE_BYTES`] make the fingerprint fail with [`ArgError::TooLong`].
-#[derive(Clone, PartialEq, Eq, Debug)]
+///
+/// Callers must never put credential-bearing or other secret values into an argument: the fingerprint is an
+/// unsalted SHA-256, so a low-entropy value can be confirmed offline by guessing (P03-D01, L5). `Debug`
+/// shows the name and the value's byte length only, never the value (P03-D01, M1).
+#[derive(Clone, PartialEq, Eq)]
 pub struct OperationArg {
     /// Argument name.
     pub name: ArgName,
     /// Normalised argument value.
     pub value: String,
+}
+
+impl std::fmt::Debug for OperationArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OperationArg")
+            .field("name", &self.name)
+            .field("value_bytes", &self.value.len())
+            .finish()
+    }
 }
 
 /// The saved workflow and the revision a request belongs to.

@@ -11,6 +11,7 @@ use std::ffi::{OsStr, OsString};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Component, Path, PathBuf};
 
+use domain::store::values::IanaTimezone;
 use domain::text::{SanitisedText, sanitise};
 
 /// The child-environment profiles (request §7).
@@ -237,10 +238,12 @@ pub struct PreviewLine {
 /// Order of the result: ascending by variable name, byte-wise, whatever the order of the host entries. The
 /// result never holds two variables of one name.
 ///
-/// Fails closed: [`EnvError::DeniedName`] if the profile declares a variable whose name is denied (checked
-/// on the declared names, so it does not depend on what the host holds), [`EnvError::SecretValue`] if a
-/// fixed or app-dir value that is set contains the session credential. Host entries are never an error:
-/// an entry that the profile does not list, or that fails an inheritance rule, is dropped silently.
+/// Fails closed: [`EnvError::DeniedName`] if the profile declares a variable whose name is denied or
+/// declares one name twice (checked on the declared names, so it does not depend on what the host holds),
+/// [`EnvError::SecretValue`] if a fixed or app-dir value that is set contains the session credential.
+/// Host entries are never an error: an entry that the profile does not list, or that fails an inheritance
+/// rule (no NUL, no session credential, a valid value for that name: `TZ` must be valid UTF-8 and an
+/// [`IanaTimezone`]), is dropped silently.
 pub fn build(
     profile: ToolProfile,
     dirs: &ToolDirs,
@@ -324,22 +327,31 @@ fn spec_for(profile: ToolProfile) -> ProfileSpec {
 }
 
 /// Builds the environment of `spec`. Split from [`build`] so that unit tests can feed a profile that no
-/// real [`ToolProfile`] has (a denied name in the table).
+/// real [`ToolProfile`] has (a denied or duplicated name in the table).
+///
+/// [`EnvError::DeniedName`] also covers a malformed profile: one that declares the same variable name
+/// twice (fixed, app-dir and inherited names together). `EnvError` has no variant for it, and the result
+/// must never hold two variables of one name.
 fn assemble(
     spec: &ProfileSpec,
     dirs: &ToolDirs,
     host: &HostEnv,
     probe: &dyn SecretProbe,
 ) -> Result<ChildEnv, EnvError> {
-    // Deny first, on every name the profile can produce (a superset of the final set), so a profile
+    // Check the profile first, on every name it can produce (a superset of the final set), so a profile
     // error is the same for every host and always beats a value error.
-    let declared = BASE_FIXED
+    let mut declared: Vec<&str> = BASE_FIXED
         .iter()
         .map(|(name, _)| *name)
         .chain(spec.fixed.iter().map(|(name, _)| *name))
         .chain(spec.app_dirs.iter().map(|dir| dir.var_name()))
-        .chain(spec.inherited.iter().copied());
-    if any_denied(declared) {
+        .chain(spec.inherited.iter().copied())
+        .collect();
+    if any_denied(declared.iter().copied()) {
+        return Err(EnvError::DeniedName);
+    }
+    declared.sort_unstable();
+    if declared.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err(EnvError::DeniedName);
     }
 
@@ -375,7 +387,7 @@ fn assemble(
         }
         seen.push(name);
         let bytes = value.as_bytes();
-        if bytes.contains(&0) || probe.appears_in(bytes) {
+        if bytes.contains(&0) || !inherited_value_ok(name, bytes) || probe.appears_in(bytes) {
             continue;
         }
         vars.push((
@@ -387,6 +399,18 @@ fn assemble(
 
     vars.sort_by(|a, b| a.0.cmp(&b.0));
     Ok(ChildEnv { vars })
+}
+
+/// Whether the host value of an inheritable variable is acceptable. Fails closed: a name without a rule
+/// here is never inherited, so adding a name to a profile's `inherited` list needs a rule as well.
+///
+/// `TZ`: valid UTF-8 and an [`IanaTimezone`] (`UTC` or `Area/Location[/Sub]`, at most 64 bytes, no
+/// segment starting with `-`). POSIX forms such as `:/etc/localtime` or `EST5EDT` are dropped on purpose.
+fn inherited_value_ok(name: &str, value: &[u8]) -> bool {
+    match name {
+        "TZ" => std::str::from_utf8(value).is_ok_and(|text| IanaTimezone::parse(text).is_ok()),
+        _ => false,
+    }
 }
 
 /// Name fragments that deny a variable wherever they occur (ASCII upper case).
@@ -752,5 +776,69 @@ mod tests {
             assemble(&spec, &dirs(), &HostEnv::empty(), &Probe).err(),
             Some(EnvError::SecretValue)
         );
+    }
+
+    #[test]
+    fn duplicate_declared_names_fail_closed() {
+        // Would fail if `assemble` did not check that the declared names are pairwise distinct. Each case
+        // repeats a name within or across the fixed, app-dir and inherited lists (and the base values).
+        let cases = [
+            // fixed twice
+            ProfileSpec {
+                fixed: &[("PWT_FLAG", "1"), ("PWT_FLAG", "2")],
+                ..CLEAN
+            },
+            // fixed repeats a base value
+            ProfileSpec {
+                fixed: &[("PATH", "/x")],
+                ..CLEAN
+            },
+            // fixed repeats an app-dir variable
+            ProfileSpec {
+                fixed: &[("HOME", "/x")],
+                ..CLEAN
+            },
+            // app dir twice
+            ProfileSpec {
+                app_dirs: &[AppDir::Home, AppDir::Home],
+                ..CLEAN
+            },
+            // inherited twice
+            ProfileSpec {
+                inherited: &["TZ", "TZ"],
+                ..CLEAN
+            },
+            // inherited repeats a fixed name
+            ProfileSpec {
+                inherited: &["PWT_FLAG"],
+                ..CLEAN
+            },
+            // inherited repeats a base value
+            ProfileSpec {
+                inherited: &["LANG"],
+                ..CLEAN
+            },
+        ];
+        for (i, spec) in cases.iter().enumerate() {
+            for held in [HostEnv::empty(), host(&[("TZ", "UTC"), ("PWT_FLAG", "x")])] {
+                assert_eq!(
+                    assemble(spec, &dirs(), &held, &Probe).err(),
+                    Some(EnvError::DeniedName),
+                    "case {i}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn inherited_name_without_a_value_rule_is_never_inherited() {
+        // Would fail if an inheritable name without a rule in `inherited_value_ok` were passed on.
+        let spec = ProfileSpec {
+            inherited: &["PWT_OTHER"],
+            ..CLEAN
+        };
+        let env = assemble(&spec, &dirs(), &host(&[("PWT_OTHER", "harmless")]), &Probe)
+            .expect("clean profile");
+        assert_eq!(names(&env), ["HOME", "LANG", "PATH", "PWT_FLAG"]);
     }
 }

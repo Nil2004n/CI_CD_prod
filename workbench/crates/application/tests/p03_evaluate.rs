@@ -687,7 +687,8 @@ fn g3_fingerprint_must_be_equal() {
 }
 
 /// G4. Fails if the workflow id is not compared, in either direction (bound grant for an unbound request,
-/// unbound grant for a bound request, another workflow).
+/// unbound grant for a bound request, another workflow), or if a `workflow_revision` grant with a null
+/// workflow id gets past G4 (both null is allowed only for `once` and `run`).
 #[test]
 fn g4_workflow_must_be_equal() {
     let mut request = plain();
@@ -718,6 +719,34 @@ fn g4_workflow_must_be_equal() {
     assert_eq!(
         evaluate(&unbound_request, &[bound_grant], &ctx(None)),
         mismatch(1, ScopeDimension::Workflow)
+    );
+
+    // Both null is allowed only for `once` and `run`: a `workflow_revision` grant without a workflow id
+    // fails G4 whatever the request has (here an unbound request; G4 precedes G5 and G12 in table order).
+    let wr_null = approved(&unbound_request, 2, ApprovalLifetime::WorkflowRevision);
+    assert_eq!(wr_null.workflow_id, None);
+    assert_eq!(
+        evaluate(&unbound_request, std::slice::from_ref(&wr_null), &ctx(None)),
+        mismatch(2, ScopeDimension::Workflow)
+    );
+    // The same record against a bound request fails G4 as well (workflow differs).
+    assert_eq!(
+        evaluate(&request, &[wr_null], &c),
+        mismatch(2, ScopeDimension::Workflow)
+    );
+    // `once` and `run` grants with both ids null still pass G4 for an unbound request.
+    let once_null = approved(&unbound_request, 3, ApprovalLifetime::Once);
+    assert_eq!(
+        permitted(evaluate(&unbound_request, &[once_null], &ctx(None))),
+        (approval_id(3), ApprovalLifetime::Once)
+    );
+    let mut run_request = plain();
+    run_request.run_id = Some(run(1));
+    let run_null = approved(&run_request, 4, ApprovalLifetime::Run);
+    assert_eq!(run_null.workflow_id, None);
+    assert_eq!(
+        permitted(evaluate(&run_request, &[run_null], &ctx(None))),
+        (approval_id(4), ApprovalLifetime::Run)
     );
 }
 
@@ -1040,9 +1069,42 @@ fn g11_inference_scope() {
     );
 }
 
-/// G12. Fails if a `run` grant without a run id, or a `workflow_revision` grant without workflow and
-/// revision, matches an unbound request (G4-G6 alone would accept those malformed records), or if the
-/// well-formed forms stop matching.
+/// A `workflow_revision` grant stores `run_id = null` and serves its workflow revision in every run; a
+/// grant that carries a run stays tied to it (G6 strictness). Fails if a null-run workflow grant stops
+/// serving another run, or if a grant carrying run 1 is accepted in run 2.
+#[test]
+fn workflow_revision_grant_without_run_serves_every_run() {
+    let mut run1 = plain();
+    run1.workflow = bind(1, 3);
+    run1.run_id = Some(run(1));
+    let mut run2 = run1.clone();
+    run2.run_id = Some(run(2));
+    let c = ctx(Some(3));
+
+    let mut grant = approved(&run1, 1, ApprovalLifetime::WorkflowRevision);
+    grant.run_id = None;
+    for request in [&run1, &run2] {
+        assert_eq!(
+            permitted(evaluate(request, std::slice::from_ref(&grant), &c)),
+            (approval_id(1), ApprovalLifetime::WorkflowRevision)
+        );
+    }
+
+    let tied = approved(&run1, 2, ApprovalLifetime::WorkflowRevision);
+    assert_eq!(tied.run_id, Some(run(1)));
+    assert_eq!(
+        permitted(evaluate(&run1, std::slice::from_ref(&tied), &c)).0,
+        approval_id(2)
+    );
+    assert_eq!(
+        evaluate(&run2, &[tied], &c),
+        mismatch(2, ScopeDimension::Run)
+    );
+}
+
+/// G12. Fails if a `run` grant without a run id matches a request without a run (G6 alone would accept that
+/// malformed record), if a `workflow_revision` grant without workflow and revision matches an unbound
+/// request (reported at G4), or if the well-formed forms stop matching.
 #[test]
 fn g12_lifetime_completeness() {
     let request = plain();
@@ -1052,10 +1114,11 @@ fn g12_lifetime_completeness() {
         evaluate(&request, std::slice::from_ref(&run_grant), &ctx(None)),
         mismatch(1, ScopeDimension::Lifetime)
     );
+    // A `workflow_revision` grant without a workflow id already fails G4 (it never reaches G12).
     let wr_grant = approved(&request, 2, ApprovalLifetime::WorkflowRevision);
     assert_eq!(
         evaluate(&request, &[wr_grant], &ctx(None)),
-        mismatch(2, ScopeDimension::Lifetime)
+        mismatch(2, ScopeDimension::Workflow)
     );
     // A workflow id without a revision is incomplete too.
     let mut bound = plain();

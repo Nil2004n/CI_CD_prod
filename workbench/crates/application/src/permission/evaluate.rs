@@ -38,14 +38,18 @@ use super::{
 /// Interpretation notes (the table is terse on these points):
 ///
 /// - G4, G5: workflow id and revision are compared as options, so a grant bound to a workflow never matches
-///   an unbound request and vice versa. G5 additionally requires the grant revision to equal the saved
-///   revision in `ctx` whenever the request is bound (rule 14: a stale grant never matches).
+///   an unbound request and vice versa. G4 additionally fails for a `workflow_revision` grant whose
+///   workflow id is null, whatever the request has (both `null` is allowed only for `once` and `run`).
+///   G5 additionally compares the grant revision with the saved revision in `ctx` whenever the request is
+///   bound. Rule 14 (a stale grant never matches) is enforced by R4, which refuses a request whose revision
+///   differs from the saved one; the G5 comparison is defence in depth that `evaluate` cannot reach after R4.
 /// - G6: a `run` grant needs equal run ids; for the other lifetimes a grant without a run id is not tied to
 ///   a run, and a grant with one must equal the request's.
 /// - G12 is the lifetime-specific completeness check: a `workflow_revision` grant needs a workflow id and a
 ///   revision and the request needs a workflow binding; a `run` grant needs a run id and the request needs a
-///   run. It cannot be reached by well-formed records (G4–G6 already differ), so it reports malformed
-///   records that G4–G6 alone would accept.
+///   run. G4 and G5 already reject a `workflow_revision` grant without a workflow id or revision, so for that
+///   lifetime the G12 check is defence in depth; in practice G12 reports a `run` grant without a run id
+///   that G6 alone would accept for a request without a run.
 /// - G13: a grant whose `expires_at` equals `now` is expired.
 pub fn evaluate(
     request: &PermissionRequest,
@@ -244,7 +248,11 @@ fn holds(dimension: ScopeDimension, view: &RequestView<'_>, approval: &Approval)
         ScopeDimension::Status => approval.status == ApprovalState::Approved,
         ScopeDimension::Capability => approval.capability == request.capability,
         ScopeDimension::Fingerprint => approval.operation_fingerprint == *view.digest,
-        ScopeDimension::Workflow => approval.workflow_id == binding.map(|b| b.workflow_id),
+        ScopeDimension::Workflow => {
+            approval.workflow_id == binding.map(|b| b.workflow_id)
+                && (approval.workflow_id.is_some()
+                    || approval.lifetime != ApprovalLifetime::WorkflowRevision)
+        }
         ScopeDimension::WorkflowRevision => {
             let revision = binding.map(|b| b.revision);
             approval.workflow_revision == revision.map(u64::from)

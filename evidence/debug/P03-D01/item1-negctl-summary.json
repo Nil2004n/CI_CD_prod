@@ -1,0 +1,77 @@
+{
+  "tool": "dev/p03_check.py",
+  "repo": "/tmp/claude-1000/-home-kali-Desktop-CI-CD-prod/2be3939c-48d7-4010-a3b7-323b57186d42/scratchpad/lead/negcopy",
+  "target_dir": "/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-239ee168d603",
+  "mode": "test",
+  "slot": "lead",
+  "package": "application",
+  "final": false,
+  "repo_head": "",
+  "dirty": [],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.97.1 (c980f4866 2026-06-30)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.97 (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "errno 101",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-239ee168d603",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "test",
+      "command": "cargo test -p application --frozen --no-fail-fast",
+      "exit": 101,
+      "log": "test.log",
+      "seconds": 6.63,
+      "protected_files_unchanged": true,
+      "ok": false,
+      "counts": {
+        "suites": 11,
+        "passed": 178,
+        "failed": 2,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "compile_fail_ok": 2
+      },
+      "floors": {
+        "min_passed": 0,
+        "min_compile_fail": 0
+      }
+    }
+  ],
+  "ok": false
+}

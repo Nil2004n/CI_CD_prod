@@ -296,6 +296,9 @@ Deny rules apply to the final environment whatever the profile says. If a profil
 - the name repeats (first occurrence wins, and only if it passes);
 - `probe.appears_in(value)` is true (the session key anywhere in the value);
 - the value contains NUL.
+- (P03-D01 amendment, lead 2026-10-31) for `TZ`: the value is not valid UTF-8 or fails `IanaTimezone::parse` (`UTC` or `Area/Location[/Sub]`, ≤ 64 bytes). POSIX forms are dropped (fail closed).
+
+Declared profile names must be pairwise distinct; `build` checks this at run time and fails closed with `DeniedName` (P03-D01).
 
 Dropped entries are not reported by value. **Preview:** name and origin only, never a value.
 
