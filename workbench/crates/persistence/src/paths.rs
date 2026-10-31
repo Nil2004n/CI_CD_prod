@@ -44,7 +44,9 @@ pub fn check_private_dir(fs: &dyn FsOps, path: &Path, owner_uid: u32) -> Result<
 pub struct DataDir(PathBuf);
 
 impl DataDir {
-    /// Validates `path` and returns its canonical form. Any failure is [`StoreError::PathRejected`].
+    /// Validates `path` and returns its canonical form. Any failure is [`StoreError::PathRejected`], except
+    /// that a process running as root (effective uid 0) against a directory not owned by root gets
+    /// [`StoreError::RootForeignDataDir`] (FR-33).
     pub fn new(fs: &dyn FsOps, path: &Path) -> Result<Self, StoreError> {
         if !path.is_absolute() {
             return Err(StoreError::PathRejected);
@@ -60,6 +62,23 @@ impl DataDir {
         let canonical = fs
             .canonicalize(&normalised)
             .map_err(|_| StoreError::PathRejected)?;
+        // FR-33: root must not operate on a data directory that another user owns (that user could
+        // pre-place or replace files under root's authority). Fail closed if the euid cannot be read.
+        let euid = fs.effective_uid().map_err(|_| StoreError::PathRejected)?;
+        if euid == 0 {
+            // The owner is taken from the canonical directory itself, not from the pre-canonical path.
+            // The window between this stat and later operations is the path-based limitation P02
+            // already accepts (module docs of `crate::fs`); it is not widened here.
+            let canonical_info = fs
+                .symlink_metadata(&canonical)
+                .map_err(|_| StoreError::PathRejected)?;
+            if !canonical_info.is_dir() {
+                return Err(StoreError::PathRejected);
+            }
+            if canonical_info.uid != 0 {
+                return Err(StoreError::RootForeignDataDir);
+            }
+        }
         Ok(Self(canonical))
     }
 

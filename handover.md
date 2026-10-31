@@ -1,6 +1,6 @@
 # Handover
 
-Checkpoint: 2026-10-31, **P03 wave 1 (T05–T07) integrated as B1 `b1ca4cb`; debug cycle P03-D01 closed; lead check PASS 1005/41; stopped before wave 2.** cargo-audit 0.22.2 installed (owner install grant), workbench lock 0 advisories. Earlier: 2026-10-30 T01–T04 accepted (B0 `5e29908`); 2026-10-29 P02 closed and merged. The previous handover, verbatim (includes all P00–P02 checkpoints and lessons): `evidence/P02/continuity/handover-at-P02-close.md` (sha256 `69bb8973…`).
+Checkpoint: 2026-10-31, **P03 wave 2 (T08, T09) integrated as B2; lead check PASS 1053/41; stopped for owner acceptance before wave 3 (T10).** Earlier the same day: wave 1 B1 `b1ca4cb`, D01 closed (1005/41). cargo-audit 0.22.2 installed (owner install grant), workbench lock 0 advisories. Earlier: 2026-10-30 T01–T04 accepted (B0 `5e29908`); 2026-10-29 P02 closed and merged. The previous handover, verbatim (includes all P00–P02 checkpoints and lessons): `evidence/P02/continuity/handover-at-P02-close.md` (sha256 `69bb8973…`).
 ## New developer orientation (added 2026-10-31)
 - Project: PWT YAML Security Workbench, a Rust terminal app that assesses CI/CD YAML repositories with pinned local scanners. Specs `01_PRD.md` … `05_Database_Data_Schema.md`; working rules `CLAUDE.md`; schedule `plan.md`; live state `status.md`; this file for resuming.
 - Way of working: the owner approves each phase, wave, debug cycle, install, network use, commit/push/merge. Nothing proceeds on its own; "Not approved" below is binding. Worker reports are not evidence — only the lead runner output under `evidence/` is.
@@ -11,10 +11,10 @@ Checkpoint: 2026-10-31, **P03 wave 1 (T05–T07) integrated as B1 `b1ca4cb`; deb
 ## Resume here
 1. `git status -sb` on `phase/P03-permissions-credentials`: expect up to date with origin and only `?? .commandcode/`.
 2. Read `status.md`, `plan.md` §5C, `planning/P03-T01-request.md` (§5.4 approvals, §5.6 FR-33, §7 as amended by D01) and `evidence/debug/P03-D01/record.md` (deferred items that bind T08).
-3. On the owner's go for wave 2: **first write** packets `planning/P03-packets/T08-W1.md` and `T09-W3.md` (they do not exist yet; checked 2026-10-31) from the template `_wave1-common.md` with base = the D01 commit `b9fdc0e` and floors 1005/41. T08 must carry: workflow-scope grants stored with `run_id = null`; user-facing destinations via `canonical()`; a static rule that only `approvals.rs` acts on `Permitted`; run-grant end-of-run handling; deferred capabilities rejected. Create new worktrees (none exist after the 2026-10-31 clean-up), e.g. `.claude/worktrees/p03-t08-w1` (slot w1) and `p03-t09-w3` (slot w3). No Cargo target dir exists; the first runner call rebuilds offline (≈10 min).
+3. B2 record `evidence/P03/B2/record.md` (owner items O-B2-1..3, limitations, what T11 still owes: static rule "only `approvals.rs` acts on `Permitted`", reviewers over B1+B2, hostile fixtures, seeded-key sweep). On the owner's go for wave 3: write `planning/P03-packets/T10-W2.md` (base = the B2 commit, floors 1053/41; T10 owns `cli/src/{args,commands,output,features}.rs`, `application/src/dev_permission.rs`, `cli/tests/p03_*.rs`; it must show destinations via `canonical()` and add the CLI exit-5 FR-33 scenario). Wave-2 worktrees `.claude/worktrees/p03-t08-w1`, `p03-t09-w3` still exist (remove after acceptance). Coordination pattern that worked: append-only log `.claude/worktrees/_wave2-coord.md` (rules in `_wave2-common.md`).
 
 ## Verified state
-- **P03 runner:** `python3 -I -B dev/p03_check.py all --slot lead --out <new dir>` → latest PASS at D01 1005/0/0, 41 compile_fail, cli 48 (`evidence/debug/P03-D01/check-lead`; B0 was 866/39, static self-test 167). Use `--final` only at T11 (T08–T10 stubs fail it by design). No Cargo target dir exists after the 2026-10-31 clean-up; the first run rebuilds offline (slower, no network).
+- **P03 runner:** `python3 -I -B dev/p03_check.py all --slot lead --out <new dir>` → latest PASS at B2 1053/0/0, 41 compile_fail, cli 48 (`evidence/P03/B2/check-lead`; D01 was 1005/41, B0 was 866/39, static self-test 167). Use `--final` only at T11 (T08–T10 stubs fail it by design). Lead target dir `p03-lead-47835b267e4c` exists again (rebuilt for B2); worker slots w1/w3 too.
 - `main` check (P02 runner): `python3 -I -B dev/p02_check.py all --slot lead --final --out <new dir>` → PASS 866/0/0, 39 compile_fail, cli 48, static 28/28 (`evidence/P02/merge/check-main`). The lead Cargo target dir was deleted on 2026-10-29, so the next run rebuilds offline (slower first run; no network).
 - Cargo only through the runner (pinned 1.97.1, `env -i`, isolated `CARGO_HOME`, `unshare -rn`, `--frozen`). Worker trees: add `--repo <worktree> --slot w<N>`.
 - Differential B: `python3 -I -B dev/p02_differential.py --out <new dir>` (host jsonschema 4.26.0).
@@ -36,4 +36,4 @@ Checkpoint: 2026-10-31, **P03 wave 1 (T05–T07) integrated as B1 `b1ca4cb`; deb
 - `--no-fail-fast` for test steps; negative-control scripts must restore files with a fresh mtime.
 
 ## Not approved
-P03 wave 2 and later tasks (T08–T12); network; new dependencies. Installs beyond cargo-audit need a concrete request. Open items are listed in `status.md`.
+P03 wave 3 and later tasks (T10–T12); network; new dependencies. Installs beyond cargo-audit need a concrete request. Open items are listed in `status.md`.

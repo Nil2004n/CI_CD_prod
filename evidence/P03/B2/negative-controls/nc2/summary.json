@@ -1,0 +1,88 @@
+{
+  "tool": "dev/p03_check.py",
+  "repo": "/home/kali/Desktop/CI_CD_prod",
+  "target_dir": "/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c",
+  "mode": "test",
+  "slot": "lead",
+  "package": "persistence",
+  "final": false,
+  "repo_head": "1537e36793ae1e351ad4be8d1f4c86c15124a026",
+  "dirty": [
+    " M status.md",
+    " M workbench/crates/application/src/approvals.rs",
+    " M workbench/crates/persistence/src/fs.rs",
+    " M workbench/crates/persistence/src/paths.rs",
+    " M workbench/crates/persistence/src/semantic/rules.rs",
+    "?? .commandcode/",
+    "?? evidence/P03/B2/",
+    "?? workbench/crates/application/tests/p03_approvals.rs",
+    "?? workbench/crates/application/tests/p03_fr33.rs",
+    "?? workbench/crates/persistence/tests/p03_fr33.rs"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.97.1 (c980f4866 2026-06-30)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.97 (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "errno 101",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "test",
+      "command": "cargo test -p persistence --frozen --no-fail-fast",
+      "exit": 101,
+      "log": "test.log",
+      "seconds": 11.03,
+      "protected_files_unchanged": true,
+      "ok": false,
+      "counts": {
+        "suites": 11,
+        "passed": 182,
+        "failed": 2,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "compile_fail_ok": 0
+      },
+      "floors": {
+        "min_passed": 0,
+        "min_compile_fail": 0
+      }
+    }
+  ],
+  "ok": false
+}
