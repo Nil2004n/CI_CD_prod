@@ -3,7 +3,7 @@
 Date: 2026-11-01.
 - **Phase branch:** `phase/P03-permissions-credentials`, created from `main` `01a3cbd`. Code baseline **D02 `091224b`**; this report and the freeze are added on top (docs/evidence only).
 - **Prepared by:** Opus (lead), under the owner's T12 approval ("I approve T12, write the P03 report"). No Haiku documentation agent is installed.
-- **Status:** **complete, awaiting owner acceptance.** Not merged to `main`.
+- **Status:** **accepted by the owner on 2026-11-01** ("I accept P03, merge to main and push, I apporve clean up"), with the limitations and open questions in §8. Merged to `main` with `--no-ff` after this record.
 
 This report states what was done and what was verified. It is not a claim that the code is secure or production-ready.
 
