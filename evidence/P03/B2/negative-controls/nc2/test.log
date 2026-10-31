@@ -1,0 +1,274 @@
+   Compiling persistence v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/persistence)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.13s
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/persistence-0a5ae2f4feadc15e)
+
+running 7 tests
+test schema::tests::local_reference_scan_accepts_fragments_and_rejects_everything_else ... ok
+test schema::tests::safe_pointer_keeps_indices_and_declared_names_and_masks_the_rest ... ok
+test semantic::rules::tests::a_check_function_exists_exactly_for_implemented_and_partial_rules ... ok
+test schema::tests::the_refusing_retriever_counts_and_fails ... ok
+test schema::tests::sha256_hex_matches_the_known_empty_input_digest ... ok
+test schema::tests::the_embedded_copy_has_the_pinned_hash ... ok
+test schema::tests::the_compiler_reaches_the_retriever_for_an_external_reference ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/fs_atomic.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/fs_atomic-7f7790c7cc6814f6)
+
+running 52 tests
+test acquire_accepts_existing_private_rag_and_backup_dirs ... ok
+test acquire_rejects_a_hard_linked_lock_file ... ok
+test acquire_rejects_a_non_private_backup_dir_and_does_not_leak_the_lock ... ok
+test acquire_rejects_a_non_private_rag_dir_and_does_not_leak_the_lock ... ok
+test acquire_rejects_a_regular_file_in_place_of_backup ... ok
+test acquire_rejects_a_symlinked_backup_dir_and_does_not_leak_the_lock ... ok
+test data_dir_accepts_a_real_directory_in_canonical_form ... ok
+test data_dir_new_requires_no_group_or_other_bits ... ok
+test data_dir_rejects_relative_missing_file_and_symlinked_paths ... ok
+test acquire_rejects_a_uid_mismatch_on_the_data_dir_or_on_rag ... ok
+test ensure_parent_rejects_a_file_or_symlink_in_place_of_the_directory ... ok
+test every_accepted_or_generated_path_stays_inside_the_data_dir ... ok
+test a_file_with_two_hard_links_is_still_readable ... ok
+test fault_on_a_later_call_does_not_fire_early ... ok
+test lock_file_is_created_with_mode_0600 ... ok
+test lock_file_that_is_a_symlink_is_rejected ... ok
+test lock_is_released_on_drop_and_reacquirable ... ok
+test lock_open_failure_names_the_lock_step ... ok
+test failing_to_remove_the_prev_temp_is_reported_before_the_main_replace ... ok
+test open_lock_file_refuses_a_symlink_on_its_own ... ok
+test owner_uid_equals_the_data_dir_uid ... ok
+test a_rewrite_after_a_failed_replace_leaves_no_stray_prev_temp ... ok
+test random_suffix_is_not_constant ... ok
+test read_of_a_fifo_fails_promptly_instead_of_blocking ... ok
+test read_refuses_a_symlink_and_returns_no_content ... ok
+test read_rejects_a_file_larger_than_max_bytes ... ok
+test nested_root_temp_is_created_next_to_the_target ... ok
+test created_files_are_0600_and_created_dirs_are_0700 ... ok
+test read_step_can_be_fault_injected ... ok
+test replace_create_dir_fault_creates_nothing ... ok
+test replace_fault_in_the_directory_sync_after_mkdir_leaves_no_temp ... ok
+test keep_previous_holds_the_previous_generation ... ok
+test replace_fault_in_sync_dir_on_first_write_leaves_the_new_file_only ... ok
+test replace_refuses_a_symlink_target_and_leaves_it_alone ... ok
+test second_acquire_on_same_dir_is_locked ... ok
+test stale_unlocked_lock_file_is_reusable_and_content_is_ignored ... ok
+test store_path_report_rejects_hostile_names ... ok
+test store_path_root_maps_every_kind_to_its_file_name ... ok
+test symlink_metadata_reports_uid_and_nlink ... ok
+test passthrough_fault_fs_behaves_like_real_fs ... ok
+test temp_name_recogniser_is_exact ... ok
+test sync_dir_refuses_a_symlink_and_a_regular_file ... ok
+test write_all_through_a_symlink_fails_and_leaves_the_target_alone ... ok
+test replace_fault_on_first_write_leaves_no_file_and_no_temp ... ok
+test write_new_does_not_overwrite_a_pre_existing_foreign_file ... ok
+test replace_shorter_content_does_not_leave_old_tail ... ok
+test temp_names_follow_the_documented_pattern_and_are_random ... ok
+test write_new_never_overwrites ... ok
+test write_new_uses_a_same_directory_temp_then_links_it ... ok
+test write_new_fault_does_not_disturb_an_existing_report ... ok
+test write_new_faults_leave_no_partial_report_and_no_temp ... ok
+test replace_fault_at_every_step_keeps_previous_file_and_names_the_step ... ok
+
+test result: ok. 52 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+
+     Running tests/p03_fr33.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_fr33-31006f80d7817e3f)
+
+running 11 tests
+test parse_status_euid_returns_the_second_field_and_not_its_neighbours ... ok
+test an_unreadable_effective_uid_fails_closed_with_path_rejected ... ok
+test parse_status_euid_table ... ok
+test non_root_keeps_the_p02_behaviour ... ok
+test existing_rejections_take_precedence_over_fr33 ... ok
+test root_against_a_root_owned_directory_is_accepted ... ok
+test root_fails_closed_when_the_canonical_directory_cannot_be_inspected ... ok
+test process_effective_uid_agrees_with_the_owner_of_a_file_just_created ... ok
+test root_against_a_foreign_owned_directory_is_refused ... FAILED
+test the_owner_checked_is_that_of_the_canonical_directory ... FAILED
+test the_real_file_system_accepts_a_directory_the_process_created ... ok
+
+failures:
+
+---- root_against_a_foreign_owned_directory_is_refused stdout ----
+
+thread 'root_against_a_foreign_owned_directory_is_refused' (79859) panicked at crates/persistence/tests/p03_fr33.rs:359:42:
+called `Result::unwrap_err()` on an `Ok` value: DataDir("/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/tmp/p03_fr33-root-foreign-79852-4")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- the_owner_checked_is_that_of_the_canonical_directory stdout ----
+
+thread 'the_owner_checked_is_that_of_the_canonical_directory' (79862) panicked at crates/persistence/tests/p03_fr33.rs:477:35:
+called `Result::unwrap_err()` on an `Ok` value: DataDir("/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/tmp/p03_fr33-canonical-owner-79852-7/parent/data")
+
+
+failures:
+    root_against_a_foreign_owned_directory_is_refused
+    the_owner_checked_is_that_of_the_canonical_directory
+
+test result: FAILED. 9 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p persistence --test p03_fr33`
+     Running tests/read.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/read-beaf6554bee50e56)
+
+running 13 tests
+test json_syntax_error_is_fixed_text_without_the_input ... ok
+test non_object_documents_are_rejected ... ok
+test problems_are_capped_and_truncation_carries_over ... ok
+test store_type_is_checked_before_schema_version ... ok
+test store_type_faults_are_classified_without_echo ... ok
+test typed_decode_failure_after_a_valid_verdict_is_a_fixed_typed_problem ... ok
+test valid_document_decodes_to_its_kind_after_one_validator_call ... ok
+test validator_verdicts_are_propagated ... ok
+test typed_decode_maps_every_kind_to_its_variant ... ok
+test version_classes_follow_request_6_1 ... ok
+test oversized_input_is_too_large_before_parsing ... ok
+test problem_pointer_is_sanitised_and_bounded_without_splitting_escapes ... ok
+test input_at_the_bound_is_not_too_large ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.32s
+
+     Running tests/recovery.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/recovery-f2963dbbc0b909f6)
+
+running 10 tests
+test a_malformed_log_blocks_the_log_and_skips_the_checks_that_need_it ... ok
+test missing_and_unreferenced_reports_are_reported_and_never_changed ... ok
+test a_log_with_only_terminal_runs_is_not_rewritten ... ok
+test only_the_applications_exact_temp_pattern_is_removed ... ok
+test each_in_flight_state_becomes_interrupted_and_terminal_runs_are_untouched ... ok
+test open_fails_when_the_interrupted_log_does_not_validate_and_changes_nothing ... ok
+test pending_approvals_are_counted_and_left_pending ... ok
+test open_fails_closed_when_the_schema_is_unavailable ... ok
+test malformed_and_foreign_roots_are_reported_blocked_and_never_rewritten ... ok
+test a_storage_error_while_interrupting_runs_fails_open_and_a_retry_completes ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/report_name.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/report_name-96deed706a8d7107)
+
+running 8 tests
+test slug_input_is_bounded_and_ascii_so_the_stem_cannot_grow_or_change_shape ... ok
+test the_stamp_is_fixed_width_across_the_supported_range ... ok
+test same_second_same_repo_differ_by_run_id_and_an_exact_repeat_is_equal ... ok
+test the_longest_stem_fits_every_name_the_store_derives_from_it ... ok
+test the_stem_has_the_documented_shape ... ok
+test every_stem_is_a_valid_report_file_name_without_a_leading_dot ... ok
+test the_stamp_is_utc_whole_seconds_truncated_not_rounded ... ok
+test the_stamp_round_trips_through_the_calendar_for_many_instants ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/schema.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/schema-17aac6429e0d7228)
+
+running 29 tests
+test a_pin_mismatch_makes_every_verdict_schema_unavailable ... ok
+test concurrent_first_use_agrees ... ok
+test a_per_root_validator_is_stricter_than_the_one_of_root ... ok
+test an_absent_required_nullable_key_fails_at_the_schema_layer ... ok
+test every_keyword_the_schema_uses_is_enforced_with_its_location ... ok
+test every_valid_fixture_passes_the_semantic_rules_too ... ok
+test differential_a_agrees_on_every_fixture_file ... ok
+test format_negatives_fail_at_the_schema_layer ... ok
+test every_fixture_has_the_verdict_the_manifest_expects ... ok
+test j12_schema_versions_are_classified_for_every_root ... ok
+test j13_store_type_mismatch_for_every_ordered_pair ... ok
+test layers_report_in_order_and_do_not_mix ... ok
+test malformed_json_text_is_not_echoed ... ok
+test map_keys_and_unknown_keys_are_masked_in_pointers ... ok
+test external_references_never_validate_and_never_reach_the_retriever ... ok
+test j11_every_valid_example_passes_schema_and_typed_decode ... ok
+test more_than_one_hundred_problems_are_capped_and_flagged ... ok
+test a_schema_that_does_not_compile_is_unavailable ... ok
+test several_faults_are_reported_together_with_their_locations ... ok
+test the_manifest_lists_every_fixture_file_and_nothing_else ... ok
+test the_pin_is_the_hash_of_the_canonical_schema_file ... ok
+test the_boundary_values_are_accepted ... ok
+test uppercase_uuid_and_non_z_offset_pass_format_and_fail_at_the_typed_layer ... ok
+test values_the_schema_admits_and_a_semantic_cap_rejects ... ok
+test the_production_validator_never_calls_the_retriever ... ok
+test schema_minimums_are_enforced_by_the_schema_layer ... ok
+test with_schema_over_the_pinned_text_validates_like_the_embedded_schema ... ok
+test planted_markers_are_never_echoed ... ok
+test differential_a_per_root_verdict_equals_the_full_one_of_root ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.08s
+
+     Running tests/semantic.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/semantic-3ac271bb8c61a6d3)
+
+running 14 tests
+test a_chunk_digest_covers_the_sanitised_text_bytes ... ok
+test a_problem_pointer_is_built_from_names_and_indices_only ... ok
+test every_checked_rule_has_a_positive_and_a_negative_case_and_no_case_names_an_unknown_rule ... ok
+test a_marker_in_free_text_never_reaches_the_problems ... ok
+test check_is_deterministic_and_does_not_change_the_document ... ok
+test every_unchecked_or_partial_rule_names_where_the_rest_is_enforced ... ok
+test registry_lists_every_rule_id_once_in_order_and_nothing_else ... ok
+test registry_status_counts_are_as_reviewed ... ok
+test every_root_kind_has_a_rich_and_a_minimal_document ... ok
+test rules_without_a_check_report_nothing_on_any_document ... ok
+test the_data_schema_examples_report_nothing ... ok
+test rich_and_minimal_documents_of_every_root_kind_report_nothing ... ok
+test many_problems_are_capped_and_flagged_as_truncated ... ok
+test every_case_reports_exactly_what_it_states ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/store_integration.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/store_integration-2ca73711ab0d9d30)
+
+running 5 tests
+test init_with_the_real_validator_creates_roots_it_accepts ... ok
+test reconciliation_output_is_accepted_by_the_real_validator ... ok
+test restore_previous_with_the_real_validator ... ok
+test write_report_output_is_accepted_by_the_real_validator ... ok
+test every_writable_fixture_round_trips_through_replace_and_read ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+
+     Running tests/writer.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/writer-95eb37f7f7ba2c43)
+
+running 34 tests
+test a_second_open_or_init_on_the_same_directory_is_locked ... ok
+test an_existing_report_file_is_never_overwritten ... ok
+test init_completes_a_partial_store ... ok
+test a_malformed_root_is_quarantined_and_restored_only_by_restore_previous ... ok
+test init_with_an_invalid_default_or_unavailable_schema_creates_nothing ... ok
+test a_distinct_second_gives_a_distinct_name_for_the_same_run ... ok
+test init_creates_exactly_the_five_roots_with_private_modes ... ok
+test init_does_not_overwrite_or_rotate_a_malformed_root ... ok
+test init_is_idempotent_and_leaves_existing_roots_unchanged ... ok
+test invalid_or_unavailable_schema_writes_nothing ... ok
+test read_goes_through_decode_and_surfaces_validation_problems ... ok
+test non_storage_errors_do_not_halt ... ok
+test read_of_a_symlink_root_is_malformed_and_not_followed ... ok
+test read_reports_missing_roots_and_rejects_reports ... ok
+test replace_into_a_loose_existing_rag_directory_is_refused ... ok
+test replace_keeps_the_previous_generation_and_private_modes ... ok
+test replace_creates_optional_roots_with_private_directories ... ok
+test reports_in_the_same_second_get_distinct_names_and_exact_repeats_collide ... ok
+test restore_previous_does_not_follow_a_symlinked_current_file ... ok
+test restore_previous_never_overwrites_a_quarantine_entry ... ok
+test restore_previous_of_a_valid_root_quarantines_it_too ... ok
+test restore_previous_refuses_a_group_readable_or_symlinked_quarantine_directory ... ok
+test restore_previous_without_a_current_file_just_restores ... ok
+test restore_previous_with_an_invalid_or_missing_previous_changes_nothing ... ok
+test suppressions_and_reports_are_never_writable ... ok
+test the_longest_slug_gives_a_name_within_the_bound ... ok
+test the_validator_sees_the_serialised_document_of_the_right_kind ... ok
+test write_report_refuses_a_blocked_log ... ok
+test write_report_without_an_initialised_log_writes_nothing ... ok
+test write_report_validates_the_report_and_the_new_log_before_writing_anything ... ok
+test write_report_writes_the_json_file_and_appends_the_manifest ... ok
+test replace_halts_on_a_storage_error_at_every_step ... ok
+test restore_previous_halts_on_a_storage_error_and_can_be_completed_after_reopening ... ok
+test write_report_halts_on_a_storage_error_at_every_step ... ok
+
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.40s
+
+   Doc-tests persistence
+
+running 1 test
+test crates/persistence/src/report_name.rs - report_name::report_stem (line 76) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.41s; merged doctests compilation took 0.39s
+error: 1 target failed:
+    `-p persistence --test p03_fr33`

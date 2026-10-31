@@ -114,6 +114,75 @@ pub trait FsOps: Send + Sync + std::fmt::Debug {
     /// Opens (creating it with `mode` if absent, never truncating) the lock file. (Protocol step
     /// [`WriteStep::Lock`].)
     fn open_lock_file(&self, path: &Path, mode: u32) -> io::Result<LockHandle>;
+    /// The effective uid of this process (FR-33, `planning/P03-T01-request.md` §5.6), read from the
+    /// `Uid:` line of `/proc/self/status` because `geteuid` needs `unsafe`. Provided so that test doubles
+    /// inherit the real value; FR-33 tests override it.
+    fn effective_uid(&self) -> io::Result<u32> {
+        process_effective_uid()
+    }
+}
+
+/// Upper bound on the bytes read from `/proc/self/status`. A real status file is about 1.5 KiB; 64 KiB leaves
+/// ample room while keeping a misbehaving `/proc` from consuming unbounded memory.
+const PROC_STATUS_MAX_BYTES: u64 = 64 * 1024;
+
+/// Reads the effective uid from `/proc/self/status` (bounded read; any failure or an unparsable line is an
+/// error, so callers fail closed).
+///
+/// This is the only reader of `/proc` in the store. `/proc` files report a length of 0, so the bound is
+/// enforced on the bytes actually read: one byte more than [`PROC_STATUS_MAX_BYTES`] is an error, not a
+/// silent truncation.
+pub fn process_effective_uid() -> io::Result<u32> {
+    let mut buf = Vec::new();
+    std::fs::File::open("/proc/self/status")?
+        .take(PROC_STATUS_MAX_BYTES.saturating_add(1))
+        .read_to_end(&mut buf)?;
+    if u64::try_from(buf.len()).is_ok_and(|n| n > PROC_STATUS_MAX_BYTES) {
+        return Err(io::ErrorKind::FileTooLarge.into());
+    }
+    parse_status_euid(&buf).ok_or_else(|| io::ErrorKind::InvalidData.into())
+}
+
+/// Parses the effective uid (second field of the `Uid:` line) from the bytes of `/proc/<pid>/status`.
+/// `None` if the line is missing, repeated or malformed.
+///
+/// Exactly one line must start with `Uid:` (a `Uid:` later in a line is not a match), followed by a tab or
+/// space. Its fields are separated by tabs or spaces; there must be at least two (real ones have four:
+/// real, effective, saved, file-system). Every field must be a plain decimal `u32` (ASCII digits only: no
+/// sign, no overflow), so a malformed line is never partly trusted. The input is handled as bytes, so
+/// non-UTF-8 content on other lines does not matter.
+pub fn parse_status_euid(status: &[u8]) -> Option<u32> {
+    const PREFIX: &[u8] = b"Uid:";
+    let mut lines = status
+        .split(|b| *b == b'\n')
+        .filter(|l| l.starts_with(PREFIX));
+    let line = lines.next()?;
+    if lines.next().is_some() {
+        return None;
+    }
+    let rest = &line[PREFIX.len()..];
+    if !matches!(rest.first(), Some(b'\t' | b' ')) {
+        return None;
+    }
+    let mut fields = Vec::new();
+    for field in rest
+        .split(|b| matches!(b, b'\t' | b' '))
+        .filter(|f| !f.is_empty())
+    {
+        fields.push(parse_decimal_u32(field)?);
+    }
+    if fields.len() < 2 {
+        return None;
+    }
+    fields.get(1).copied()
+}
+
+/// A plain decimal `u32`: one or more ASCII digits, no sign, no overflow.
+fn parse_decimal_u32(field: &[u8]) -> Option<u32> {
+    if field.is_empty() || !field.iter().all(u8::is_ascii_digit) {
+        return None;
+    }
+    std::str::from_utf8(field).ok()?.parse().ok()
 }
 
 /// The real file system. The only production code that touches `std::fs`.

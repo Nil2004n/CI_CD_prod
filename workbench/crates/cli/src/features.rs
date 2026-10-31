@@ -1,10 +1,11 @@
 //! The feature index (plan §4.1, D-17): which requirement each CLI command exercises, which scenario test
 //! pins it, and whether it is real, mock, `dev` or manual-pending.
 //!
-//! Every row names a command listed in [`crate::commands::COMMANDS`] and a test function in
-//! `crates/cli/tests/p02_*.rs`; `p02_scenarios::feature_index_rows_name_an_existing_command_and_test`
-//! fails when either goes stale. A feature that cannot be exercised headless is listed with mode
-//! [`FeatureMode::ManualPending`] and a reason, never omitted (none exists in P02).
+//! Every row names a command listed in [`crate::commands::COMMANDS`] or [`crate::commands::P03_COMMANDS`]
+//! and a test function in `crates/cli/tests/p02_*.rs` or `p03_*.rs`;
+//! `p02_scenarios::feature_index_rows_name_an_existing_command_and_test` fails when either goes stale (and
+//! when a command has no row). A feature that cannot be exercised headless is listed with mode
+//! [`FeatureMode::ManualPending`] and a reason, never omitted (none exists in P02 or P03).
 
 use std::io::Write;
 
@@ -44,7 +45,7 @@ impl FeatureMode {
 pub struct FeatureRow {
     /// Requirement identifiers (PRD, Tech, FR, D-17) the row covers.
     pub requirement: &'static str,
-    /// The command, as named in [`crate::commands::COMMANDS`].
+    /// The command, as named in [`crate::commands::COMMANDS`] or [`crate::commands::P03_COMMANDS`].
     pub command: &'static str,
     /// The name of the scenario test function that exercises it.
     pub scenario: &'static str,
@@ -54,8 +55,8 @@ pub struct FeatureRow {
     pub reason: Option<&'static str>,
 }
 
-/// The feature index as of P02.
-pub const FEATURES: [FeatureRow; 27] = [
+/// The feature index as of P03.
+pub const FEATURES: [FeatureRow; 64] = [
     FeatureRow {
         requirement: "D-17; Architecture A-11 (contract versions)",
         command: "--version",
@@ -242,6 +243,265 @@ pub const FEATURES: [FeatureRow; 27] = [
         requirement: "Request 6.3; Request 5.9 (class to exit code)",
         command: "store validate",
         scenario: "application_storage_failures_map_to_exit_4",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Architecture 10; D01 L1 (destinations shown in canonical form)",
+        command: "approvals list",
+        scenario: "approvals_list_shows_canonical_destinations_and_labels_the_ssh_store_form",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Architecture 10 (read-only listing)",
+        command: "approvals list",
+        scenario: "approvals_list_on_an_empty_store_prints_nothing",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.7 and 5.9 (store failures keep their exit codes)",
+        command: "approvals list",
+        scenario: "approval_commands_report_store_failures_with_the_store_exit_codes",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.9 (usage errors, exit 2)",
+        command: "approvals list",
+        scenario: "approval_and_dev_usage_errors_exit_2",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 (decision table: approve once); Data 11 rule 13",
+        command: "approvals approve",
+        scenario: "permission_check_once_grant_goes_6_approve_0_then_6_again",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 (approve workflow scope); Data 11 rule 14",
+        command: "approvals approve",
+        scenario: "workflow_scope_grant_holds_until_the_workflow_revision_changes",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 (workflow scope unavailable, exit 5)",
+        command: "approvals approve",
+        scenario: "workflow_scope_is_unavailable_without_a_saved_workflow_at_the_revision",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.7 (unknown approval, exit 5)",
+        command: "approvals approve",
+        scenario: "unknown_approval_ids_exit_5",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 (deny; a denied request stays refused)",
+        command: "approvals deny",
+        scenario: "deny_blocks_the_identical_request_and_a_decided_approval_cannot_be_decided_again",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.7 (unknown approval, exit 5)",
+        command: "approvals deny",
+        scenario: "unknown_approval_ids_exit_5",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 (revoke only an approved grant); Data 11 rule 13",
+        command: "approvals revoke",
+        scenario: "revoke_ends_a_grant_and_only_an_approved_grant_can_be_revoked",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.7 (unknown approval, exit 5)",
+        command: "approvals revoke",
+        scenario: "unknown_approval_ids_exit_5",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "FR-33: exit-5 mapping only; no CLI seam for a root/foreign-dir process test (gap recorded by the lead; FR-33 covered in persistence/tests/p03_fr33.rs)",
+        command: "approvals list",
+        scenario: "fr33_refusal_maps_to_exit_5_with_the_fixed_message",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "KEY-01; Request 5.6 (session-only key; status absent in a new process)",
+        command: "credential set",
+        scenario: "credential_lifecycle_in_one_session_and_absent_in_a_fresh_one",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "KEY-01; Request 5.6 (C5: no terminal input)",
+        command: "credential set",
+        scenario: "credential_set_refuses_a_terminal_and_reads_nothing",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "KEY-01; Request 5.6 (key format 16 to 4096 printable ASCII)",
+        command: "credential set",
+        scenario: "malformed_keys_are_refused_with_exit_5_and_never_echoed",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "KEY-01 (the key is held for one process only)",
+        command: "credential set",
+        scenario: "binary_key_is_held_for_one_process_only",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "KEY-01 (no key in any output or file)",
+        command: "credential set",
+        scenario: "seeded_key_appears_in_no_output_or_file",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "KEY-01; Request 5.6 (status never shows key material)",
+        command: "credential status",
+        scenario: "credential_json_shapes",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "KEY-01 (status absent in a fresh session)",
+        command: "credential status",
+        scenario: "binary_key_is_held_for_one_process_only",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "KEY-01 (delete removes the key)",
+        command: "credential delete",
+        scenario: "credential_lifecycle_in_one_session_and_absent_in_a_fresh_one",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.9 (usage errors, exit 2)",
+        command: "credential set",
+        scenario: "credential_usage_errors_exit_2",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Tech 5 and 18 (child environment); Request 7 (profile variable sets)",
+        command: "dev env-preview",
+        scenario: "env_preview_shows_names_and_origins_never_values",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 7 (TZ holding the session key is dropped)",
+        command: "dev env-preview",
+        scenario: "env_preview_drops_inherited_tz_holding_the_key",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 7 (deny rules fail closed)",
+        command: "dev env-preview",
+        scenario: "env_preview_fails_closed_on_bad_directories",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "T01-D5 (host environment read once, in main)",
+        command: "dev env-preview",
+        scenario: "binary_env_preview_uses_the_process_environment",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "T01-D6; Request 5.4 (asks again after a once grant)",
+        command: "dev permission-check",
+        scenario: "permission_check_once_grant_goes_6_approve_0_then_6_again",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 6 (refusals R1 to R7); Data 11 rule 16",
+        command: "dev permission-check",
+        scenario: "refused_requests_exit_5_with_the_reason",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "T01-D6 (request document bounds and validation)",
+        command: "dev permission-check",
+        scenario: "invalid_request_documents_exit_5_and_record_nothing",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.7 (exit codes 6, 0, 5 of the process)",
+        command: "dev permission-check",
+        scenario: "binary_permission_check_exit_codes",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Architecture 10; FR-31 (stored text shown on one visible line, P03-D02 A1)",
+        command: "approvals list",
+        scenario: "planted_control_characters_render_on_one_visible_line",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Architecture 10; Request 5.4 (inference scope shown, P03-D02 A3)",
+        command: "approvals list",
+        scenario: "approvals_list_shows_the_inference_scope",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.7 (JSON records of approve, deny, revoke)",
+        command: "approvals approve",
+        scenario: "approval_decision_json_records_have_an_exact_shape",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "T01-D6 (resource constraints are plain one-line text, bounded 16 x 512 bytes; P03-D02 A1)",
+        command: "dev permission-check",
+        scenario: "permission_check_rejects_constraints_that_are_not_plain_one_line_text",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 (a run grant holds for its run only, not consumed)",
+        command: "dev permission-check",
+        scenario: "run_lifetime_grant_holds_for_its_run_only",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 and 6 (a model-transmission grant is tied to its inference scope)",
+        command: "dev permission-check",
+        scenario: "model_transmission_grant_is_tied_to_its_inference_scope",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.9 (lost output never reports success; P03-D02 A6)",
+        command: "dev permission-check",
+        scenario: "a_closed_stdout_keeps_permission_check_in_the_safe_direction",
         mode: FeatureMode::Dev,
         reason: None,
     },

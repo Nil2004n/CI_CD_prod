@@ -3,12 +3,15 @@
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
 Version: 0.3.5 (amendments CA-01, CA-02, CA-03, CA-04; store contract 1.4, wrapper protocol 1.1, app contract 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed UI design
+
+Change record 2026-10-31 (proposed, not implemented): **CA-05 automatic LLM evidence analysis** (PRD ANL-01–ANL-12; change contract `planning/CA-05-automatic-evidence-analysis.md`). Sections marked "CA-05" describe proposed behaviour pending owner approval; current contract versions above are unchanged until CA-05 is applied.
 Foundation: dashboard-first terminal with mouse-responsive panels and expandable chat. UI team supplies Figma designs; developer implements the demo/final terminal UI. Exact visual design remains subject to review.
 
 ## 1. Experience principles
 
 - Operational dashboard first; conversational explanation second.
 - All routine scanning tasks available without a model.
+- (CA-05) Automatic AI evidence analysis has its own visible stage and status; it never needs the chat panel, and its failure is shown, not hidden behind a success badge.
 - Mouse and keyboard parity; visible focus and no colour-only meaning.
 - Display scope, provenance, approval and coverage honestly.
 - Remediation stays text-only; no Apply Fix button or hidden action execution.
@@ -31,10 +34,10 @@ ApplicationShell
 │   │   ├── FileList
 │   │   └── SelectionSummary
 │   ├── WorkspacePane
-│   │   ├── ScanView: Progress | Findings | Coverage | Activity
+│   │   ├── ScanView: Progress | Findings | Coverage | Analysis [CA-05 proposed] | Activity
 │   │   ├── WorkflowView: List | Editor | ApprovalScope
 │   │   ├── HistoryView: Runs | ReportDetails | Compare [deferred]
-│   │   └── DetailPane: Finding | Check | File | Report
+│   │   └── DetailPane: Finding | Check | File | Report | AnalysisItem [CA-05 proposed]
 │   └── ChatPane [collapsible / expandable]
 │       ├── ContextChips
 │       ├── Conversation
@@ -83,6 +86,8 @@ Proposed initial breakpoints; validate with terminal/font testing:
 | 80–99 columns or 24–29 rows | Single main pane with Selection / Results / Chat tabs |
 | Below 80 columns or 24 rows | Compact navigation and minimum-size warning; active scans continue |
 
+Wireframe note (CA-05, proposed): the status bar gains an analysis field (e.g. `analysis: awaiting approval`), and the Findings/Coverage/Log tab row gains an `Analysis` tab; the drawing above predates CA-05 and is not redrawn until the UI schema 1.2 change is approved.
+
 Dimensions use character cells, not pixels. Minima override ratios. If a splitter would make content unusable, clamp it or collapse the pane. Preserve focus, selected IDs and scroll anchors across resize; clipping must not change the actual selected file scope.
 
 Draggable splits are deferred for the pilot; always offer keyboard/configuration alternatives. Hover/mouse tracking depends on terminal capability; lack of hover must not disable clicks or keyboard actions.
@@ -114,7 +119,7 @@ ui:
     - id: workspace
       kind: tabbed_workspace
       views: [scan, workflows, history]
-      scan_tabs: [progress, findings, coverage, activity]
+      scan_tabs: [progress, findings, coverage, activity]   # CA-05 proposes adding analysis (ui_schema_version 1.2; not applied)
       detail_mode: split_or_fullscreen
     - id: chat
       kind: grounded_chat
@@ -125,7 +130,7 @@ ui:
       file_writes: forbidden
     - id: status
       kind: status_bar
-      fields: [run_status, selection_count, coverage, approval_count, shortcuts]
+      fields: [run_status, selection_count, coverage, approval_count, shortcuts]   # CA-05 proposes analysis_status and completion (1.2)
   modals:
     - id: permission
       blocking_for: requested_operation
@@ -177,6 +182,7 @@ AppViewModel
   selection: { repo_ids[], file_ids[], selector_modes, discovery_revision }
   active_run_id: UUID | null
   run_projection: { execution, assessment, coverage, progress, pending_approvals }
+  analysis_projection (CA-05, proposed): { per_repo: [{ report_id, authoritative: { analysis_id, version, attempt, freshness, ai_evidence_coverage } | null, latest: { analysis_id, version, attempt, status, reason }, legacy_narrative: bool }], completion: { state, incomplete_stages } }
   finding_query: { severity[], category[], repo_ids[], text, sort }
   active_finding_id: UUID | null
   chat: { conversation_id, context, provider_status, stream_status }
@@ -205,6 +211,14 @@ Repository row fields: checkbox, display name, selected ref, update status, YAML
 ### Progress panel
 
 Show run/task phase, active repositories, queued/running/completed task counts, elapsed time, findings count and approval wait. Show indeterminate progress when total work is unknown. Never represent an unsupported check as 100% passed.
+
+Stage rows (CA-05, proposed): the panel shows four separate lines — **Scanner checks** (execution state and counts), **AI analysis** (per repository: pending, awaiting approval, running, validating, completed, blocked, failed, cancelled, interrupted, not performed — with reason), **Reports** (JSON/Markdown/PDF export states), **Chat** (available / no key / no model / disabled). The overall line reads `Assessment complete` only when scanner, analysis and report stages all succeeded; otherwise `Assessment incomplete — <stage>: <reason>`. Four labels are always shown separately and never merged into one badge: **workflow completion** (that line), **scanner coverage** (complete/partial/none), **AI evidence coverage** (complete/partial/none — how much eligible evidence the validated analysis included) and **finding presence** (findings/no findings/unknown, with the scanner-coverage qualifier).
+
+### AI analysis panel (CA-05, proposed)
+
+Per repository report: the authoritative analysis (version, attempt, model requested/actual when returned, evidence sufficiency, AI evidence coverage with exclusion reasons, freshness current / stale with reasons, usage when reported) and, when different, the latest logical analysis and its attempts with status and reason (e.g. "re-analysis v2 failed: rate limited — showing v1, stale: model changed"; "attempt 1 interrupted — may have been billed"). Content is grouped and labelled by origin: **AI summary**, **AI interpretations**, **AI recommendations** (priority, reason, linked findings/checks, suggested remediation, verification steps marked "not executed"), **Limitations** and **Uncertainty** (open questions, ambiguous evidence, missing context). Independent AI-only findings are out of the pilot (owner, 2026-10-31): there is no section for them, and items rejected for that reason appear only as a rejection count. Every item shows its citations; selecting one opens the cited finding, check or source. Scanner findings are never listed inside this panel as if AI-generated, and AI items never appear in the Findings table. Actions: retry analysis (new attempt of an uncompleted analysis) or re-analyse (new version; for unchanged inputs only after confirming the possible charge) — both show the approval/cost boundary; cancel analysis; ask in chat about this analysis. No apply-fix or execute action.
+
+When scanners finished but analysis did not complete, the panel shows the reason and what still works (findings, coverage, JSON report) and what to do (configure model/key, review approval, retry later). No clean or success badge is shown.
 
 ### Findings table
 
@@ -238,6 +252,7 @@ Group by run and repository. Show timestamp, workflow revision, commit, executio
 - Permission denial or provider failure yields a local notice, not a failed scan.
 - Expanded mode reuses the conversation and context, preserving dashboard state.
 - Chat history persistence is deferred for the pilot; when added it is opt-in and only sanitised eligible content may be saved.
+- (CA-05) Chat is optional. It can explain the saved automatic analysis, open its citations, answer follow-up questions and discuss coverage gaps; content drawn from the saved analysis is labelled "AI analysis", distinct from scanner evidence. The analysis exists whether or not chat is ever opened.
 
 ## 9. Keyboard map proposal
 
@@ -260,6 +275,8 @@ Keys are remappable. Plain letters must remain ordinary text inside the chat/fil
 ## 10. Approval dialog
 
 Display concrete action, repository/ref, destinations, data categories, renderer/scanner identity, purpose and grant lifetime. Provide inspectable details and default focus on a non-destructive option. “Approve workflow scope” is available only for a saved workflow and visible revision.
+
+(CA-05, proposed) An automatic evidence analysis that needs a new `model_transmission` grant raises this same dialog once, stating that the redacted evidence snapshot for the named repository will be sent to OpenRouter and the downstream model, with its data categories and lifetime. Approving resumes the analysis without any further "analyse now" action; denying leaves scanner results intact and the analysis `blocked`.
 
 No automatic approval countdown. A chat response, repository text or earlier broad preference cannot approve a new action. Pending requests show in status bar even when chat is focused.
 
@@ -284,6 +301,12 @@ No automatic approval countdown. A chat response, repository text or earlier bro
 7. Malicious ANSI filename/model text: display safely without terminal side effects.
 8. Mouse unavailable: all core actions remain keyboard-accessible.
 9. Cancel/exit during scan: explain interruption, retain evidence and restore terminal on normal exit.
+10. (CA-05) Authorised workflow finishes with the chat panel collapsed: the AI analysis stage runs and completes without any chat interaction; the Analysis tab shows cited content.
+11. (CA-05) Scanners finish but analysis is blocked (no key / denied approval) or fails (outage, invalid output) or is interrupted: findings and coverage stay usable, the overall line reads "Assessment incomplete — AI analysis: <reason>", and no clean/success badge appears.
+12. (CA-05) An AI item cites a finding: selecting the citation opens the scanner finding; AI items are labelled by origin and never appear in the Findings table.
+13. (CA-05) Model or template changes after an analysis: the analysis shows a stale badge with reasons; re-analysis asks for approval if the scope changed and adds a new version without hiding the old one; if the new version fails, the older completed version stays shown as authoritative and stale.
+14. (CA-05) Each combination in the change contract §4 (e.g. workflow complete + scanner coverage partial + AI evidence coverage partial + findings; workflow incomplete + scanner coverage complete + AI evidence coverage none + no findings) shows four separate labels and no merged clean/secure badge.
+15. (CA-05) A store 1.4 report with a legacy `ai_enrichment` narrative, one without AI content and a 1.5 report with a validated analysis are shown as three different classes; the legacy narrative is labelled "not validated under CA-05".
 
 ## 13. Open UI decisions
 
@@ -331,7 +354,9 @@ Credential modal: masked key input, session-only/OS-store selection, validation,
 
 Chat states: no key, invalid key, credit limit, rate limit, privacy-compliant route unavailable, streaming, cancelled, incomplete response, provider outage, stale context, uncited/invalid citation. Scanning remains available. Context chips identify repo/commit/run/file/finding and data categories leaving the device; OpenRouter intermediary plus downstream model access is disclosed.
 
-Report view lists separate JSON/Markdown/PDF generation, paths, time, failure and retry/regenerate states. PDF is local; do not claim success before artifact verification. AI narrative unavailable/denied/failed is separate from scanner status. Historical report content is not overwritten by a new narration.
+Report view lists separate JSON/Markdown/PDF generation, paths, time, failure and retry/regenerate states. PDF is local; do not claim success before artifact verification. (CA-05, proposed) The combined report has distinct sections: scanner evidence, AI analysis (labelled by origin, with analysis ID/version), and limitations and incomplete stages. An analysis that is blocked, failed, interrupted or awaiting approval is shown as such in the report and the report view; it is separate from scanner status and never rendered as success. A new analysis version produces a new export revision; historical report content is not overwritten. Historical records are shown in three classes: a validated CA-05 analysis; a legacy store 1.4 `ai_enrichment` narrative, labelled "Historical AI narrative (before CA-05; not validated under CA-05)" and never counted as an analysis; and absent AI content, shown as "AI analysis not available for this record". Nothing is upgraded, certified or deleted.
+
+Analysis states (CA-05) reuse the chat failure vocabulary where it applies (no key, invalid key, credit limit, rate limit, no compliant route, provider outage, timeout, truncated or invalid output, unsupported citations) plus awaiting approval, approval denied, cost/attempt limit reached, insufficient evidence, cancelled and interrupted. Disclosure for automatic analysis is shown in the approval dialog and the analysis panel: OpenRouter plus downstream model, data categories, not on-device.
 
 ## 16. Figma handoff checklist — self-contained design brief
 
@@ -342,7 +367,7 @@ The UI team designs; the core developer implements terminal components. Deliver:
 3. Component library: panels/focus, tabs, action buttons, tristate checkboxes, lists/tables, inputs, status/severity badges, progress, evidence links and modals.
 4. Semantic tokens, ASCII/Unicode alternatives, dark/light/high-contrast considerations; avoid dependence on browser gradients/proportional fonts or hover-only operations.
 5. Interaction notes for click, scroll, keyboard navigation, filtering, select-visible versus select-all, resizing, chat expansion and source navigation.
-6. States: empty/loading/running, complete with/without findings, incomplete/failed/unsupported, approval pending/denied, cancelled/interrupted.
+6. States: empty/loading/running, complete with/without findings, incomplete/failed/unsupported, approval pending/denied, cancelled/interrupted; (CA-05) AI analysis stage states, the Analysis tab with origin-labelled items and citations, stale analysis, and "assessment incomplete — AI analysis <reason>" screens.
 7. Workflows, concrete approvals, credentials/privacy, dependencies, chat citations and independent export-failure screens.
 8. Keyboard parity and accessible text labels beyond colour.
 9. Synthetic example data only; no API keys or client scan evidence in Figma.

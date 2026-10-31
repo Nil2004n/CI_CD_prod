@@ -1,6 +1,6 @@
 # PWT YAML Security Workbench — Development Plan
 
-Plan revision: 1 (2026-10-23), with updates of 2026-10-24, 2026-10-26, 2026-10-27/28 (P02 progress, FR-32/FR-33) and 2026-10-29 (P02 accepted and merged) (P01 progress, D-16/CA-03, FR-31, **D-17 headless CLI §4.1**): status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries (§5.2). Scope/estimate change on 2026-10-26: D-17 adds a headless CLI increment to every feature phase from P02 (§4.1, §7.1); no phases added or removed. Current Git state: see `status.md`.
+Plan revision: 1 (2026-10-23), with updates of 2026-10-24, 2026-10-26, 2026-10-27/28 (P02 progress, FR-32/FR-33) and 2026-10-29 (P02 accepted and merged; **P03 planned, §5C; C1–C10 = recommended**), 2026-10-30/31 (P03 T01–T04 accepted, wave 1 + P03-D01 done, cargo-audit installed; progress only, no scope change), 2026-10-31 (**owner requirement D-18 automatic LLM evidence analysis; CA-05 design direction accepted with qualifications the same day — not implementation or release acceptance**, §1, §4, §5D, §7, §8) (P01 progress, D-16/CA-03, FR-31, **D-17 headless CLI §4.1**): status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries (§5.2). Scope/estimate change on 2026-10-26: D-17 adds a headless CLI increment to every feature phase from P02 (§4.1, §7.1); no phases added or removed. Current Git state: see `status.md`.
 
 This plan is a schedule and control proposal, not evidence of implemented code or passed tests. No phase starts without explicit owner approval. Specification references are to the v0.3.1 documents (`01_PRD.md` … `05_Database_Data_Schema.md`).
 
@@ -26,6 +26,7 @@ Owner decisions received 2026-10-23 (planning-stage approval message). Recorded 
 | D-14 | Phase-branch policy; no commits/merges/pushes without explicit approval; record actual revisions and dirty state | §3.6 |
 | D-16 | (2026-10-26) CA-03 before the P01 merge: canonical tool availability `ready, missing, incompatible, unconfigured, unavailable, deferred` in store and UI; `denied` is a permission badge, not a tool state; store 1.3 → 1.4, UI schema 1.0 → 1.1, app contract stays 1.0 | Data §24, UI §5/§14, P01 |
 | D-15 | (2026-10-24) Korean (Hangul script) support is **out of scope for the entire project**. Korean text in assessed files is still processed as data: never silently dropped and never a crash; where displayed or rendered it degrades visibly (e.g. `<U+XXXX>`). No Hangul font, IME or Korean-specific layout is a project target | PRD §16, P00-T08 |
+| D-18 | (2026-10-31) Automatic LLM evidence analysis is a required product capability: after scanning and evidence sanitisation the configured LLM analyses each assessment's evidence automatically, without the chat being opened; interactive RAG chat stays a separate optional interface. Newly explicit; not covered by earlier approvals. **CA-05 design direction accepted with qualifications (owner, 2026-10-31)**: required in the pilot; chat separate; independent AI-only findings out of the pilot; cited interpretation, recommendations and uncertainty in scope; cross-repository analysis out of the pilot; Q-02 superseded (history kept); the lead contract task precedes dependent implementation; canonical schema/application changes not authorised. Open: O-AN-2 limits, O-AN-6 evaluation (`planning/CA-05-decision-proposals.md`); real-API evaluation unapproved (`planning/CA-05-automatic-evidence-analysis.md` r2) | PRD §6 ANL-01–ANL-12, all specs (CA-05 sections), §4, §5D, §7 |
 | D-17 | (2026-10-26) Headless developer CLI: from P02, every feature phase adds command-line access to the feature it creates, so each feature can be exercised headless as soon as it exists (detail §4.1). The CLI is a second presentation adapter over the same coordinator and Arch §6 command/event contract as the TUI; it never bypasses permissions, redaction or the store writer | §4, §4.1, §7 |
 
 Planning corrections 1–6 from the same message are applied: capability labels (PRD §16, SCAN-05/SCAN-06/RAG sources kept), minimal AI kept, early slice carries redaction/coverage (P01/P06/P07), per-tool hypothesis spikes (P00-T09), narrow retrieval sources (P17), and the agent loop (§3).
@@ -37,7 +38,7 @@ Pre-implementation contract amendment **CA-01** (store schema, wrapper protocol,
 | ID | Question | Blocks |
 |---|---|---|
 | Q-01 | Sessions per week (cadence) for the four-week cap | Schedule fit only |
-| Q-02 | Confirm AI report narration (RES-07 optional part) is deferred, as labelled | P11/P17 scope |
+| Q-02 | Confirm AI report narration (RES-07 optional part) is deferred, as labelled | **Superseded 2026-10-31 by D-18/CA-05** (owner decision; narration replaced by the required automatic analysis). Question text above kept as the historical record |
 | Q-03 | Keep version identifiers under CA-01/CA-02, or bump store 1.3 / protocol 1.1 before P01 | **Answered 2026-10-24:** CA-02 versioned — store 1.3, wrapper protocol 1.1 |
 | Q-04 | Production OpenRouter model ID (owner-supplied) | Real-API acceptance only; mocks need none |
 | Q-05 | Which scope exchanges (§7.4), if any, to accept | Pilot cut |
@@ -116,30 +117,33 @@ P15a (demo TUI on mocks) may start after P01; P18 (Figma) after P15a + Figma del
 | P00 | pilot | Decisions frozen, spike protocols, install/crate requests, spikes, tool/crate freeze (detail §5) | Spike records per protocol | Phase approval; T02 needs Q-06; spikes need D-10/crate approvals |
 | P01 | pilot | Cargo workspace (crates per Tech §4), pinned toolchain, typed IDs/states, canonical command/event DTOs (Arch §6), `RedactedText`/`SanitisedText` newtypes so unsanitised text cannot reach persistence types | fmt, clippy `-D warnings`, test, build verified; DTO round-trip tests; cargo-audit if installed | Crate download approval |
 | P02 | pilot | **Accepted and merged 2026-10-29; detail §5B.** **Headless CLI crate `crates/cli` created (D-17, §4.1).** JSON store v1.4 (CA-03): typed models, schema + semantic validation (Data §11, §18), single writer, lock, temp+replace, recovery, export manifests | Schema conformance of all roots; interruption/malformed/full-disk fixtures; same-day naming | P01 |
-| P03 | pilot | Permission evaluator (scope/revision/fingerprint), child-env sanitiser (strip model key/unrelated secrets), credential abstraction (session-only; keyring behind spike result) | Scope-match tables; env-strip tests; no key in any serialised output | P01, P02 |
+| P03 | pilot | **Accepted and merged 2026-11-01 (detail §5C; report `evidence/P03/P03-report.md`).** Permission evaluator (scope/revision/fingerprint), child-env sanitiser (strip model key/unrelated secrets), credential abstraction (session-only; keyring behind spike result) | Scope-match tables; env-strip tests; no key in any serialised output | P01, P02 |
 | P04 | pilot | URL validation (HTTPS/SSH only), clone/fast-forward update, unsafe-state detection, per-repo locks, provenance, Git safety controls from P00-T04 | Local fixture repos (dirty, diverged, hooks, filters, submodules); no source mutation | P00-T04, P02 |
 | P05 | pilot | Inventory, exclusions/symlinks/limits, classifier (generic/Actions/Kubernetes; Compose/Helm reported conditional), tristate selection + selectors, reference detection recorded as gaps (SCAN-05) | Hostile filenames, symlink escape, limits, selector semantics | P04 |
+| CA-05 | pilot (required; owner 2026-10-31) | **Lead contract task — must precede every dependent CA-05 implementation; execution not authorised yet:** apply CA-05 (domain analysis types, store 1.5 schema + D26 rules, app contract 1.2, UI schema 1.2, migration notes) before P07; proposed at the start of P06 (§5D) | Schema/contract checks; floors; 1.4 records stay readable | Separate owner approval to execute; P03 closed |
 | P06 | pilot | Process supervisor (timeout/cancel/process-tree kill per CA-01/CA-02), adapter trait + protocol DTOs, output bounds, preflight + `tools.json`, **minimal redaction module and coverage ledger core**; must satisfy FR-01–FR-03 (§5.2) | Fake-tool fixtures: crash, timeout, oversized/malformed output, ANSI, early stdout close, secret-bearing stderr, tree kill; regression RC-FLOOD (FR-01) | P00-T05, P02 |
-| P07★ | pilot | Vertical slice (headless): local synthetic repo → discover → select → in-process YAML syntax check → redacted finding + coverage ledger (other categories explicit `unsupported`) → JSON report via store → deterministic Markdown | Seeded secret absent from report/log; malformed YAML yields finding + honest coverage; velocity recalibration | P05, P06 |
+| P07★ | pilot | Vertical slice (headless): local synthetic repo → discover → select → in-process YAML syntax check → redacted finding + coverage ledger (other categories explicit `unsupported`) → JSON report via store → deterministic Markdown | Seeded secret absent from report/log; malformed YAML yields finding + honest coverage; velocity recalibration; (CA-05) deterministic evidence snapshot + digest, analysis stage reported `blocked`/`no_provider_configured` honestly | P05, P06 (+ CA-05 if approved) |
 | P08 | pilot | yamllint, Gitleaks, rust-schema adapters per frozen contract sheets | Per-tool golden outputs, exit maps, repo-config injection, scope, redaction | P07, installs |
 | P09 | pilot | Checkov adapter (app-owned config, no platform APIs, custom checks blocked) | Same per-tool suite | P07, install |
 | P10 | pilot | Normalisation extension: fingerprints, cross-engine dedup with provenance, coverage aggregation | Dedup provenance; counts agree with checks | P08, P09 |
-| P11 | pilot | Report finalisation, naming, export manifests, regenerate without rescanning (`RegenerateExport`) | JSON/MD agree; regeneration; collision | P10 |
+| P11 | pilot | Report finalisation, naming, export manifests, regenerate without rescanning (`RegenerateExport`); (CA-05) combined report sections for scanner evidence / AI analysis / limitations and stage notices, export revisions per analysis version | JSON/MD agree; regeneration; collision; AI-incomplete report never shows success | P10 |
 | P12 | pilot | Restricted local PDF with selected renderer, independent export state | No remote fetch/active content/local file read; PDF failure keeps JSON/MD | P00-T08 decision, P11 |
 | P13 | pilot | actionlint + kubeconform adapters; schema cache consumption (cache-only) | Missing CRD = gap; workflow commands never run | P00-T09/T10, installs, cache approval |
 | P14 | pilot | Saved workflows, revision-bound approvals, app-open triggers, overlap/missed handling | DST/timezone, overlap, no run after exit | P11 |
 | P15a | pilot | Demo TUI on labelled mocks using Arch §6 DTOs (terminal-ui crate only) | Snapshot/resize/input tests; mock marker visible | P01 |
 | P15b | pilot | TUI ↔ real backend integration | UI acceptance scenarios (UI §12) automated parts; manual matrix pending | P14, P15a |
-| P16 | pilot | OpenRouter BYOK client: explicit model, `allow_fallbacks=false`, ZDR/deny, streaming, typed errors, no tools; mock HTTP only | Mock HTTP suite incl. no-route fail-closed, redirect auth-strip, key absent from logs | P03 |
-| P17 | pilot | Local lexical retrieval over selected findings, redacted excerpts, local approved rule descriptions and schema metadata; context isolation; citations; chat panel | Cross-repo leakage, seeded-secret payload, invalid citation, prompt-injection fixtures | P10, P15b, P16 |
+| P16 | pilot | OpenRouter BYOK client: explicit model, `allow_fallbacks=false`, ZDR/deny, streaming, typed errors, no tools; mock HTTP only. **(CA-05, scope extension pending approval)** structured output, analysis coordinator (trigger, eligibility, limits, retries, idempotency, reconciliation), response/citation validation, `AnalysisFile` persistence | Mock HTTP suite incl. no-route fail-closed, redirect auth-strip, key absent from logs; CA-05 AC-01–AC-16 | P03, P11 (+ CA-05) |
+| P17 | pilot | (CA-05) Chat retrieves the saved analysis as `ai_analysis` secondary material and stays optional. Local lexical retrieval over selected findings, redacted excerpts, local approved rule descriptions and schema metadata; context isolation; citations; chat panel | Cross-repo leakage, seeded-secret payload, invalid citation, prompt-injection fixtures | P10, P15b, P16 |
 | P18 | conditional | Figma translation (presentation only) | Snapshots + manual terminal checks | Figma delivery (D-12) |
-| P19 | pilot | Recovery/security/privacy regression hardening | Full agreed regression | P17 |
-| P20 | pilot | Linux x86_64 packaging, prerequisite/install guide, tool manifest, notices, manual acceptance | Release gates PRD §9/§15 | P19 |
+| P19 | pilot | Recovery/security/privacy regression hardening; (CA-05) adversarial analysis fixtures and model-quality evaluation corpus/rubric (O-AN-6) | Full agreed regression | P17 |
+| P20 | pilot | Linux x86_64 packaging, prerequisite/install guide, tool manifest, notices, manual acceptance | Release gates PRD §9/§15 (incl. gate 8, CA-05) | P19 |
 | X1–X6 | conditional | zizmor, Compose, Helm, Trivy (needs pinnable build), Windows/macOS, `.sh` parity | Own contract sheets | Separate approval each |
 
 Every feature phase from P02 also delivers its §4.1 CLI increment and that increment's scripted scenarios, as part of its own acceptance checks.
 
-Deferred (no phase; interfaces reserved): SCAN-06 live verification, SCAN-05 non-image references, SCAN-09 historical secrets, RES-06 suppression/baseline, run comparison, AI report narration (Q-02), embeddings, chat persistence/historical chat, remote documentation ingestion, draggable splits.
+AI report narration is no longer a deferred item: D-18 replaces it with the required automatic evidence analysis (CA-05, phases above, §5D).
+
+Deferred (no phase; interfaces reserved): SCAN-06 live verification, SCAN-05 non-image references, SCAN-09 historical secrets, RES-06 suppression/baseline, run comparison, embeddings, chat persistence/historical chat, remote documentation ingestion, draggable splits.
 
 ### 4.1 Headless developer CLI (D-17, owner decision 2026-10-26)
 
@@ -409,6 +413,138 @@ Dependencies: T01 → T02, T03, T04; T04 → wave 1 (T05, T06, T07); wave 1 → 
 | A9 | Debug cycles | **9a** pre-authorise debug cycles for anomalies the lead finds after a worker task, bounds as P01 §9 (two attempts per defect, then owner) |
 | A10 | CA-04 | **10a** draft in T03, apply only after owner approval, before wave 3 |
 
+## 5C. P03 — permission evaluator, child-environment sanitiser, session credentials and CLI (planned 2026-10-29; **C1–C10 = recommended options recorded 2026-10-29**; in progress, see progress note below)
+
+Prepared by Opus at owner request ("plan p03 into multiple subtasks") from plan §4 (P03 row), §4.1 (P03 CLI row), §5.2 (FR-18–FR-24, FR-33), PRD §8 and KEY-01, Tech §11 and §20, Arch §6 (`ResolveApproval`, `RevokeApproval`, `ConfigureCredential`, `Approval*` and `CredentialStatusChanged` events), Arch §7 (approval state machine) and §10, Data §11 rules 12–17 and 23, UI §10, the P01 report §8 (KEY-01 hardening carried to P03) and the P02 report §8. Phase branch `phase/P03-permissions-credentials` was created from `main` `01a3cbd` to hold this plan. **Owner 2026-10-29: "update plan with the recommendations"** — C1=1a, C2=2a, C3=3a, C4=4a, C5=5a, C6=6a, C7=7a, C8=8a, C9=9a, C10=10a are recorded as the plan's decisions (§5C.6). Network, installs, new crates and anything outside these decisions still need separate approval.
+
+**Progress (2026-10-31):** T01–T03 done (no CA-05; `application → sha2` edge only); T04 B0 `5e29908`; **T01–T04 accepted by the owner 2026-10-30**. Wave 1 (T05 ∥ T06 ∥ T07, owner go 2026-10-30) integrated as B1 `b1ca4cb`; review findings fixed in debug cycle P03-D01 `b9fdc0e` (§9); lead check PASS 1005/0/0, 41 compile_fail, floors 1005/41 (`evidence/debug/P03-D01/check-lead`). D01 adds binding requirements for T08 (workflow-scope grants with `run_id = null`; user-facing destinations via `canonical()`; only `approvals.rs` acts on `Permitted`; run-grant end-of-run expiry; deferred capabilities rejected) — `evidence/debug/P03-D01/record.md`. cargo-audit 0.22.2 installed under the owner's install grant (workbench lock: 0 advisories). Wave 2 (T08 W1 ∥ T09 W3, owner go 2026-10-31; request §5.4 amended for D01, packets `planning/P03-packets/{_wave2-common,T08-W1,T09-W3}.md`) integrated as B2: lead check PASS 1053/0/0, 41 compile_fail, floors 1053/41 (`evidence/P03/B2/record.md`). Wave 3 (T10 W2 ∥ T11 fixtures W1 + lead rule 12) integrated as B3 `f63c39a`; debug cycle P03-D02 (+ rule 13) `091224b`; T12 final check `all --final` PASS **1138/0/0, 41 compile_fail**, cargo-audit 0 advisories, FR-33 real-process check PASS; report `evidence/P03/P03-report.md`, freeze `evidence/P03/P03-freeze.json`. **P03 accepted by the owner 2026-11-01 and merged into `main`.** Live state: `status.md`.
+
+### 5C.1 Scope
+**In P03:**
+- **Permission requests and fingerprints.** A typed `PermissionRequest` per Arch §10 (capability, operation summary, arguments fingerprint, workflow ID/revision, run ID, target repos, destinations/resources, data categories, purpose, requested lifetime). The canonical operation fingerprint is SHA-256 over a documented canonical encoding of the normalised operation. Per Data §11 rule 15, it binds a record to an operation; it is not authorisation.
+- **Permission evaluator** (pure; owned by `application` per Tech §4). Given a request, the approvals store and the current workflow revision, it returns `Permitted(grant)`, `NeedsApproval(reason)` or `Refused(reason)`. The scope-match table covers capability, workflow ID/revision, run ID, repo set, destinations (normalised host/port/scheme/resource), resource constraints, data categories, fingerprint, lifetime, expiry and status. Rules:
+  - Denied, revoked, expired and consumed grants never authorise (rule 13).
+  - A changed workflow revision invalidates grants, even when the stale ID remains listed (rule 14).
+  - Raw secrets are a prohibited data category under any grant (rule 16).
+  - There are no wildcard or "all network" grants (A-08).
+- **Approval lifecycle** over the P02 `StoreWriter`:
+  - Record a pending request, then resolve it as approve once, approve workflow scope (saved workflow and visible revision only, UI §10) or deny. Revoke and expire as well.
+  - Once-grants are consumed atomically before use and reconciled after an interruption (rule 12).
+  - Pending requests are never turned into grants, and denials are persisted without sensitive payloads (Tech §11).
+  - Events `ApprovalRequested`, `ApprovalResolved` and `ApprovalRevoked` go through the P02 emitter.
+  - Only an explicit command with an actor can approve. Repository text or a chat answer cannot (Arch §10, UI §10).
+- **Child-environment sanitiser** (no process spawning; that is P06):
+  - Builds a child environment from an empty base plus a per-tool allowlist profile, with app-owned `HOME`/`XDG_*`/`TMPDIR` locations per tool.
+  - Strips model keys (`OPENROUTER_API_KEY` and any variable holding the session credential) and unrelated secrets, whatever the allowlist says. Unrelated secrets are matched by a name-pattern deny list and a value check against the session credential.
+  - Profiles: `git`, `yamllint`, `gitleaks`, `checkov` (P00-T09 rev 2 variables), `actionlint`, `kubeconform`, `internal`.
+  - Output is a closed type that P06 must use to spawn. A masked preview is available for the CLI.
+- **Session credential abstraction (KEY-01, session-only):**
+  - A `CredentialStore` trait with a session (in-memory, process-lifetime) implementation.
+  - Statuses `absent`, `present`, `invalid_format` and `unavailable` (FR-21 outcome names, reused for later modes).
+  - Format validation only; no provider call (P16).
+  - Replace and delete; `CredentialStatusChanged` events never carry key material; config holds only a reference (rule 23).
+  - KEY-01 hardening carried from P01: best-effort clearing of `CredentialSecret` and `RawInput` on drop with std only, length not revealed by `Debug`, and the key never in argv, environment, logs or store files.
+- **FR-33:** when euid is 0, refuse a data directory not owned by root (typed error; CLI exit code per the table).
+- **CLI increment (§4.1):**
+  - `approvals list`, `approvals approve <id> [--scope once|workflow]`, `approvals deny <id>`, `approvals revoke <id>`.
+  - `credential set --session` (stdin only), `credential status`, `credential delete`.
+  - `dev env-preview <tool>` (values masked).
+  - Feature-index rows and scenarios `cli/tests/p03_*.rs`.
+- **Semantic registry:** narrow the `rest_in` text of D11-12, D11-13 and D11-16/17 to what P03 now enforces at use time. The remaining parts go to P16/P17, and the status-count test changes with owner-visible arithmetic.
+
+**Not in P03:**
+- OS credential-store mode, FR-18–FR-23 helper and IPC, and any keyring dependency (C2).
+- Validating a key against OpenRouter, and HTTP of any kind (P16).
+- Git operations, which create the first real requests (P04).
+- Spawning processes with the sanitised environment (P06).
+- The real redactor and disclosure redaction before transmission (P06/P16/P17).
+- The TUI approval dialog (P15).
+- Redirect validation at request time (P16).
+- Scheduling triggers (P14).
+
+### 5C.2 Facts established for this plan (read-only, 2026-10-29)
+| Fact | Basis |
+|---|---|
+| `domain::store::approval::Approval` already models status, capability, workflow ID/revision, run ID, repos, purpose, fingerprint (`Digest`), destinations, resource constraints, data categories, lifetime, timestamps, actor, `consumed` and inference scope | `workbench/crates/domain/src/store/approval.rs` |
+| Contract v1.1 already has `ResolveApproval{decision}`, `RevokeApproval`, `ConfigureCredential{action}`, `ApprovalDecision`, `ApprovalLifetime`, `CredentialStatus`, events `ApprovalRequested/Resolved/Revoked`, `CredentialStatusChanged` and the `CredentialSecret` guards (not Clone/Serialize/Display/PartialEq/Hash) | `workbench/crates/domain/src/contract.rs` |
+| Approval state machine `pending → approved/denied/cancelled`; grants later revoked or expired | `domain/src/states.rs`, Arch §7 |
+| Semantic rules D11-12, D11-13, D11-16, D11-17 are `Partial` with the rest in P03 (D11-17 shared with P16) | `persistence/src/semantic/rules.rs` |
+| `sha2 =0.11.1` is a workspace dependency used by `persistence` only; giving `application` a direct edge changes `Cargo.lock` edges, not the registry set | `workbench/Cargo.toml`, `Cargo.lock` |
+| No `zeroize`/`secrecy` crate in the offline cache; `keyring 4.2.0`, `zbus-secret-service-keyring-store` are cached from P00-T07 (spike-only advisory exception) | `~/.local/share/pwt-dev-tools/_cargo-home/registry/cache/` |
+| `unsafe_code = "forbid"`: no-echo TTY input (termios) is not available without `unsafe` | `workbench/Cargo.toml` |
+| P02 runner `dev/p02_check.py` and floors 866/39 are the verified starting point | `evidence/P02/P02-report.md` |
+
+### 5C.3 Tasks
+Waves follow §3.8: up to three `sonnet-implementer` workers, disjoint owned files, each in its own lead-prepared worktree from a common baseline, with lead integration and verification after each wave. File ownership is final in T01.
+
+| Task | Content | Owner | Network/installs | Hours |
+|---|---|---|---|---|
+| P03-T01 | P03 request: module layout, frozen interfaces (`PermissionRequest`, canonical fingerprint encoding, `Evaluation`, `ApprovalService`, `ToolEnvProfile`/`ChildEnv`, `CredentialStore`, CLI command/exit table), scope-match table spec (dimension × outcome), env allowlist/deny policy per tool, test plan, packets, debug bounds, decisions | Lead | None | 1.5–2 |
+| P03-T02 | Dependency/lock check: no new crates (C3); manifest edges (`application → sha2`); lock delta = edges only, registry set unchanged; FR-24 re-screen recorded as not applicable while C2 = session-only | Lead | None | 0.5 |
+| P03-T03 | Contract check and CA-05 draft only if needed (e.g. `ApprovalDecision` scope variant, `CredentialStatus` values, dev CLI commands in Data §25); expected: app contract 1.1 → 1.2 or unchanged, store 1.4 unchanged | Lead | None | 0.5–1 |
+| P03-T04 | Scaffold: frozen stubs (`application::{permission,approvals,child_env,credential}`), runner `dev/p03_check.py` (P02 runner + P03 floors + static hooks), baseline **B0** | Lead | None | 1–1.5 |
+| P03-T05 | Wave 1 — permission request, canonical fingerprint and evaluator (pure), scope-match table tests over every dimension (positive + negative), host normalisation (case, trailing dot, port defaults, IDN/punycode rejected or normalised per T01, userinfo rejected) | W1 | None | 2–3 |
+| P03-T06 | Wave 1 — child-environment sanitiser: profiles, empty base, allowlist, deny patterns, value check against the session credential, app-owned HOME/XDG/TMP, masked preview, env-strip tests (seeded keys under many names, multi-line values, `=` in values, duplicate names, non-UTF-8 names) | W2 | None | 1.5–2 |
+| P03-T07 | Wave 1 — session credential store and KEY-01 hardening: trait, session implementation, statuses, format validation, replace/delete, best-effort clearing, `Debug` without length, compile_fail guards, events without key material | W3 | None | 1.5–2 |
+| P03-T08 | Wave 2 — approval lifecycle over `StoreWriter`: request → pending, resolve (once / workflow scope / deny), revoke, expiry, workflow-revision invalidation, atomic once-grant consumption before use + reconciliation after interruption, events; semantic registry `rest_in` updates | W1 | None | 2–3 |
+| P03-T09 | Wave 2 — FR-33 euid-0 refusal (persistence data-dir check, typed error, CLI exit mapping) with tests through a uid seam (real root not required) | W3 | None | 0.5–1 |
+| P03-T10 | Wave 3 — CLI: `approvals …`, `credential …` (stdin only; TTY stdin refused, C5), `dev env-preview <tool>`, feature-index rows + staleness test, scenarios `cli/tests/p03_*.rs` (scope/revision mismatch asks again; key never in stdout/stderr/argv/store files) | W2 | None | 2–3 |
+| P03-T11 | Integration: merge waves; runner static extension (env reads only in the sanitiser and allowlisted CLI input path; `CredentialSecret::expose` sites; no `std::process::Command` before P06); hostile fixtures (stale revision, changed destination, expired, consumed, denied, revoked, raw-secret category, wildcard/lookalike hosts); seeded-key sweep over every output and store file; reviewer + security-reviewer; debug cycles | Lead (+W1 fixtures) | None | 2–3 |
+| P03-T12 | P03 report, freeze, status/handover; stop for acceptance | Lead | None | 0.5–1 |
+
+Dependencies: T01 → T02, T03, T04; T04 → wave 1 (T05 ∥ T06 ∥ T07); wave 2: T08 needs T05 (+ P02 writer), T09 independent; wave 3: T10 needs T06–T09; T10 → T11 → T12. The lead commits a baseline after each wave (B1, B2, B3) on the phase branch, as in P02.
+
+**Estimate:** 16–24 h hands-on (low confidence). §7.1 had 8–12 h + CLI 1–2 h. P02 ran at about twice its first estimate.
+
+### 5C.4 Acceptance criteria (proposed)
+1. fmt, clippy `-D warnings`, test and build pass through `dev/p03_check.py all --final`. The P02 floors (866/39) are not lowered, and new P03 floors are committed.
+2. Scope-match table: every dimension has at least one positive and one negative case. Denied, revoked, expired and consumed grants never authorise. A changed workflow revision, destination, data category, repo set or fingerprint needs a new approval. Raw secrets are refused under every grant, and no wildcard grant exists.
+3. Fingerprint: the canonical encoding is documented and pinned by golden vectors. Equal operations give equal fingerprints, and any relevant change gives a different one. No code path treats the fingerprint as authorisation by itself.
+4. Lifecycle: a once-grant is consumed exactly once, including across an injected interruption at every write step (reconciliation never double-authorises and never silently re-grants). Pending requests are never treated as grants. Every transition emits a schema-valid event, and only explicit commands approve.
+5. Child environment: built from an empty base, with no variable inherited outside the profile. Seeded keys under any name, and any value equal to the session credential, are absent from every profile's output. The preview masks values.
+6. Credentials: session-only; no plaintext persistence anywhere (seeded-key sweep over store files, logs, stdout/stderr and argv); statuses as specified; replace/delete work; no key material in events or `Debug`. OS-store mode is absent and its FR-18–FR-24 status is recorded.
+7. FR-33: with euid 0 (seam), a non-root-owned data directory is refused with the typed error and the documented exit code; the root-owned case still works.
+8. CLI: the §4.1 definition of done is met for every P03 feature; `cli` mode runs all scenarios headless; no command reads the real app-data directory or a real environment secret.
+9. reviewer + security-reviewer: no unresolved high findings; medium findings fixed or accepted by the owner.
+10. Dependency state recorded: no new crates, lock delta edges only (or the C3 alternative as approved); cargo-audit status stated.
+
+### 5C.5 Risks
+- Host normalisation is easy to get subtly wrong (IDN, trailing dots, ports, case). Decision C6 keeps it narrow: reject what is not plainly ASCII.
+- "Best-effort clearing" without `unsafe` or `zeroize` cannot guarantee the compiler keeps the write. It must be disclosed, never claimed as secure erase.
+- Session-only credentials in a one-shot CLI process last only one invocation (C4). Scenarios must test within one process, and `status` in a new process must honestly report `absent`.
+- The evaluator has no real callers until P04 (Git) and P16 (OpenRouter), so tests use synthetic requests only.
+- Changing the semantic registry counts touches P02 tests. Arithmetic must be explicit, and no assertion may be weakened.
+
+### 5C.6 Owner decisions (recommended option first; **chosen 2026-10-29: all recommended**)
+| ID | Topic | Options |
+|---|---|---|
+| C1 | Scope | **1a (chosen)** §5C.1 as written (T01–T12); 1b defer the CLI `approvals` commands to P14 (saves about 1 h; breaks the D-17 rule) |
+| C2 | Credential mode | **2a (chosen)** session-only; OS-store mode, FR-18–FR-23 and the keyring dependency stay out (record "not adopted"; FR-24 re-screen not applicable); 2b plan OS-store mode as a later P03b with its own approval |
+| C3 | Dependencies | **3a (chosen)** no new crates; `application` gets a direct `sha2` edge (lock edges only); best-effort clearing with std only; 3b request `zeroize` (needs a network fetch and a new crate approval) |
+| C4 | CLI credential lifetime | **4a (chosen)** `credential set --session` holds the key for that one invocation and says so; scenarios run set/status/delete inside one process via a scripted `--then` sequence or the test harness; 4b a background dev agent holding the key (rejected: new IPC surface) |
+| C5 | CLI key input | **5a (chosen)** stdin pipe only; refuse when stdin is a TTY (no-echo input needs `unsafe` termios; masked entry is the TUI's job, P15); 5b read a TTY with echo (rejected: shows the key) |
+| C6 | Destination normalisation | **6a (chosen)** ASCII-only hosts, lower-cased, one trailing dot removed, scheme default ports made explicit; userinfo, IP-literal shortcuts outside the allowlist and non-ASCII/punycode hosts rejected; 6b full IDNA processing (needs a crate) |
+| C7 | Grant lifetimes | **7a (chosen)** `once`, `run` and `workflow` (with ID/revision) as in the schema; no time-only "session" grant; expiry checked against the injected clock; 7b add a session lifetime (contract change) |
+| C8 | Contract changes | **8a (chosen)** CA-05 drafted in T03 only if the frozen interfaces need it; applied only after owner approval (as A10/CA-04); 8b no contract change allowed, interfaces adapted instead |
+| C9 | Workers and commits | **9a (chosen)** up to three `sonnet-implementer` workers per wave in lead-prepared worktrees; lead commits B0/B1/B2/B3/report on `phase/P03-permissions-credentials` with non-force pushes; merge to `main` separate; 9b lead-only |
+| C10 | Debug cycles | **10a (chosen)** pre-authorised, two attempts per defect, then owner (as P02 A9); 10b each cycle needs owner approval |
+
+## 5D. CA-05 — automatic LLM evidence analysis (design direction accepted with qualifications 2026-10-31; implementation not approved, not started)
+
+Change contract r2 (vocabulary, four separate dimensions, logical analysis vs attempts and authoritative selection, legacy `ai_enrichment` handling, AI-only findings out of the pilot, ANL-01–ANL-12, failure design, acceptance AC-01–AC-18, recorded decisions): `planning/CA-05-automatic-evidence-analysis.md`. Proposals for the open O-AN-2 limits and O-AN-6 evaluation, and a separate real-API evaluation request: `planning/CA-05-decision-proposals.md` (nothing ratified). Draft store 1.5 definitions: `planning/CA-05-draft/`, Data Schema §26. All implementation work below is **pending**; documenting the design does not complete it.
+
+| Work | Phase | Owner | Pending decision |
+|---|---|---|---|
+| Foundational types/contract (domain analysis types, store 1.5, app contract 1.2, UI 1.2) | CA-05 lead task before P07 (proposed: start of P06); precedes all rows below | Lead | Execution approval |
+| Evidence snapshot builder, digest, honest stage state without provider | P07 | W + lead | — |
+| Excerpt redaction for snapshots | P06/P07 | W | — |
+| Combined report sections, stage notices, export revisions | P11 | W | — |
+| UI analysis tab, stage progress and failure states | P15a (labelled mocks) / P15b | W | — |
+| Provider integration with structured output, application-owned retries | P16 | W | O-AN-2 limits |
+| Automatic orchestration: attempts, authoritative selection, recovery, validation, idempotency | P16 (scope extension) | W + lead | — (pilot scope decided) |
+| RAG reuse of the authoritative analysis | P17 | W | — |
+| Safety/adversarial regression, model-quality evaluation, release gate | P19/P20 | Lead + owner | O-AN-6; real-API evaluation approval |
+
 ## 6. Pilot acceptance anchors
 Release gates PRD §9 and §15 apply. Mocks never satisfy real-scan acceptance. Manual terminal/mouse/PDF checks stay listed as manual-pending until performed. Real OpenRouter behaviour is unverified until a separately approved real-API acceptance check.
 
@@ -423,7 +559,7 @@ Unit: hands-on hours (Opus orchestration + Sonnet implementation + Opus review/v
 | P00 | 38–61 | P11 | 6–10 |
 | P01 | 6–10 | P12 | 6–10 |
 | P02 | 22–34 (revised at approval 2026-10-26, §5B.3; §7.2 totals not yet recomputed) | P13 | 10–16 |
-| P03 | 8–12 | P14 | 10–14 |
+| P03 | 8–12 (§5C.3 proposes 16–24 incl. CLI; not yet approved) | P14 | 10–14 |
 | P04 | 10–16 | P15a | 14–22 |
 | P05 | 8–12 | P15b | 10–16 |
 | P06 | 12–18 | P16 | 8–12 |
@@ -431,6 +567,8 @@ Unit: hands-on hours (Opus orchestration + Sonnet implementation + Opus review/v
 | P08 | 12–18 | P19 | 10–16 |
 | P09 | 8–14 | P20 | 8–12 |
 | P10 | 6–10 | | |
+
+**CA-05 automatic evidence analysis (D-18, 2026-10-31; not yet in the figures above or §7.2):** contract task 3–5 h; P07 +1–2 h; P11 +2–3 h; P15a/P15b +2–4 h; P16 +8–12 h; P17 +1–2 h; P19 +3–5 h; evaluation corpus/rubric 4–8 h — about **+24–41 h** hands-on (low confidence; recorded at the owner's acceptance of the CA-05 direction, 2026-10-31). This widens the four-week gap in §7.3; no dates, budget or staffing are assumed.
 
 **CLI increments (D-17), not yet in the figures above:** about +2–3 h in P02 (crate, skeleton, scenario harness) and +1–2 h per later feature phase (~14 phases), so roughly **+16–31 h** hands-on in total. To be folded into each phase's estimate in its request.
 
@@ -448,6 +586,8 @@ Separately estimated, not in the pilot total: P18 Figma translation 8–16 h (ti
 ### 7.3 Fit against the four-week cap
 Sessions per week are not confirmed (Q-01). Fitting 25–41 sessions in four weeks needs about 6.3–10.4 ten-hour sessions per week, before any approval waiting. At 5 sessions/week (200 h, **not** an assumed fact) the AI-inclusive pilot does not fit even at the low hands-on estimate (220 h > 200 h, before contingency); cumulative hands-on hours would reach about P10 at the high estimate or P16 at the low estimate. This is reported as-is rather than lowering estimates.
 
+**Schedule assumption (owner, 2026-10-31):** the four-week cap is no longer treated as an assured commitment. With D-18 (+24–41 h, low confidence) the AI-inclusive pilot is about 244–386 h hands-on before contingency, plus the CLI increments. No scope exchange (§7.4) has been chosen; each needs explicit owner approval together with Q-01 (cadence) and Q-05 (scope exchanges).
+
 ### 7.4 Scope exchanges for owner consideration (none applied)
 | Option | Effect | Approx. saving |
 |---|---|---|
@@ -458,20 +598,22 @@ Sessions per week are not confirmed (Q-01). Fitting 25–41 sessions in four wee
 | E5 | Checkov → conditional (explicit baseline downgrade; only by owner decision) | 8–14 h |
 | E6 | Extend the calendar cap or increase sessions/week | — |
 
-E1–E4 together save about 16–25 h and do not by themselves make the pilot fit at 5 sessions/week. Safety controls, redaction, coverage honesty, PDF, and the minimal assistant are not proposed for cutting.
+E1–E4 together save about 16–25 h and do not by themselves make the pilot fit at 5 sessions/week. Safety controls, redaction, coverage honesty, PDF, and the minimal assistant are not proposed for cutting; since D-18 (2026-10-31) the required automatic evidence analysis is in the same category, and any reduction of it is an owner decision (O-AN-1).
 
 ## 8. Risks and blockers
 
 | ID | Item | Status |
 |---|---|---|
-| B-01 | No tool installs approved (D-10): blocks P00-T08/T09, P08, P09, P13 | **Resolved for P00-T09 tools** (Request A + B1 installed 2026-10-24); open for T08 renderer candidates and conditional tools; cargo-audit pending P01 (R-4) |
+| B-01 | No tool installs approved (D-10): blocks P00-T08/T09, P08, P09, P13 | **Resolved for P00-T09 tools** (Request A + B1 installed 2026-10-24) and **for cargo-audit** (0.22.2 installed 2026-10-31, `evidence/P03/cargo-audit-C-E/record.md`); open only for conditional tools not yet defined by P08/P09/P13 (the PDF renderer is crates, no install) |
 | B-02 | No crate download approval: blocks P00-T06/T07, P01 | **Resolved for P00** (D3-1 executed; T06–T08 crate fetches separately approved and accepted); open for P01 workspace crates (approved dependency requests) |
 | B-03 | No network approval for official-page lookup (Q-06): blocks P00-T02/T03/T10 | Resolved for T02/T03 and T10 (owner approval 2026-10-24) |
-| B-04 | Worker models unverified | Open — first Sonnet workers delegated in P00-T08-D01 and P00-T09 (configured `claude-sonnet-5-5`; self-reports unverified); Haiku/Sonnet agent definitions still proposals; Opus documentation fallback disclosed in `status.md` |
+| B-04 | Worker models unverified | **Resolved for Sonnet workers** (2026-10-31): API-reported model `claude-sonnet-5-5` in every assistant message of all worker/reviewer transcripts checked (`status.md`, Agents row); self-reports still not evidence of work. Open for `haiku-docs` (still a proposal; Opus writes status/handover) |
 | B-05 | Trivy on host reports `Version: dev` — not pinnable | X4 only |
 | B-06 | Linux Secret Service may be unavailable (headless) | **Resolved for P00** by P00-T07 (qualified); OS-store mode decision stays with P03 (FR-18–FR-24) |
 | B-07 | Some tools may not neutralise repo config or honour explicit files | **Resolved for P00** by P00-T09 (qualified): repo-config channels recorded per tool; Checkov revision 2 only; FR-25–FR-28 |
 | B-08 | Schedule does not fit four weeks at 5 sessions/week | Owner decision (Q-01, Q-05) |
+| R-AN-1 | (CA-05) Automatic analysis widens routine provider disclosure and cost; model output can be wrong, uncited or manipulated by repository text | Mitigations designed (snapshot bounds, approvals, redaction, validation, limits, no tools); unverified until P16/P19; model quality needs a reviewed corpus (O-AN-6) |
+| R-AN-2 | (CA-05) Contract change (store 1.5, app 1.2, UI 1.2) after P02's implemented store 1.4 | Lead contract task before P07 keeps it ahead of the first real reports; 1.4 records stay readable (Data §26) |
 | B-09 | Python 3.14 compatibility with Checkov/yamllint unknown | **Resolved** by B1: standalone CPython 3.12.15 in isolated venvs (system Python untouched) |
 
 ## 9. Debug-cycle log
@@ -497,3 +639,5 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 | P02-D06 | Wave-2 merge: T08 maximal fixtures violated T09 semantic rules (rules correct, fixtures fixed); lead test defect (queued run in `log.max`); runner hid later binaries without `--no-fail-fast` | Completed 2026-10-27, attempt 1 (uncommitted): fresh W1 on T08 test files only; lead `store_integration.rs` (5 tests) + runner fix; integrated 735/0/0, 32 compile_fail; NC8 replayed green-to-red-to-green (`evidence/debug/P02-D06/record.md`; wave record `evidence/P02/wave2/record.md`) |
 | P02-D07 | T14 finding F-1: `atomic::replace_steps` left a stray `.<name>.prev.tmp-<hex>` after a successful rewrite when `<name>.prev` already linked the target inode | Completed 2026-10-28, attempt 1: `persistence/src/atomic.rs` + regressions; strict zero-stray matrices; lead revert control fails 5 tests; integrated 866/0/0, 39 (`evidence/debug/P02-D07/record.md`) |
 | P02-D08 | Intermittent post-release assertion in `lock_held_by_another_holder_exits_3` (sibling-test `fork`→`exec` descriptor inheritance, hypothesis) | Completed 2026-10-28, attempt 1: test-only bounded wait; 16 clean `cli` runs (`evidence/debug/P02-D08/record.md`) |
+| P03-D01 | Wave-1 review findings: M1 `OperationArg` derived `Debug` printed argument values; G4 accepted a `workflow_revision` grant with null workflow; inherited `TZ` unvalidated; duplicate declared env names only unit-tested | Completed 2026-10-31, attempt 1: lead + W1′/W2′ (`sonnet-implementer`); negative controls caught; integrated 1005/0/0, 41 compile_fail; deferred items bind T08/T10/T11 (`evidence/debug/P03-D01/record.md`, commit `b9fdc0e`) |
+| P03-D02 | Wave-3 review findings: human `approvals list` line forgery (LF/TAB), inference scope hidden, missing CLI tests, overstated FR-33 row, `approvals list` error class, `ToolDirs` Debug paths, `RequestOutcome::Permitted` hazard | Completed 2026-11-01, attempt 1: W2′/W1′ + lead rule 13; integrated `--final` 1138/0/0, 41 compile_fail (`evidence/debug/P03-D02/record.md`, `091224b`) |

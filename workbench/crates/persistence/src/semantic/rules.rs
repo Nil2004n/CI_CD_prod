@@ -118,7 +118,7 @@ pub(crate) static REGISTRY: &[Rule] = &[
     rule!(
         "D11-12",
         RuleStatus::Partial {
-            rest_in: "P03 (grant matched to the actual workflow revision or run)",
+            rest_in: "P07/P14 (callers pass the real run and saved workflow revision to the approval service and end a run's grants with expire_run)",
         },
         "Grants are bound to a workflow revision or a run",
         Some(approval::d11_12)
@@ -126,7 +126,7 @@ pub(crate) static REGISTRY: &[Rule] = &[
     rule!(
         "D11-13",
         RuleStatus::Partial {
-            rest_in: "P03 (atomic consumption and enforcement at use time)",
+            rest_in: "P04/P07/P14/P16 (every operation that needs a grant calls the approval service before it runs)",
         },
         "Pending and inactive grants stay consistent and never authorise",
         Some(approval::d11_13)
@@ -152,7 +152,7 @@ pub(crate) static REGISTRY: &[Rule] = &[
     rule!(
         "D11-16",
         RuleStatus::Partial {
-            rest_in: "P03 (disclosure approval and redaction before transmission)",
+            rest_in: "P06/P16/P17 (redaction of the disclosed categories before transmission)",
         },
         "Model transmission grants name the data categories they disclose",
         Some(approval::d11_16)
@@ -160,7 +160,7 @@ pub(crate) static REGISTRY: &[Rule] = &[
     rule!(
         "D11-17",
         RuleStatus::Partial {
-            rest_in: "P03/P16 (destination and redirect validation at request time)",
+            rest_in: "P04/P16 (redirect handling and private or loopback address policy when connecting)",
         },
         "Grants carry bounded destinations that fit their capability",
         Some(approval::d11_17)

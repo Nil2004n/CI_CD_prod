@@ -1,0 +1,339 @@
+   Compiling application v0.1.0 (/home/kali/Desktop/CI_CD_prod/workbench/crates/application)
+warning: unused variable: `record`
+   --> crates/application/src/approvals.rs:326:25
+    |
+326 |                     let record = file
+    |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_record`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `application` (lib) generated 1 warning (run `cargo fix --lib -p application` to apply 1 suggestion)
+warning: `application` (lib test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.46s
+     Running unittests src/lib.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/application-a1e8778fa39d4ee2)
+
+running 21 tests
+test child_env::tests::denied_name_beats_secret_value ... ok
+test child_env::tests::denied_fixed_name_fails_closed ... ok
+test child_env::tests::control_profile_is_accepted ... ok
+test child_env::tests::denied_names_are_denied_in_any_case ... ok
+test child_env::tests::deny_beats_allow_for_inherited_names ... ok
+test child_env::tests::every_real_profile_declares_only_allowed_unique_names ... ok
+test child_env::tests::inherited_name_without_a_value_rule_is_never_inherited ... ok
+test child_env::tests::duplicate_declared_names_fail_closed ... ok
+test child_env::tests::secret_in_fixed_value_fails_closed ... ok
+test child_env::tests::near_miss_names_are_allowed ... ok
+test credential::tests::buffer_is_zero_after_empty_input ... ok
+test credential::tests::terminal_input_creates_no_buffer ... ok
+test credential::tests::buffer_is_zero_after_io_error_with_partial_data ... ok
+test dev_store::tests::records_serialise_with_mode_and_event_first ... ok
+test credential::tests::buffer_is_zero_after_each_rejection ... ok
+test dev_store::tests::injected_lock_failure_is_a_storage_failure ... ok
+test credential::tests::buffer_is_zero_after_success ... ok
+test dev_store::tests::root_names_round_trip_and_exclude_reports ... ok
+test dev_store::tests::store_errors_map_to_failure_classes ... ok
+test dev_store::tests::injected_write_failure_during_init_is_a_storage_failure ... ok
+test dev_store::tests::validate_is_read_only_and_reports_missing_roots ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/dev_store_faults.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/dev_store_faults-e5d8ca8c86253873)
+
+running 10 tests
+test f1_a_rewrite_after_a_failed_replace_leaves_no_stray_prev_temp ... ok
+test lock_fault_is_a_storage_failure_for_every_command ... ok
+test init_that_dies_mid_write_leaves_temps_that_recover_removes ... ok
+test recover_that_dies_mid_rewrite_leaves_temps_that_the_next_recover_removes ... ok
+test same_second_reports_from_the_real_writer_are_both_recognised ... ok
+test show_read_fault_is_a_storage_failure_and_writes_nothing ... ok
+test validate_read_fault_is_a_storage_failure_that_keeps_earlier_records_and_writes_nothing ... ok
+test recover_rewriting_the_log_survives_every_fault ... ok
+test init_over_a_partial_store_never_touches_existing_roots ... ok
+test init_on_an_empty_directory_survives_every_fault ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.00s
+
+     Running tests/emit.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/emit-f5f02df81105eae4)
+
+running 30 tests
+test at_is_the_clock_reading ... ok
+test an_emitter_over_urandom_produces_distinct_v4_event_ids ... ok
+test envelope_json_is_exact_for_a_warning_event ... ok
+test envelope_json_is_exact_for_an_error_event ... ok
+test emit_error_source_chain_reaches_the_id_source_error ... ok
+test envelope_json_is_flat_and_exact_for_an_info_event ... ok
+test check_completed_with_a_non_terminal_outcome_is_rejected ... ok
+test event_id_is_version_4_with_rfc_9562_variant_and_never_nil ... ok
+test envelope_json_places_optional_and_list_payloads_flat ... ok
+test every_emitted_envelope_serialises_with_the_envelope_fields_first ... ok
+test id_source_failure_gives_id_source_error_and_no_envelope ... ok
+test illegal_run_state_changes_are_rejected_and_legal_ones_accepted ... ok
+test level_table_holds_for_every_pilot_event ... ok
+test non_persisted_events_are_those_that_are_chat_not_must_deliver_or_reserved ... ok
+test persisted_set_is_exactly_the_documented_set ... ok
+test reserved_events_are_rejected_without_consuming_an_id ... ok
+test run_finished_level_depends_on_the_terminal_state ... ok
+test event_ids_are_version_4_and_distinct_for_a_run_of_distinct_sources ... ok
+test run_finished_with_a_non_terminal_state_is_rejected_without_consuming_an_id ... ok
+test seeded_payload_text_never_reaches_an_error_message ... ok
+test samples_cover_every_event_name_exactly_once_in_schema_order ... ok
+test store_event_codes_follow_the_failure_code ... ok
+test store_event_carries_envelope_fields_event_type_and_identifier_slots ... ok
+test system_clock_reports_a_recent_instant ... ok
+test store_message_is_the_detail_for_failures_and_a_fixed_summary_otherwise ... ok
+test urandom_ids_produce_sixteen_bytes_that_differ_between_calls ... ok
+test emitted_failure_events_satisfy_the_failure_level_rule ... ok
+test the_validator_rejects_what_the_mapping_never_produces ... ok
+test every_persisted_event_validates_through_the_real_schema_validator ... ok
+test each_persisted_event_validates_on_its_own ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/p03_approvals.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_approvals-c47a993f1eac2c73)
+
+running 34 tests
+test a_malformed_ledger_fails_closed ... ok
+test a_denial_carries_no_expiry ... ok
+test a_grant_past_its_time_does_not_authorise_even_before_expire_due ... ok
+test a_log_write_failure_halts_the_writer_and_keeps_the_approval_state ... ok
+test a_once_grant_is_consumed_exactly_once ... FAILED
+test an_event_failure_keeps_the_approval_state_already_written ... ok
+test a_run_grant_serves_its_run_repeatedly_and_no_other_run ... ok
+test approval_rule_rows_name_what_is_left_after_p03 ... ok
+test a_workflow_scope_grant_serves_every_run_at_its_revision_only ... ok
+test an_identifier_failure_writes_nothing ... ok
+test a_failed_approvals_write_changes_nothing ... ok
+test actor_text_follows_the_actor ... ok
+test cli_list_returns_store_order_and_writes_nothing ... ok
+test display_is_fixed_english_without_record_contents ... ok
+test cli_errors_are_typed_and_classified ... ok
+test deferred_capabilities_are_refused_before_any_write ... ok
+test every_refusal_reason_writes_nothing ... ok
+test cli_resolve_reads_the_saved_workflow_revision ... ok
+test identical_pending_request_is_reused ... ok
+test grant_expiry_is_decision_time_plus_validity ... ok
+test model_transmission_needs_a_category_and_keeps_its_scope ... ok
+test lifecycle_events_validate_against_the_real_schema ... ok
+test expire_run_ends_only_that_runs_grants ... ok
+test expire_due_ends_only_approved_grants_past_their_time ... ok
+test pending_and_denied_requests_never_authorise ... ok
+test request_covered_by_a_grant_is_permitted_and_writes_nothing ... ok
+test request_records_one_pending_approval_and_one_event ... ok
+test without_a_fault_the_consumption_is_durable_and_final ... FAILED
+test revoke_ends_the_grant_and_emits ... ok
+test written_roots_carry_the_clock_time ... ok
+test workflow_scope_stores_a_null_run_and_once_keeps_the_run ... ok
+test resolve_and_revoke_errors_write_nothing ... ok
+test once_grant_consumption_survives_a_fault_at_every_write_step ... FAILED
+test decision_table_rows ... ok
+
+failures:
+
+---- a_once_grant_is_consumed_exactly_once stdout ----
+
+thread 'a_once_grant_is_consumed_exactly_once' (77937) panicked at crates/application/tests/p03_approvals.rs:1061:5:
+assertion failed: tmp.approval(granted).consumed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- without_a_fault_the_consumption_is_durable_and_final stdout ----
+
+thread 'without_a_fault_the_consumption_is_durable_and_final' (77973) panicked at crates/application/tests/p03_approvals.rs:2109:5:
+assertion failed: tmp.approval(granted).consumed
+
+---- once_grant_consumption_survives_a_fault_at_every_write_step stdout ----
+
+thread 'once_grant_consumption_survives_a_fault_at_every_write_step' (77957) panicked at crates/application/tests/p03_approvals.rs:2027:9:
+Read#1 fail
+
+
+failures:
+    a_once_grant_is_consumed_exactly_once
+    once_grant_consumption_survives_a_fault_at_every_write_step
+    without_a_fault_the_consumption_is_durable_and_final
+
+test result: FAILED. 31 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s
+
+error: test failed, to rerun pass `-p application --test p03_approvals`
+     Running tests/p03_child_env.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_child_env-fc0ada45c5948644)
+
+running 29 tests
+test byte_search_control_can_fail ... ok
+test debug_text_is_names_and_origins_only ... ok
+test app_dirs_come_from_tool_dirs_under_root ... ok
+test each_profile_has_the_exact_variable_set ... ok
+test env_error_debug_has_no_payload ... ok
+test host_debug_shows_only_the_entry_count ... ok
+test key_in_a_non_utf8_directory_is_still_found ... ok
+test key_in_a_used_directory_is_a_secret_value_error ... ok
+test clean_tz_is_inherited_by_internal_only ... ok
+test non_utf8_directory_is_passed_through_byte_for_byte ... ok
+test key_in_the_root_reaches_every_profile_through_under ... ok
+test non_utf8_tz_name_does_not_stop_a_later_clean_tz ... ok
+test key_in_a_fixed_value_is_a_secret_value_error ... ok
+test only_a_tz_that_passes_is_inherited_and_the_first_occurrence_decides ... ok
+test preview_has_names_and_origins_in_output_order ... ok
+test no_seeded_value_or_key_appears_in_any_output ... ok
+test seeded_host_is_large_and_awkward ... ok
+test output_order_does_not_depend_on_host_order ... ok
+test profile_names_round_trip ... ok
+test tool_dirs_equal_the_explicit_form ... ok
+test tool_dirs_accept_and_reject_by_rule ... ok
+test tool_dirs_reject_nul_bytes ... ok
+test preview_and_debug_contain_no_value ... ok
+test seeded_host_changes_nothing_for_any_profile ... ok
+test under_rejects_a_relative_or_parent_root ... ok
+test tz_is_never_inherited_by_a_scanner_profile_whatever_its_value ... ok
+test tz_with_nul_or_near_miss_names_is_not_inherited ... ok
+test tz_value_must_be_valid_utf8_and_an_iana_timezone ... ok
+test tz_holding_the_key_is_dropped_everywhere ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p03_credential.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_credential-3856de6db48542bf)
+
+running 25 tests
+test appears_in_finds_the_key_anywhere_in_a_value ... ok
+test a_short_input_is_read_to_its_end ... ok
+test credential_status_event_has_no_key_material ... ok
+test appears_in_is_false_when_absent ... ok
+test appears_in_is_false_for_a_partial_key ... ok
+test debug_shows_neither_key_nor_length ... ok
+test delete_on_an_empty_store_is_absent ... ok
+test delete_returns_to_absent_and_forgets_the_key ... ok
+test interrupted_reads_are_retried ... ok
+test io_error_after_partial_data_is_read_error ... ok
+test key_format_errors_carry_no_input ... ok
+test new_store_is_absent_and_set_makes_it_session_only ... ok
+test io_errors_are_reported_as_read ... ok
+test input_much_larger_than_the_cap_is_not_consumed ... ok
+test read_key_rejects_inner_whitespace_controls_and_non_ascii ... ok
+test set_replaces_the_current_key ... ok
+test read_key_returns_the_exact_key_text ... ok
+test store_works_through_the_trait ... ok
+test terminal_input_is_refused_even_when_the_data_is_valid ... ok
+test terminal_input_is_refused_without_reading ... ok
+test read_key_length_and_line_break_table ... ok
+test read_key_result_goes_into_the_store ... ok
+test the_read_stops_at_the_bound ... ok
+test short_chunks_are_assembled ... ok
+test read_key_accepts_exactly_the_ascii_graphic_range ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p03_destination.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_destination-3a81eefe25144302)
+
+running 13 tests
+test accessors_expose_the_normalised_parts ... ok
+test every_error_variant_is_produced_by_some_input ... ok
+test accepted_inputs_normalise_to_the_pinned_forms ... ok
+test exactly_one_trailing_dot_is_removed ... ok
+test equality_follows_the_normalised_form ... ok
+test odd_inputs_are_rejected_without_panicking ... ok
+test label_length_bound_is_63_bytes ... ok
+test host_length_bound_is_253_bytes ... ok
+test canonical_round_trips_for_https_and_ssh ... ok
+test over_length_input_is_too_long_and_first ... ok
+test rejection_precedence_is_pinned ... ok
+test rejected_inputs_give_the_most_specific_error ... ok
+test store_form_is_accepted_by_the_p02_destination_parser ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p03_evaluate.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_evaluate-777f894d149572db)
+
+running 35 tests
+test a_matching_grant_beats_mismatching_records ... ok
+test g11_inference_scope ... ok
+test a_fully_matching_grant_is_permitted ... ok
+test g14_consumption ... ok
+test g13_expiry ... ok
+test g12_lifetime_completeness ... ok
+test every_dimension_is_checked_beyond_the_fingerprint ... ok
+test g3_fingerprint_must_be_equal ... ok
+test g1_only_approved_records_authorise ... ok
+test g5_revision_must_equal_the_saved_revision ... ok
+test g4_workflow_must_be_equal ... ok
+test mismatch_ignores_records_that_are_not_approved ... ok
+test g2_capability_must_be_equal ... ok
+test g6_run_rules ... ok
+test g7_to_g10_compare_as_sets ... ok
+test no_record_means_no_grant ... ok
+test mismatch_ties_go_to_store_order ... ok
+test mismatch_reports_the_closest_record ... ok
+test r1_raw_secret_values_are_always_refused ... ok
+test r1_to_r6_are_checked_in_order ... ok
+test g8_destinations_use_the_store_form ... ok
+test r4_workflow_must_be_saved_at_the_bound_revision ... ok
+test r3_lifetime_needs_its_binding ... ok
+test r7_denial_wins_over_a_matching_grant ... ok
+test r6_invalid_arguments_are_refused ... ok
+test r5_inference_scope_only_for_model_transmission ... ok
+test non_approved_statuses_never_authorise_in_any_lifetime ... ok
+test scope_dimension_order_is_the_table_order ... ok
+test r7_r8_order_before_the_grant_search ... ok
+test r2_destination_rules_per_capability ... ok
+test workflow_revision_grant_without_run_serves_every_run ... ok
+test tie_break_earliest_requested_then_approval_id ... ok
+test r8_already_pending ... ok
+test r7_previously_denied ... ok
+test tie_break_prefers_wider_non_consuming_lifetimes ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p03_fingerprint.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_fingerprint-b9394fab743fc48e)
+
+running 16 tests
+test boundaries_are_unambiguous ... ok
+test digests_are_lowercase_hex_and_distinct ... ok
+test data_category_names_equal_the_serde_names ... ok
+test duplicate_argument_names_are_an_error ... ok
+test capability_names_equal_the_serde_names ... ok
+test error_precedence_is_pinned ... ok
+test duplicates_in_lists_give_the_same_digest ... ok
+test excluded_fields_do_not_change_the_digest ... ok
+test name_parsers_reject_bad_names ... ok
+test lengths_are_bytes_and_empty_values_count ... ok
+test prefix_constant_is_pinned ... ok
+test permuted_lists_give_the_same_digest ... ok
+test sort_order_is_by_encoded_bytes_not_by_text ... ok
+test golden_vectors_match_the_independent_implementation ... ok
+test each_hashed_field_changes_the_digest ... ok
+test argument_value_bound ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p03_fr33.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_fr33-280befeac2332094)
+
+running 3 tests
+test root_foreign_data_dir_is_an_operation_failure ... ok
+test root_foreign_data_dir_maps_to_its_own_dev_error ... ok
+test root_foreign_data_dir_message_is_fixed_and_carries_no_path_or_uid ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p03_request_debug.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c/debug/deps/p03_request_debug-62563d8b6523f4c2)
+
+running 2 tests
+test argument_debug_shows_name_and_length_only ... ok
+test request_debug_never_contains_an_argument_value ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests application
+
+running 2 tests
+test crates/application/src/credential.rs - credential::SessionCredentialStore (line 54) ... ok
+test crates/application/src/credential.rs - credential::SessionCredentialStore (line 70) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test crates/application/src/credential.rs - credential::SessionCredentialStore (line 62) - compile fail ... ok
+test crates/application/src/credential.rs - credential::SessionCredentialStore (line 78) - compile fail ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+all doctests ran in 0.46s; merged doctests compilation took 0.40s
+error: 1 target failed:
+    `-p application --test p03_approvals`

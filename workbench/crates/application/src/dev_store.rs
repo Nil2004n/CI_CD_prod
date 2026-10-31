@@ -367,6 +367,8 @@ pub enum DevError {
     Refused,
     /// A validated document could not be represented as JSON.
     Unrepresentable,
+    /// Running as root against a data directory not owned by root (FR-33).
+    RootForeignDataDir,
 }
 
 impl DevError {
@@ -381,7 +383,8 @@ impl DevError {
             | Self::PreviousInvalid(_)
             | Self::Malformed(_)
             | Self::Refused
-            | Self::Unrepresentable => FailureClass::Operation,
+            | Self::Unrepresentable
+            | Self::RootForeignDataDir => FailureClass::Operation,
         }
     }
 }
@@ -401,6 +404,9 @@ impl std::fmt::Display for DevError {
             Self::Malformed(_) => "the existing store file is malformed",
             Self::Refused => "the operation was refused",
             Self::Unrepresentable => "the document could not be represented as JSON",
+            Self::RootForeignDataDir => {
+                "refusing to use a data directory not owned by root while running as root"
+            }
         };
         f.write_str(text)
     }
@@ -420,6 +426,7 @@ impl From<StoreError> for DevError {
             StoreError::Malformed(kind) => Self::Malformed(kind),
             StoreError::PathRejected => Self::DataDirRejected,
             StoreError::ReportNameCollision => Self::Refused,
+            StoreError::RootForeignDataDir => Self::RootForeignDataDir,
         }
     }
 }

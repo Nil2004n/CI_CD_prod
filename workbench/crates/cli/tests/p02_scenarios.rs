@@ -264,11 +264,20 @@ fn help_lists_every_command() {
         "pwt-workbench-cli store validate --data-dir <dir> [--root <root>]",
         "pwt-workbench-cli store show --data-dir <dir> <root>",
         "pwt-workbench-cli store recover --data-dir <dir> [--restore-previous <root>]",
+        "pwt-workbench-cli approvals list --data-dir <dir>",
+        "pwt-workbench-cli approvals approve <id> --data-dir <dir> [--scope once|workflow]",
+        "pwt-workbench-cli approvals deny <id> --data-dir <dir>",
+        "pwt-workbench-cli approvals revoke <id> --data-dir <dir>",
+        "pwt-workbench-cli credential set --session",
+        "pwt-workbench-cli credential status",
+        "pwt-workbench-cli credential delete",
+        "pwt-workbench-cli dev env-preview <tool> --data-dir <dir>",
+        "pwt-workbench-cli dev permission-check --data-dir <dir>",
     ] {
         assert!(out.contains(usage), "help lacks `{usage}`:\n{out}");
     }
     assert!(out.contains("exit codes: 0 executed"));
-    // JSON form: one line per command, seven commands.
+    // JSON form: one line per command, sixteen commands (seven core, nine added in P03).
     let json_run = bin(&["--json", "help"]);
     assert_eq!(json_run.code, 0);
     let records = json_run.jsonl();
@@ -285,7 +294,16 @@ fn help_lists_every_command() {
             "store init",
             "store validate",
             "store show",
-            "store recover"
+            "store recover",
+            "approvals list",
+            "approvals approve",
+            "approvals deny",
+            "approvals revoke",
+            "credential set",
+            "credential status",
+            "credential delete",
+            "dev env-preview",
+            "dev permission-check"
         ]
     );
     // No arguments at all: a usage error with the usage reminder, and nothing on stdout.
@@ -1111,14 +1129,14 @@ fn defines_test(sources: &[String], name: &str) -> bool {
     })
 }
 
-/// The sources of every `tests/p02_*.rs` file of this crate.
+/// The sources of every `tests/p02_*.rs` and `tests/p03_*.rs` file of this crate.
 fn test_sources() -> Vec<String> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
     let mut sources = Vec::new();
     for entry in std::fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
-        if name.starts_with("p02_") && name.ends_with(".rs") {
+        if (name.starts_with("p02_") || name.starts_with("p03_")) && name.ends_with(".rs") {
             sources.push(std::fs::read_to_string(path).unwrap());
         }
     }
@@ -1126,8 +1144,9 @@ fn test_sources() -> Vec<String> {
 }
 
 /// Fails if a feature-index row names a command that the real parser does not turn into that command, a
-/// command missing from the help table, a scenario that is not a `#[test]` function in `tests/p02_*.rs`, or
-/// a manual-pending row without a reason; and if the checker itself accepts a made-up test name.
+/// command missing from the help table, a scenario that is not a `#[test]` function in `tests/p02_*.rs` or
+/// `tests/p03_*.rs`, or a manual-pending row without a reason; if a command of the help table has no
+/// feature row; and if the checker itself accepts a made-up test name.
 #[test]
 fn feature_index_rows_name_an_existing_command_and_test() {
     let sources = test_sources();
@@ -1142,9 +1161,17 @@ fn feature_index_rows_name_an_existing_command_and_test() {
     assert!(!defines_test(&fake, "helper_only"));
 
     assert!(!cli::features::FEATURES.is_empty());
+    for command in cli::commands::all_commands() {
+        assert!(
+            cli::features::FEATURES
+                .iter()
+                .any(|r| r.command == command.name),
+            "command `{}` has no feature row",
+            command.name
+        );
+    }
     for row in cli::features::FEATURES {
-        let info = cli::commands::COMMANDS
-            .iter()
+        let info = cli::commands::all_commands()
             .find(|c| c.name == row.command)
             .unwrap_or_else(|| {
                 panic!(
@@ -1158,8 +1185,15 @@ fn feature_index_rows_name_an_existing_command_and_test() {
             argv.push(OsString::from("--data-dir"));
             argv.push(OsString::from("/pwt-staleness-check"));
         }
-        if row.command == "store show" {
-            argv.push(OsString::from("log"));
+        // The positional words and flags a command needs to parse at all.
+        match row.command {
+            "store show" => argv.push(OsString::from("log")),
+            "approvals approve" | "approvals deny" | "approvals revoke" => {
+                argv.push(OsString::from("00000000-0000-4000-8000-0000000000aa"));
+            }
+            "credential set" => argv.push(OsString::from("--session")),
+            "dev env-preview" => argv.push(OsString::from("git")),
+            _ => {}
         }
         let parsed = cli::args::parse(argv).unwrap_or_else(|e| {
             panic!(

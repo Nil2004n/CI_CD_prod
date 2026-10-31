@@ -389,6 +389,13 @@ pub(crate) fn needs_escape(c: char) -> bool {
     )
 }
 
+/// Wraps text of a validated store value whose grammar already excludes credentials (for example a
+/// [`crate::store::values::Destination`]: no userinfo, query or fragment), applying the same escaping as
+/// [`sanitise`]. Called only from `store/values.rs` (static rule, `planning/P03-T01-request.md` §5.8).
+pub(crate) fn redact_validated(text: &str) -> RedactedText {
+    RedactedText(escape(text))
+}
+
 /// Builds a [`RedactedText`] from a compile-time literal, applying the same escaping as [`sanitise`].
 ///
 /// Only for compile-time literal, application-authored text containing no secrets or user, child or
