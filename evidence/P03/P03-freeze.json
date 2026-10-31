@@ -1,0 +1,161 @@
+{
+ "phase": "P03",
+ "date": "2026-11-01",
+ "status": "inventory at P03 completion (code = D02 091224b); not adoption or build permission for later phases",
+ "toolchain": {
+  "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+  "pin_method": "direct toolchain binaries + exact 1.97.1 gate in dev/p03_check.py"
+ },
+ "workspace": {
+  "members": [
+   "crates/domain",
+   "crates/application",
+   "crates/repositories",
+   "crates/scanning",
+   "crates/retrieval",
+   "crates/persistence",
+   "crates/terminal-ui",
+   "crates/cli"
+  ],
+  "binary": "pwt-workbench-cli (crates/cli)"
+ },
+ "direct_dependencies": {
+  "serde": {
+   "version": "=1.0.229",
+   "default-features": false,
+   "features": [
+    "std",
+    "derive"
+   ]
+  },
+  "serde_json": {
+   "version": "=1.0.154"
+  },
+  "jsonschema": {
+   "version": "=0.60.1",
+   "default-features": false
+  },
+  "sha2": {
+   "version": "=0.11.1",
+   "default-features": false
+  },
+  "libc": {
+   "version": "=0.2.191",
+   "default-features": false
+  },
+  "domain": {
+   "path": "crates/domain"
+  },
+  "persistence": {
+   "path": "crates/persistence"
+  },
+  "application": {
+   "path": "crates/application"
+  }
+ },
+ "new_dependency_edges_in_p03": [
+  "application -> sha2 (T02; lock edges only, registry set unchanged)"
+ ],
+ "lockfile": {
+  "path": "workbench/Cargo.lock",
+  "sha256": "d4b2efad605c88fc2870ea007475772c0bbb736305b1bf03919a0cb25f470751",
+  "packages_total": 94,
+  "registry_crate_count": 86
+ },
+ "advisory_status": {
+  "tool": "cargo-audit 0.22.2 (binary sha256 3a9bfe66\u2026)",
+  "db": "rustsec advisory-db 2295466c (2026-10-30)",
+  "result": "94 crates, 0 vulnerabilities, 0 warnings (offline, --no-fetch, unshare -rn)",
+  "evidence": "evidence/P03/T12/audit.json",
+  "limitation": "yanked check not run offline; DB not refreshed since 2026-10-30"
+ },
+ "contract_versions": {
+  "store": "1.4",
+  "wrapper_protocol": "1.1",
+  "app_contract": "1.1",
+  "ui_schema": "1.1",
+  "document": "0.3.5",
+  "p03_contract_amendment": "none (no CA-05 for P03; T01-D2). CA-05 in planning is the unrelated, unapplied automatic-analysis draft"
+ },
+ "canonical_schema": {
+  "path": "schemas/workbench-store-v1.4.schema.json",
+  "sha256": "909e2a55c315ca07096f9123e6986b637a83b1bcdfc4eb6ff88d9d06daa80e2e"
+ },
+ "cli": {
+  "commands": [
+   "--version",
+   "help",
+   "features",
+   "store init",
+   "store validate",
+   "store show",
+   "store recover",
+   "approvals list",
+   "approvals approve",
+   "approvals deny",
+   "approvals revoke",
+   "credential set",
+   "credential status",
+   "credential delete",
+   "dev env-preview",
+   "dev permission-check"
+  ],
+  "command_count": 16,
+  "feature_index_rows": 64
+ },
+ "dev_tooling": {
+  "runner": "dev/p03_check.py",
+  "runner_sha256": "9c9d2e6cd2077fc1eab0c66f531ca5d2af1e3327a9144d1a15446760ffca18ce",
+  "floors": {
+   "comment": "Committed regression floors for dev/p03_check.py. Start = P02 floors (866 passed, 39 compile_fail); raised at B0 and after each P03 wave. Never lower without owner approval. B1 (wave 1, 2026-10-31): 998/41. D01 (2026-10-31): 1005/41. B2 (wave 2, 2026-10-31): 1053/41. B3 (wave 3, 2026-10-31): 1126/41. D02 (2026-11-01): 1138/41.",
+   "min_passed": 1138,
+   "min_compile_fail": 41
+  }
+ },
+ "final_verification": {
+  "command": "python3 -I -B dev/p03_check.py all --final --slot lead --out evidence/P03/T12/final",
+  "repo_head": "091224bf7dcda30190f4427d63f1716f619d21bf",
+  "dirty": [
+   "?? .commandcode/",
+   "?? evidence/P03/T12/",
+   "?? workbench/target/"
+  ],
+  "steps": {
+   "env": {},
+   "fmt": {
+    "exit": 0
+   },
+   "clippy": {
+    "exit": 0
+   },
+   "test": {
+    "exit": 0,
+    "counts": {
+     "suites": 54,
+     "passed": 1138,
+     "failed": 0,
+     "ignored": 0,
+     "measured": 0,
+     "filtered_out": 0,
+     "compile_fail_ok": 41
+    }
+   },
+   "build": {
+    "exit": 0
+   },
+   "cli": {
+    "exit": 0,
+    "counts": {
+     "suites": 5,
+     "passed": 101,
+     "failed": 0,
+     "ignored": 0,
+     "measured": 0,
+     "filtered_out": 0
+    }
+   },
+   "static": {}
+  },
+  "overall": true
+ }
+}
