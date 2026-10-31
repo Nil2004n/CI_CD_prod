@@ -1,0 +1,7 @@
+NC-cite exit=1 (expect 1)
+NC-verif exit=1 (expect 1)
+NC-status exit=1 (expect 1)
+NC-observation exit=1 (expect 1)
+NC-second_completed exit=1 (expect 1)
+NC-coverage exit=1 (expect 1)
+NC-rec_untied exit=1 (expect 1)

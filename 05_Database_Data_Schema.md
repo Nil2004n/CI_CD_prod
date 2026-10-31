@@ -4,6 +4,8 @@ Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenR
 
 Version: 0.3.5 (amendments CA-01, CA-02, CA-03, CA-04; store contract 1.4, wrapper protocol 1.1, app contract 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed implementation contract
 
+Change record 2026-10-31 (proposed, not implemented): **CA-05 automatic LLM evidence analysis** (PRD ANL-01–ANL-12; change contract `planning/CA-05-automatic-evidence-analysis.md`). Sections marked "CA-05" describe proposed behaviour pending owner approval; current contract versions above are unchanged until CA-05 is applied.
+
 ## 1. Storage decision
 
 The initial “database” is an application-owned JSON document store. A SQL server, SQLite file or vector database is not assumed or required. This preserves the agreed `log.json` and backup-report design. If scale later requires a transactional/indexed backend, treat that as a migration decision; keep the public report format stable.
@@ -21,7 +23,8 @@ The JSON Schema below uses Draft 2020-12, a published JSON Schema dialect. [web:
 | `log.json` | LogFile | Run summaries, sanitised events, report manifests |
 | `suppressions.json` | SuppressionFile | Reserved: justified finding suppressions (RES-06 deferred; not written by the pilot) |
 | `backup/<timestamp>_<repo-slug>_<run-id>.json` | ReportFile | Immutable per-repository assessment snapshot |
-| Matching `.md` report | Derived text | Deterministic evidence with optional labelled AI narrative |
+| Matching `.md` report | Derived text | Deterministic evidence; under CA-05 (proposed) the combined report also renders the validated analysis or an analysis-stage notice, labelled by origin |
+| `analysis/<timestamp>_<repo-slug>_<run-id>_a<version>-t<attempt>.json` | AnalysisFile (proposed store 1.5, CA-05 §26; not in the 1.4 schema) | Immutable record of one attempt of one logical automatic evidence analysis |
 | Matching `.pdf` report | Derived binary | Restricted local conversion; independent export result |
 | `tools.json` | ToolManifestFile | Versioned adapter/tool availability, pinned contracts and licensing metadata |
 | `rag/index.json` | RagIndexFile | Sanitised retrievable chunks and provenance |
@@ -51,7 +54,12 @@ erDiagram
   CONVERSATION ||--o{ MESSAGE : contains
   MESSAGE }o--o{ SOURCE_REF : cites
   SUPPRESSION }o--o{ FINDING : reviews
+  REPORT ||--o{ ANALYSIS : analysed_by_versions
+  ANALYSIS }o--o{ FINDING : cites
+  ANALYSIS }o--o{ SOURCE_REF : cites
 ```
+
+`ANALYSIS` is proposed by CA-05 (§26) and is not part of store 1.4.
 
 Relationships are logical and frequently embedded, not SQL foreign keys. Ad-hoc runs have no workflow. Reports remain interpretable if a repository/workflow is later removed because they retain frozen plan/provenance. The schema permits historical IDs without requiring current registration to exist.
 
@@ -85,6 +93,7 @@ Relationships are logical and frequently embedded, not SQL foreign keys. Ad-hoc 
 | Chunk | chunk_id | Redacted text plus exact provenance and optional embedding reference |
 | Conversation | conversation_id | Explicit context and optional persisted sanitised messages |
 | Suppression | suppression_id | Rule/fingerprint scope, rationale, actor and optional expiry |
+| Analysis (proposed, CA-05) | analysis_id (logical analysis, `analysis_version` per report); record_id + attempt_seq per attempt | Logical analysis with one or more immutable attempt records: evidence snapshot digest/manifest and AI evidence coverage, provider/model, versions, provider requests, usage when reported, validation, origin-labelled cited content |
 
 ## 6. Status and counting semantics
 
@@ -93,6 +102,11 @@ Run execution: queued, awaiting_approval, running, cancelling, completed, partia
 Check outcome: pending, running, passed, findings, failed, unsupported, skipped, incomplete, cancelled.
 
 Assessment: findings, no_findings, unknown. Coverage: complete, partial, none.
+
+Proposed by CA-05 (§26, not in store 1.4): attempt status `pending`, `awaiting_approval`, `running`, `validating` (non-terminal, log manifest only), `completed`, `blocked`, `failed`, `cancelled`, `interrupted`, `not_performed` (terminal, written as records). AI evidence coverage `complete`, `partial`, `none`. Workflow completion `in_progress`, `complete`, `incomplete` with `incomplete_stages` ⊆ {scanner, analysis, report}.
+
+- Four separate dimensions: workflow completion (stages), scanner coverage (`Coverage`), AI evidence coverage and finding presence (`Assessment`). None implies another and none is derived from another; no combined clean/secure value exists.
+- Completion describes stages, not security: `complete` can coexist with critical findings, partial scanner coverage or partial AI evidence coverage; a blocked or failed analysis makes the workflow `incomplete` while its scanner evidence stays valid.
 
 - `completed` does not mean clean. A completed assessment may contain critical findings.
 - `assessment=no_findings` only describes available evidence; the UI must qualify it if coverage is partial/none.
@@ -3817,6 +3831,8 @@ Proposed pattern: `YYYYMMDDTHHMMSSZ_repo-slug_run-id.json` and matching `.md` an
 
 ## 14. RAG index policy
 
+(CA-05, proposed) Saved analysis records may be indexed as chunks with `SourceRef.kind = ai_analysis`: secondary, AI-generated material, isolated per repository like other chunks, never cited by chat as scanner evidence.
+
 Initial retrieval may use a local lexical index over stored sanitised chunks. `embedding_key` remains null unless an approved embedding backend is configured. A vector database is not mandated by “RAG.” Any later embedding store must use the same source/context/redaction/version constraints.
 
 Derived chunks can be rebuilt. Source files remain in checkouts and are not copied verbatim into logs. Deleting a repo offers explicit choices for checkout deletion, derived index purge and report retention; deregistration is not a destructive-delete side effect.
@@ -3850,7 +3866,7 @@ This document is v0.3.5; machine store schema is v1.4; wrapper control protocol 
 | Check extension | Adapter/config/manifest provenance, actual native outcome/exit and approval IDs |
 | Provider / ProviderPolicy | OpenRouter BYOK mode/reference, explicit model and privacy constraints |
 | InferenceScope / Approval | Model/routing/source/redaction scope tied to actual permission |
-| AIEnrichment | Optional narrative status, requested/actual provider/model metadata, citations, approval IDs and redacted content |
+| AIEnrichment | Optional narrative status, requested/actual provider/model metadata, citations, approval IDs and redacted content. **Superseded by CA-05 (proposed):** removed from `ReportFile` in store 1.5; retained only for the 1.4 reader |
 | ReportManifest extension | PDF path, written flag, digest, error and renderer version independently of JSON/Markdown |
 
 Tool manifests are application-owned validated configuration, not executable repository-supplied configuration. Command/parser policy IDs resolve only to built-in reviewed implementations. Editing a string in tools.json must not create an arbitrary command. Declared metadata is not proof an executable is trusted or licensed; verify against the release manifest/binary identity at preflight.
@@ -3872,7 +3888,7 @@ Root schema `oneOf` covers store files. WrapperRequest and WrapperControl are `$
 10. Model-transmission grants require matching inference scope; all other grants use null inference scope. Relevant model/provider/privacy/context changes cannot reuse mismatched approvals.
 11. Initial privacy policy denies collection, requires ZDR and disables fallback; all three are schema constants (`allow_fallbacks` `const false` since CA-01) and are also enforced when the request is built. Empty provider allowlist means omit `only` in the provider API; no eligible endpoint fails closed. No silent policy/model change.
 12. AI non-completion has empty narrative and explicit status/reason. Completed narrative cites eligible source IDs. Actual provider/model may remain null if not returned; never infer them.
-13. AI narrative is not an engine-confirmed finding. Evidence, summary and coverage cannot be silently rewritten by a model. New narration creates a versioned/new report.
+13. AI narrative is not an engine-confirmed finding. Evidence, summary and coverage cannot be silently rewritten by a model. New narration creates a versioned/new report. (Rules 12–13 apply to the 1.4 `AIEnrichment` field; CA-05 replaces them for store 1.5 with rules D26-01–D26-10, §26.)
 14. `pdf_written=true` requires verified nonempty output, valid path/digest and no unresolved conversion error; no remote assets/active code/unrestricted local file reads during conversion. JSON/MD remain available on PDF error.
 15. Tool/license list is provisional until exact-version review. GPL/MIT/Apache summaries do not audit transitive libraries or automatically authorise bundling. Docker Desktop and vendor-hosted services are separate entitlements.
 16. Style and workflow-validation categories distinguish lint/correctness from security. Rendering outcome is not semantic/security success. CVEs in images link to resolved artifact identity and data freshness.
@@ -3888,6 +3904,7 @@ Root schema `oneOf` covers store files. WrapperRequest and WrapperControl are `$
 - Derive new manifests only from inspected/pinned tool data; never populate fake current versions.
 - PDF metadata defaults to not written/null; no prior renderer/version is invented.
 - AI metadata for old evidence is unavailable/not requested unless supported by records; do not guess historical model/provider use.
+- 1.4 → 1.5 (CA-05, proposed, not applied): see §26. No automatic migration; 1.4 reports stay readable under the 1.4 reader. A 1.4 `ai_enrichment` with status `completed` is a legacy narrative "not validated under CA-05"; other 1.4 statuses mean absent AI content; neither is counted as a CA-05 analysis, certified or deleted.
 - Missing target/engine snapshots are unavailable evidence, not reconstructed from today's repo. Preserve old accepted/signed reports read-only with their schema reader where necessary.
 - Existing non-OpenRouter provider settings need owner review rather than automatic disclosure to a different endpoint.
 - After migration validate shape, references, timestamps, selection/approval bindings and report consistency. Interrupted/incomplete stores reconcile without turning pending decisions into grants.
@@ -4039,3 +4056,174 @@ Date: 2026-10-27. Authority: owner approval of P02-T03 (`planning/P02-T03-CA-04-
 | Developer CLI | Second presentation adapter (Architecture §3/§4, Technical Specification §4, UI Schema §17); `dev` commands excluded from release builds unless decided at P20 |
 
 Version handling: app contract 1.0 → **1.1** (additive envelope fields on the serialised event; no command or event removed or renamed). Store contract stays **1.4**: the store `Event` definition already carries `event_id`, `at`, `level`, `event_type`, the five optional IDs, `message_redacted` and `code`; CA-04 defines how application events fill it. Wrapper protocol 1.1 and UI schema 1.1 unchanged; canonical store schema file unchanged. Document 0.3.4 → 0.3.5. No data was stored under app contract 1.0 (no persistence code before P02), so no migration applies.
+
+## 26. Proposed contract amendment CA-05 (automatic LLM evidence analysis) — DRAFT, not applied
+
+Date: 2026-10-31, revision 2. Authority: owner requirement of 2026-10-31; **design direction accepted with qualifications on 2026-10-31 — not implementation or release acceptance; canonical schema/application changes not authorised.** The canonical store schema stays `schemas/workbench-store-v1.4.schema.json` (unchanged); app contract stays 1.1 and UI schema 1.1 until a later owner-approved lead contract task applies CA-05, which must precede dependent implementation. Change contract: `planning/CA-05-automatic-evidence-analysis.md` r2. CA-01–CA-04 are unchanged.
+
+Draft files (documentation-owned; the illustrative examples are not real records and were produced by no implementation):
+- `planning/CA-05-draft/generate_draft.py` — generates both files below.
+- `planning/CA-05-draft/store-1.5-analysis-defs.draft.schema.json` — 15 new `$defs` plus a list of changes to existing definitions.
+- `planning/CA-05-draft/examples.illustrative.json` — one logical analysis with an interrupted attempt 1 and a completed attempt 2 (explicit retry), a blocked analysis of another report, and run-summary fragments.
+- Offline checks: `python3 -I -B evidence/CA-05-docs/check_draft.py` and negative controls (`evidence/CA-05-docs/record.md`).
+
+| Item | Proposed change |
+|---|---|
+| `AnalysisFile` (new root, `store_type="analysis"`) | One immutable record per **attempt**: `record_id`, `analysis_id` (logical analysis), `analysis_version` (per report), `attempt_seq`, `supersedes_analysis_id`, `trigger` (`automatic`/`explicit_retry`/`explicit_reanalysis`), `run_id`, `repo_id`, `report_id`, `report_json_digest`, `commit_oid`, terminal `status`, `reason_code`, `reason_redacted`, `idempotency_key`, `evidence_snapshot` (digest, packet format version, finding/check/source IDs, eligible and included counts, excerpt and packet bytes, exclusions with reasons), `ai_evidence_coverage`, `data_categories`, `approval_ids`, `inference_scope`, provider/model requested and actual, `routing_policy`, prompt-template/analysis-schema/redaction versions, `started_at`, `finished_at`, `provider_requests[]` (≤ 4: initial, transport retries, repair), `usage` (provider-reported or `not_reported`), `validation` (outcome, rejected items by reason), `content` (null unless `completed`) |
+| `AnalysisContent` | origin `ai_interpretation`: `evidence_sufficiency`, cited `summary`, `interpretations`, `recommendations` (priority, rationale, linked findings/checks, remediation, verification steps, `verification_status` const `not_executed`), `limitations`, `uncertainties` (`open_question`/`ambiguous_evidence`/`missing_context`). `observations` (origin `ai_observation`) is reserved and must be empty in the pilot (`maxItems: 0`): independent AI-only findings are out of the pilot |
+| `AnalysisManifest` (in `RunSummary.analyses[]`) | One per logical analysis: version, supersedes link, current status incl. non-terminal, reason, `attempts[]` (attempt, record ID, status, path, digest), `completed_record_id` |
+| `RunSummary` | adds `analyses[]` and `completion` (`AssessmentCompletion`) |
+| `ReportFile` | `schema_version` 1.5; `ai_enrichment` removed (the scanner evidence report carries no AI content and is never modified by analysis) |
+| `ReportManifest` | adds `export_revision`, `analysis_id`, `analysis_record_id`, `analysis_version`, `analysis_status_at_render` |
+| `SourceRef.kind` | adds `ai_analysis` |
+| `Config` | adds `analysis` (`AnalysisSettings`: snapshot/excerpt bytes, output tokens, response bytes, timeouts, retries ≤ 2, repair ≤ 1, per-run caps, optional reported-cost cap; schema guard rails only — proposed values in `planning/CA-05-decision-proposals.md` §1, not ratified) |
+| App contract 1.1 → 1.2 | commands `ReanalyseReport` (retry or re-analysis), `CancelAnalysis`; events `AnalysisStateChanged`, `AnalysisFinished`; `GenerateReportNarrative` withdrawn (Architecture §6) |
+| UI schema 1.1 → 1.2 | `analysis` scan tab, status-bar analysis/completion fields, separate scanner-coverage and AI-evidence-coverage labels (UI Schema §5, §7) |
+
+Proposed semantic rules (runtime, in addition to §11/§18; numbered D26-xx like D11-/D18-):
+- D26-01 An `AnalysisFile` holds a terminal status only; non-terminal states exist only in the run log manifest.
+- D26-02 `content` is non-null if and only if `status = completed`.
+- D26-03 A non-completed record has a `reason_code`; a completed record has none.
+- D26-04 Every citation and every `finding_ids`/`check_ids` entry resolves to an ID in the record's own `evidence_snapshot`; all snapshot IDs belong to the record's report and repository.
+- D26-05 A completed summary, and every interpretation, recommendation and limitation, has at least one citation; an uncertainty may have none only when it describes missing context.
+- D26-06 Non-empty `data_categories` require a non-null `inference_scope` matching a valid `model_transmission` grant listed in `approval_ids`.
+- D26-07 Within one `analysis_id`: `attempt_seq` values are contiguous from 1; report, version and idempotency key are the same in every attempt; at most one attempt is `completed` and no attempt follows it; the manifest lists exactly these records and names the completed one. A new logical analysis of the same report has `analysis_version` = previous + 1 and `supersedes_analysis_id` = previous. `report_json_digest` equals the report manifest's `json_digest`.
+- D26-08 No field contains an API key, raw secret, raw prompt or raw provider response; `usage` comes only from the provider or is null.
+- D26-09 `RunSummary.completion.state = complete` only if every report of the run has an authoritative completed analysis (the completed attempt of its highest completed version), scanner execution is terminal (`completed`/`partial`) and every JSON report is written; otherwise `incomplete` with the failing stages listed (or `in_progress`).
+- D26-10 Staleness is derived at read time (commit, engine/rule/schema versions, redaction version, model, prompt template, analysis-schema version) and never written back into a record.
+- D26-11 `ai_evidence_coverage` is `none` unless `status = completed`; for a completed attempt it is `complete` only when there are no exclusions and included counts equal eligible counts, otherwise `partial`. It is independent of scanner coverage.
+- D26-12 Every recommendation references at least one finding or check; `observations` is empty (pilot); validator rejections for AI-only findings are counted as `ai_only_finding_out_of_scope`.
+
+Historical records and migration (proposed): store `schema_version` 1.4 → **1.5** for all store roots (`RunSummary`, `ReportFile`, `ReportManifest` change shape). New required fields have no truthful value for 1.4 runs, so 1.4 records are **not** relabelled 1.5; they stay readable, read-only, by the 1.4 reader. Readers present three classes: a validated CA-05 analysis (1.5 completed attempt), a **legacy AI narrative** (1.4 `ai_enrichment.status = completed`, shown as "not validated under CA-05", never counted as an analysis or toward workflow completion), and **absent AI content** (other 1.4 statuses, or no completed attempt). No retroactive certification, no deletion. Any conversion of stored 1.4 data needs a separate owner-approved migration; none is run by this change. At the time of writing no user assessment data exists and no implementation has produced `ai_enrichment` content.
+
+Illustrative example (blocked attempt of another report's analysis):
+
+```json
+{
+  "schema_version": "1.5",
+  "store_type": "analysis",
+  "run_id": "00000000-0000-4000-8000-000000000002",
+  "repo_id": "00000000-0000-4000-8000-000000000003",
+  "report_id": "00000000-0000-4000-8000-000000000004",
+  "report_json_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "commit_oid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "prompt_template_version": "analysis-template-0.1-illustrative",
+  "analysis_schema_version": "analysis-output-0.1-illustrative",
+  "redaction_version": "redaction-0.1-illustrative",
+  "updated_at": "2026-11-02T10:01:00Z",
+  "record_id": "00000000-0000-4000-8000-000000000033",
+  "analysis_id": "00000000-0000-4000-8000-000000000012",
+  "analysis_version": 1,
+  "attempt_seq": 1,
+  "supersedes_analysis_id": null,
+  "trigger": "automatic",
+  "status": "blocked",
+  "reason_code": "approval_denied",
+  "reason_redacted": "Model transmission was denied for this scope.",
+  "idempotency_key": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "evidence_snapshot": {
+    "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "packet_format_version": "evidence-packet-0.1-illustrative",
+    "finding_ids": [
+      "00000000-0000-4000-8000-000000000101",
+      "00000000-0000-4000-8000-000000000102"
+    ],
+    "check_ids": [
+      "00000000-0000-4000-8000-000000000201",
+      "00000000-0000-4000-8000-000000000202",
+      "00000000-0000-4000-8000-000000000203"
+    ],
+    "source_ids": [
+      "00000000-0000-4000-8000-000000000301"
+    ],
+    "eligible": {
+      "findings": 2,
+      "checks": 3,
+      "coverage_gaps": 1,
+      "execution_failures": 0,
+      "excerpts": 2
+    },
+    "included": {
+      "findings": 2,
+      "checks": 3,
+      "coverage_gaps": 1,
+      "execution_failures": 0,
+      "excerpts": 1
+    },
+    "excerpt_bytes": 640,
+    "packet_bytes": 5120,
+    "exclusions": []
+  },
+  "ai_evidence_coverage": "none",
+  "data_categories": [],
+  "approval_ids": [
+    "00000000-0000-4000-8000-000000000022"
+  ],
+  "inference_scope": null,
+  "provider_id": "openrouter",
+  "requested_model": "owner-supplied-model-id",
+  "actual_model": null,
+  "actual_provider": null,
+  "routing_policy": {
+    "data_collection": "deny",
+    "zdr": true,
+    "allow_fallbacks": false,
+    "only": []
+  },
+  "started_at": null,
+  "finished_at": "2026-11-02T10:01:00Z",
+  "provider_requests": [],
+  "usage": {
+    "source": "not_reported",
+    "input_tokens": null,
+    "output_tokens": null,
+    "reported_cost": null,
+    "reported_cost_unit": null
+  },
+  "validation": {
+    "outcome": "not_run",
+    "rejected_items": []
+  },
+  "content": null
+}
+```
+
+Illustrative run-summary fragment (one logical analysis: attempt 1 interrupted, attempt 2 completed after explicit retry; both attempt records are in the draft examples file):
+
+```json
+{
+  "analyses": [
+    {
+      "analysis_id": "00000000-0000-4000-8000-000000000011",
+      "report_id": "00000000-0000-4000-8000-000000000004",
+      "repo_id": "00000000-0000-4000-8000-000000000003",
+      "analysis_version": 1,
+      "supersedes_analysis_id": null,
+      "status": "completed",
+      "reason_code": null,
+      "attempts": [
+        {
+          "attempt_seq": 1,
+          "record_id": "00000000-0000-4000-8000-000000000031",
+          "status": "interrupted",
+          "record_path": "analysis/20261102T100600Z_example-repo_00000000-0000-4000-8000-000000000002_a1-t1.json",
+          "record_digest": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "attempt_seq": 2,
+          "record_id": "00000000-0000-4000-8000-000000000032",
+          "status": "completed",
+          "record_path": "analysis/20261102T110040Z_example-repo_00000000-0000-4000-8000-000000000002_a1-t2.json",
+          "record_digest": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "completed_record_id": "00000000-0000-4000-8000-000000000032",
+      "updated_at": "2026-11-02T11:00:40Z"
+    }
+  ],
+  "completion": {
+    "state": "complete",
+    "incomplete_stages": []
+  }
+}
+```

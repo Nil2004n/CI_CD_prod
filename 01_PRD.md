@@ -3,6 +3,8 @@
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
 Version: 0.3.5 (amendments CA-01, CA-02, CA-03, CA-04; store contract 1.4, wrapper protocol 1.1, app contract 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Review-ready draft
+
+Change record 2026-10-31 (proposed, not implemented): **CA-05 automatic LLM evidence analysis** — owner requirement that the configured LLM analyses assessment evidence automatically as a required workflow stage, separate from optional interactive chat. New requirements ANL-01–ANL-12 (§6), amended goal 6, RES-02, RES-07, RAG-06, KEY-01, journeys, §8, §9, §15, §16. Shared change contract: `planning/CA-05-automatic-evidence-analysis.md`. Earlier text and approvals are not reinterpreted; the requirement is pending owner review of CA-05 and its open decisions. Update 2026-10-31 (r2): the owner accepted the CA-05 design direction with qualifications (not implementation or release acceptance) — automatic analysis required in the pilot, chat separate, independent AI-only findings and cross-repository analysis out of the pilot, Q-02 superseded; limits (O-AN-2) and quality evaluation (O-AN-6) remain open proposals.
 Owner: PWT | Working product name: PWT YAML Security Workbench
 
 ## 1. Document status and decision rules
@@ -18,7 +20,9 @@ Companion documents: Technical Specification, Architecture, UI Schema, and Datab
 
 ## 2. Product summary
 
-A locally installed, cross-platform terminal application that registers Git repositories, discovers all `.yaml` and `.yml` files, lets users select multiple repositories and files, and assesses them for security weaknesses, misconfigurations, exposed secrets, syntax problems, and schema errors. It supports named reusable workflows, automation while the application is open, structured reports, and a source-grounded RAG assistant embedded in the terminal UI.
+A locally installed, cross-platform terminal application that registers Git repositories, discovers all `.yaml` and `.yml` files, lets users select multiple repositories and files, and assesses them for security weaknesses, misconfigurations, exposed secrets, syntax problems, and schema errors. It supports named reusable workflows, automation while the application is open, structured reports, **automatic evidence-grounded LLM analysis** of each assessment's sanitised evidence (CA-05), and an optional source-grounded interactive RAG chat embedded in the terminal UI.
+
+Short description: *a configuration-security workbench combining established checks, automatic evidence-grounded LLM analysis and interactive RAG investigation.* This describes intended capability; it is not a claim of detection accuracy, superiority, production readiness or customer value, none of which has been measured.
 
 The product is an advisory assessment tool. It does not automatically fix configurations, commit, push, deploy, execute repository workflows, or operate as a background service.
 
@@ -47,7 +51,7 @@ The initial product is a single-user local application. Shared tenancy, central 
 3. Reuse scan selections and settings across multiple named workflows.
 4. Preserve accurate coverage and failure information.
 5. Protect repository content and secret values during scanning, reporting, and AI assistance.
-6. Help users understand results through grounded chat without making chat mandatory for normal operations.
+6. Analyse each assessment's sanitised evidence automatically with the configured LLM (ANL-01–ANL-12) and present the validated, cited analysis beside — never instead of — scanner evidence. Interactive chat stays optional and is not needed for the analysis to happen. (Amended 2026-10-31, CA-05; previously "help users understand results through grounded chat without making chat mandatory".)
 
 ### Non-goals
 
@@ -75,6 +79,7 @@ The initial product is a single-user local application. Shared tenancy, central 
 | Repository script | Agreed (D-03) | Rust reads `repo.json` and invokes Git directly; native Rust process adapters are the pilot baseline; `.sh` wrappers are optional parity extension X6 |
 | Storage | Agreed | `log.json`; dated JSON/Markdown/PDF under `backup` |
 | LLM runtime | Agreed | OpenRouter BYOK; no bundled shared key or PWT inference server |
+| Automatic evidence analysis | Agreed requirement (owner, 2026-10-31), design proposed (CA-05) | Required workflow stage after scanning (ANL-01–ANL-12); interactive chat stays a separate optional interface |
 | Development | Agreed | Opus 5.5 orchestrator/test executor, Sonnet 5.5 workers, Haiku documentation, human gates |
 | Platform versions | Partly agreed (D-02) | Linux x86_64 is the first pilot target; Windows/macOS are explicit extensions (X5), not verified or supported until their acceptance matrix passes; exact distribution/terminal matrix remains open |
 
@@ -133,13 +138,30 @@ The initial product is a single-user local application. Shared tenancy, central 
 | ID | Requirement | Acceptance evidence |
 |---|---|---|
 | RES-01 | Show severity, category, rule, tool/version, repository/commit, file/line where available, redacted evidence, explanation and suggestions. | Finding is traceable to source and engine. |
-| RES-02 | Distinguish execution completion from finding presence and coverage completeness. | A completed scan can have findings; incomplete scan never appears clean. |
+| RES-02 | Distinguish execution completion from finding presence and coverage completeness. Since CA-05 four dimensions are kept separate: workflow completion (scanner, analysis and report stages all succeeded), scanner coverage, AI evidence coverage and finding presence; none implies another. | A completed scan can have findings; incomplete scan never appears clean; a blocked analysis leaves the workflow `incomplete` with scanner coverage unchanged. |
 | RES-03 | Persist activity/run history in `log.json`. | Restart retains events and final run summaries. |
 | RES-04 | Save per-repo JSON, Markdown and locally generated PDF reports in `backup`, with timestamp/repo/run identifiers preventing collisions. | Two same-day runs create distinct files. |
 | RES-05 | Retain completed partial evidence when one repository or task fails. | Partial report lists missing coverage and failure reasons. |
 | RES-06 | Proposed: allow justified suppression and baseline comparison without modifying repository files. | Suppression reason/expiry retained; raw finding count stays inspectable. |
 
-### RAG assistant
+### Automatic evidence analysis (CA-05; design direction accepted with qualifications 2026-10-31, not implemented; detail and acceptance cases AC-01–AC-18 in `planning/CA-05-automatic-evidence-analysis.md`)
+
+| ID | Requirement | Acceptance evidence |
+|---|---|---|
+| ANL-01 | Start one logical evidence analysis automatically per finalised per-repository evidence report once its evidence snapshot is final and scope, redaction and provider permissions are valid; no chat or manual "analyse" action. | Authorised workflow analyses without the chat panel ever opening. |
+| ANL-02 | Analyse only an immutable, bounded, sanitised evidence snapshot (findings, check outcomes and failures, coverage gaps, suppression information when available, approved redacted excerpts, tool/rule/schema versions and freshness, local approved documentation). No whole-repository upload, independent source scanning, workflow execution, changes or live verification. | Payload contains only snapshot items; seeded secret absent. |
+| ANL-03 | Unit = one repository's report in one run; run summary aggregates states deterministically; no cross-repository model context. | Two repositories give two isolated snapshots. |
+| ANL-04 | Structured, cited output: evidence sufficiency, summary, interpretations, prioritised recommendations with reasons tied to findings or checks, remediation and verification steps marked not executed, limitations, and explicit uncertainty (open questions, ambiguous evidence, missing context). | Output validates against the analysis schema. |
+| ANL-05 | Scanner findings, AI interpretations and coverage gaps/failures stay separate; the model cannot change outcomes, severities or coverage, claim tests ran, invent citations, mark items resolved, present calibrated confidence or (pilot) present an unsupported new finding as a confirmed result. Cited interpretation, recommendations and uncertainty stay in scope. | Mock outputs attempting these are rejected; cited interpretation is accepted. |
+| ANL-06 | Validate schema and every citation before the stage completes; reject unsupported items visibly; at most one repair attempt. | Fabricated citation is rejected and counted. |
+| ANL-07 | Persist every attempt as an immutable, attributable record linked to run/repository/report and its digest, with provider, versions, timestamps, provider requests, usage when reported and sanitised reasons; the scanner evidence report is never modified; no key, raw secret or raw prompt/response. | Record validates; seeded-secret sweep passes. |
+| ANL-08 | Honest attempt states (`blocked`, `failed`, `cancelled`, `interrupted`, `not_performed`) and reasons; scanner evidence and reports stay available; workflow completion is `incomplete` while a report has no authoritative analysis. | Provider outage leaves findings and JSON report intact, no success badge. |
+| ANL-09 | Explicit snapshot/token/timeout/retry/per-run limits (values: O-AN-2 proposal, not ratified); application-owned retries only when no generation happened; no fallback; idempotency limits duplicate calls; no exactly-once execution or billing claimed. | Request counts never exceed limits. |
+| ANL-10 | Reuse only exact-scope valid `model_transmission` grants; pause at a new disclosure/provider/model/scope boundary. | Changed model prompts for approval. |
+| ANL-11 | One logical analysis may have several attributable attempts; only the first starts automatically; explicit retry adds an attempt, explicit re-analysis a new version; the authoritative result is the completed attempt of the highest completed version; interrupted work is recorded, never replayed; staleness is derived at read time. | Failed v2 leaves v1 authoritative; crash yields an `interrupted` record. |
+| ANL-12 | Historical records: a legacy 1.4 `ai_enrichment` narrative, absent AI content and a validated CA-05 analysis are shown as three different classes; no retroactive certification, no deletion. | Legacy narrative is labelled "not validated under CA-05" and not counted. |
+
+### RAG assistant (interactive chat; optional)
 
 | ID | Requirement | Acceptance evidence |
 |---|---|---|
@@ -148,7 +170,8 @@ The initial product is a single-user local application. Shared tenancy, central 
 | RAG-03 | Distinguish scanner-confirmed findings from interpretation/suggestions; acknowledge missing context. | Failed checks are not described as passed. |
 | RAG-04 | Apply secret redaction before indexing, logging or provider transmission; obtain scope-specific approval for external data sharing. | Seeded secrets absent from model payload/index/logs. |
 | RAG-05 | Treat retrieved instructions as untrusted content; no model-driven command execution, file editing or approval bypass. | Malicious YAML comments cannot trigger tools/actions. |
-| RAG-06 | Keep scanning usable when provider/embedding services fail or approval is denied. | Non-chat functions remain operational. |
+| RAG-06 | Keep scanning usable when provider/embedding services fail or approval is denied. Since CA-05 the same failure also stops the automatic analysis stage, which is then reported as `blocked`/`failed` (ANL-08), not hidden. | Non-chat functions remain operational; analysis stage state is shown. |
+| RAG-08 | (CA-05) Chat can explain the saved automatic analysis, navigate its cited findings/files, answer follow-up questions, discuss coverage gaps and compare compatible historical assessments where supported; it is never the only route by which evidence analysis occurs. The saved analysis is retrieved as AI-generated secondary material, not as scanner evidence. | Analysis exists without chat; chat answers label analysis-derived content as AI-generated. |
 | RAG-07 | Track repository/commit/run context and identify stale sources; exclude unrelated repositories unless explicitly included. | Cross-repo leakage test passes. |
 
 ### UI requirements
@@ -165,7 +188,7 @@ UI-04: Proposed: collapsible/expandable panels, draggable splits where supported
 
 ### Manual assessment
 
-Add URL -> approve acquisition/network scope -> clone/update -> discover -> select repositories/files -> choose checks -> review scan plan -> approve required capabilities -> execute -> inspect coverage/findings -> ask contextual questions -> view saved reports.
+Add URL -> approve acquisition/network scope -> clone/update -> discover -> select repositories/files -> choose checks -> review scan plan -> approve required capabilities -> execute -> automatic evidence analysis of each repository's sanitised evidence (approval requested once if the scope needs it) -> inspect coverage/findings and the cited AI analysis, with stage states -> optionally ask contextual questions in chat -> view saved reports. (Analysis step added 2026-10-31, CA-05.)
 
 ### Reusable automation
 
@@ -173,7 +196,7 @@ Select repos/files -> save named workflow -> configure schedule and permissions 
 
 ### Investigation
 
-Select finding -> inspect evidence -> open “Ask about this finding” -> view grounded explanation -> copy suggested changes manually if desired. No apply-fix operation exists.
+Select finding -> inspect scanner evidence and the related automatic analysis items -> optionally open “Ask about this finding” -> view grounded explanation -> copy suggested changes manually if desired. No apply-fix operation exists.
 
 ## 8. Safety and privacy requirements
 
@@ -183,6 +206,7 @@ Select finding -> inspect evidence -> open “Ask about this finding” -> view 
 - External access approval names capability, destinations/constraints, data categories, purpose and lifetime.
 - Do not send detected raw secrets to a model, report, telemetry system or live secret-validation service.
 - Redaction is best-effort and must not be advertised as a guarantee of complete de-identification.
+- Automatic evidence analysis (CA-05) sends the approved, redacted evidence snapshot to OpenRouter and the selected downstream provider during the normal workflow. BYOK means the user's own key, not on-device inference. The approval names the data categories; analysis never runs on an inferred or broadened scope, and API-key values are never persisted.
 - No hidden telemetry. OpenRouter and its downstream provider process approved external context; private-context privacy constraints and local retention must be explicit. BYOK does not mean offline or universal zero retention.
 
 ## 9. Release gates and measurable acceptance
@@ -196,6 +220,7 @@ The first release is not accepted until:
 5. Multi-repo workflows, mouse/keyboard selection and resize/cancellation paths work end-to-end.
 6. Report fields and coverage summaries agree with JSON schemas and UI counts.
 7. Performance is benchmarked on agreed hardware, repository sizes and concurrency; no unsupported timing promise is made here.
+8. (CA-05) Automatic evidence analysis passes its deterministic contract/security acceptance cases (AC-01–AC-18, mock HTTP) and a separate model-quality evaluation on a reviewed corpus with an agreed rubric and thresholds (O-AN-6); real-provider behaviour is verified only under a separately approved real-API check.
 
 ## 10. Proposed delivery slices
 
@@ -204,7 +229,7 @@ The first release is not accepted until:
 | Foundation | TUI shell, managed checkouts, inventory, selection, safe persistence |
 | Assessment | Syntax/schema/secrets/security adapters, normalised findings, reports |
 | Workflows | Multiple saved workflows, in-app scheduling, approvals, interruptions |
-| Assistant | Redacted contextual retrieval, model integration, citations, focus mode |
+| Assistant | Automatic evidence analysis (CA-05) and its validation/persistence; redacted contextual retrieval, model integration, citations, focus mode for chat |
 | Hardening | Approved platform/check matrix, cancellation, recovery, packaging and benchmarks |
 
 These slices are sequencing guidance, not dates. Estimate only after dependency and team review.
@@ -221,6 +246,7 @@ These slices are sequencing guidance, not dates. Estimate only after dependency 
 | O-06 | Retention limits, schedules, history mode and resource defaults | Product + engineering |
 | O-07 | Cross-platform replacement of mandatory `repo_ext.sh` | Engineering lead |
 | O-08 | Coverage/performance/quality targets and scanner license review | Security + QA |
+| O-09 | Automatic evidence analysis: O-AN-1, -3, -4, -7 decided 2026-10-31 (pilot, AI-only findings out, cross-repo out, Q-02 superseded); O-AN-5 ordering fixed, execution unapproved; O-AN-2 limits and O-AN-6 evaluation open (`planning/CA-05-decision-proposals.md`); real-API evaluation unapproved | Owner |
 
 Resolution status (owner decisions 2026-10-23, recorded in `plan.md`): O-01 resolved by D-01 (Rust). O-02 partly resolved by D-02 (Linux x86_64 first). O-04 partly resolved by D-06 (minimal BYOK assistant stays in the pilot; the owner supplies the production model ID, which is not chosen by development agents). O-05 remains open (D-09 cadence, D-12 Figma timing). O-07 resolved by D-03. O-03, O-06 and O-08 remain open.
 
@@ -262,13 +288,13 @@ Development-only tooling: Rustfmt/Cargo formatting, Clippy, Cargo tests/build, c
 
 ## 13. BYOK assistant and reporting requirements
 
-KEY-01: User supplies OpenRouter key; session-only or supported OS credential-store storage. No plaintext fallback, bundled key, runtime PWT account or PWT LLM gateway. Config stores only credential reference, never the key. Provide validation/replacement/deletion; absent key affects AI only.
+KEY-01: User supplies OpenRouter key; session-only or supported OS credential-store storage. No plaintext fallback, bundled key, runtime PWT account or PWT LLM gateway. Config stores only credential reference, never the key. Provide validation/replacement/deletion; an absent key affects only AI: the automatic analysis stage becomes `blocked`/`no_credential` (assessment completion `incomplete`) and chat is unavailable, while scanning and evidence reports continue (wording amended 2026-10-31, CA-05).
 
 KEY-02: Explicit configurable inference-model ID, distinct from coding-agent models. Default private-context request policy is `data_collection=deny`, `zdr=true`, `allow_fallbacks=false`. `allow_fallbacks` is a schema constant (`const false`, CA-01) and an enforced request field; changing it needs a new contract version and owner approval. A compliant route being unavailable is an explicit error; no silent model/privacy downgrade. Eligible-provider allowlist may further restrict the request.
 
 KEY-03: Only relevant approved redacted findings/source excerpts leave the device. Do not send the entire repository or raw secrets. No automatic web/plugin tools; model cannot execute commands or modify files. Show intermediary and downstream disclosure.
 
-RES-07: Normalised scanner evidence produces JSON and deterministic Markdown before optional AI narration. Narration is labelled, cited, bounded and cannot alter findings or coverage. Unknown citations are not invented evidence.
+RES-07: Normalised scanner evidence produces the JSON evidence report first; it never depends on AI. The combined Markdown/PDF assessment report then renders, deterministically and without AI, the evidence plus the validated automatic analysis (ANL-04) or an explicit analysis-stage notice. AI content is labelled, cited, bounded and cannot alter findings or coverage; unknown citations are not invented evidence. (Amended 2026-10-31, CA-05: the earlier "optional AI narration" is superseded by the required automatic analysis.)
 
 RES-08: Local restricted Markdown-to-PDF conversion adds a third output. Disable active code, remote resource fetches and unrestricted local file reads. Preserve JSON/Markdown if PDF fails; retain per-format status and allow regeneration without rescanning.
 
@@ -289,7 +315,7 @@ The four-week cap remains a pilot constraint, not the old five-person estimate a
 1. Complete tool matrix and routing scope is frozen; exact versions/platforms/flags are verified, not guessed.
 2. Tool wrappers never run repository scripts, apply fixes, deploy, or inherit the model key.
 3. Tests cover application-owned config, hidden exclusions, exit mappings, control characters, oversized input and network denial.
-4. JSON/Markdown/PDF and normalised evidence agree; AI/renderer failures remain independent.
+4. JSON/Markdown/PDF and normalised evidence agree; AI/renderer failures remain independent; an analysis failure is visible as an incomplete stage, never as a clean or fully completed assessment (CA-05).
 5. BYOK key and seeded secrets are absent from logs, durable intermediate data, RAG index, reports, Figma and releases.
 6. Same-feature formal checks include relevant regression; release runs the agreed full suite and manual platform/UI checks.
 7. No claim of universal YAML coverage, no payment-free claim for cloud inference/Docker Desktop, and no unverified production-certification claim.
@@ -313,7 +339,8 @@ Owner decisions D-01 to D-14 (2026-10-23) and D-15 (2026-10-24). This register i
 | WF-01–WF-06 | pilot | Interval/daily triggers while the app is open; reduction to manual saved workflows is a possible owner-approved scope exchange, not a default |
 | RES-01–RES-05, RES-08, RES-09 | pilot | JSON, deterministic Markdown and restricted local PDF; renderer chosen after the D-07 spike |
 | RES-06 | deferred | Suppression/baseline; `SuppressionFile` schema and commands are reserved, `suppressions.json` is not written by the pilot |
-| RES-07 | pilot (deterministic) / deferred (AI narration, pending owner confirmation) | Reports never depend on AI |
+| RES-07 | pilot (deterministic evidence report; combined report renders analysis or stage notice) | The JSON evidence report never depends on AI; AI narration as a separate feature is superseded by ANL (CA-05, 2026-10-31) |
+| ANL-01–ANL-12 | pilot, required (owner 2026-10-31: CA-05 design direction accepted with qualifications) | Per-repository analysis of the sanitised evidence snapshot via the user's OpenRouter key; cited interpretation, recommendations and uncertainty in scope; independent AI-only findings and cross-repository analysis out of the pilot; limits (O-AN-2) and quality evaluation (O-AN-6) open. Not implemented |
 | RAG-01 | pilot (narrowed) | Local lexical retrieval over selected findings, relevant redacted source excerpts, local approved rule descriptions and schema metadata. Logs/workflows as retrieval sources and remote documentation ingestion (`documentation_fetch`) are deferred separate capabilities |
 | RAG-02–RAG-07 | pilot | Redaction before indexing/transmission, context isolation, citation validation, no execution/write tools; historical chat is deferred |
 | Embedding retrieval, chat persistence | deferred | `embedding_key` stays null; `chat_persistence_enabled=false` |

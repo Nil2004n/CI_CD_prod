@@ -1,0 +1,1209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "DRAFT store 1.5 definitions proposed by CA-05 (planning/CA-05-automatic-evidence-analysis.md), revision 2, 2026-10-31. NOT applied: the canonical store schema remains schemas/workbench-store-v1.4.schema.json. Unchanged 1.4 $defs (Id, Timestamp, Digest, GitOid, InferenceScope, ProviderPolicy) are referenced, not copied. Changes to existing 1.4 definitions are listed in changes_to_existing and are applied only by an owner-approved lead contract task. AnalysisSettings bounds are schema guard rails, not the proposed values (planning/CA-05-decision-proposals.md).",
+  "changes_to_existing": {
+    "RunSummary": "add required analyses: AnalysisManifest[] (one per logical analysis) and completion: AssessmentCompletion",
+    "ReportFile": "schema_version const 1.5; remove ai_enrichment (the scanner evidence report carries no AI content)",
+    "ReportManifest": "add required export_revision (integer >= 1), analysis_id (Id|null), analysis_record_id (Id|null), analysis_version (integer >= 1 | null), analysis_status_at_render (AnalysisStatus|null)",
+    "SourceRef.kind": "add enum value ai_analysis",
+    "Config": "add required analysis: AnalysisSettings",
+    "root oneOf": "add AnalysisFile; all store roots schema_version const 1.5",
+    "AIEnrichment": "retained only for the 1.4 reader (legacy narrative); not referenced by 1.5 roots"
+  },
+  "$defs": {
+    "AnalysisStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "awaiting_approval",
+        "running",
+        "validating",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled",
+        "interrupted",
+        "not_performed"
+      ]
+    },
+    "AnalysisTerminalStatus": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled",
+        "interrupted",
+        "not_performed"
+      ]
+    },
+    "AnalysisReason": {
+      "type": "string",
+      "enum": [
+        "no_provider_configured",
+        "no_credential",
+        "approval_missing",
+        "approval_denied",
+        "evidence_unavailable",
+        "provider_auth_failed",
+        "provider_credit_exhausted",
+        "provider_rate_limited",
+        "provider_unavailable",
+        "no_compliant_route",
+        "uncertain_generation",
+        "truncated_output",
+        "invalid_output",
+        "unsupported_citations",
+        "context_budget_exceeded",
+        "request_limit_reached",
+        "cost_limit_reached",
+        "cancelled_by_user",
+        "application_interrupted",
+        "persistence_failed",
+        "insufficient_evidence"
+      ]
+    },
+    "AnalysisCitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "finding",
+            "check",
+            "source"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ]
+    },
+    "EvidenceCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "findings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "checks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_gaps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execution_failures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excerpts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "findings",
+        "checks",
+        "coverage_gaps",
+        "execution_failures",
+        "excerpts"
+      ]
+    },
+    "EvidenceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "packet_format_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "finding_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "uniqueItems": true
+        },
+        "check_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "uniqueItems": true
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "uniqueItems": true
+        },
+        "eligible": {
+          "$ref": "#/$defs/EvidenceCounts"
+        },
+        "included": {
+          "$ref": "#/$defs/EvidenceCounts"
+        },
+        "excerpt_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "packet_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "finding",
+                  "check",
+                  "excerpt",
+                  "document"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "context_budget",
+                  "not_eligible",
+                  "redaction_withheld",
+                  "outside_scope"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "kind",
+              "reason",
+              "count"
+            ]
+          }
+        }
+      },
+      "required": [
+        "digest",
+        "packet_format_version",
+        "finding_ids",
+        "check_ids",
+        "source_ids",
+        "eligible",
+        "included",
+        "excerpt_bytes",
+        "packet_bytes",
+        "exclusions"
+      ]
+    },
+    "ProviderRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "initial",
+            "transport_retry",
+            "repair"
+          ]
+        },
+        "started_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "response_received",
+            "rejected_by_provider",
+            "rate_limited",
+            "provider_unavailable",
+            "failed_before_send",
+            "uncertain_generation",
+            "truncated",
+            "cancelled",
+            "interrupted"
+          ]
+        },
+        "http_status": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_after_seconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "request_seq",
+        "kind",
+        "started_at",
+        "finished_at",
+        "outcome",
+        "http_status",
+        "retry_after_seconds"
+      ]
+    },
+    "AnalysisUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "provider_reported",
+            "not_reported"
+          ]
+        },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reported_cost": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reported_cost_unit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "source",
+        "input_tokens",
+        "output_tokens",
+        "reported_cost",
+        "reported_cost_unit"
+      ]
+    },
+    "AnalysisValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "passed_with_rejections",
+            "failed",
+            "not_run"
+          ]
+        },
+        "rejected_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "unsupported_citation",
+                  "schema_violation",
+                  "unsupported_assertion",
+                  "outcome_override_attempt",
+                  "ai_only_finding_out_of_scope"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "reason",
+              "count"
+            ]
+          }
+        }
+      },
+      "required": [
+        "outcome",
+        "rejected_items"
+      ]
+    },
+    "AnalysisContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evidence_sufficiency": {
+          "type": "string",
+          "enum": [
+            "sufficient",
+            "limited",
+            "insufficient"
+          ]
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text_redacted": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "citations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/AnalysisCitation"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "text_redacted",
+            "citations"
+          ]
+        },
+        "interpretations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "interpretation_id": {
+                "$ref": "#/$defs/Id"
+              },
+              "origin": {
+                "const": "ai_interpretation"
+              },
+              "text_redacted": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
+              "finding_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Id"
+                },
+                "uniqueItems": true
+              },
+              "check_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Id"
+                },
+                "uniqueItems": true
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/AnalysisCitation"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "interpretation_id",
+              "origin",
+              "text_redacted",
+              "finding_ids",
+              "check_ids",
+              "citations"
+            ]
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "recommendation_id": {
+                "$ref": "#/$defs/Id"
+              },
+              "origin": {
+                "const": "ai_interpretation"
+              },
+              "priority": {
+                "type": "string",
+                "enum": [
+                  "high",
+                  "medium",
+                  "low"
+                ]
+              },
+              "rationale_redacted": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
+              "finding_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Id"
+                },
+                "uniqueItems": true
+              },
+              "check_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Id"
+                },
+                "uniqueItems": true
+              },
+              "suggested_remediation_redacted": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
+              "verification_steps_redacted": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4000
+                }
+              },
+              "verification_status": {
+                "const": "not_executed"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/AnalysisCitation"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "recommendation_id",
+              "origin",
+              "priority",
+              "rationale_redacted",
+              "finding_ids",
+              "check_ids",
+              "suggested_remediation_redacted",
+              "verification_steps_redacted",
+              "verification_status",
+              "citations"
+            ]
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "text_redacted": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
+              "check_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Id"
+                },
+                "uniqueItems": true
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/AnalysisCitation"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "text_redacted",
+              "check_ids",
+              "citations"
+            ]
+          }
+        },
+        "uncertainties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "open_question",
+                  "ambiguous_evidence",
+                  "missing_context"
+                ]
+              },
+              "text_redacted": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/AnalysisCitation"
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "text_redacted",
+              "citations"
+            ]
+          }
+        },
+        "observations": {
+          "type": "array",
+          "maxItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "observation_id": {
+                "$ref": "#/$defs/Id"
+              },
+              "origin": {
+                "const": "ai_observation"
+              },
+              "review_status": {
+                "type": "string",
+                "enum": [
+                  "unreviewed",
+                  "acknowledged",
+                  "dismissed"
+                ]
+              },
+              "text_redacted": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/AnalysisCitation"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "observation_id",
+              "origin",
+              "review_status",
+              "text_redacted",
+              "citations"
+            ]
+          },
+          "description": "Reserved for independent AI-only observations. Out of the pilot (owner, 2026-10-31): must be empty; the validator rejects such items (ai_only_finding_out_of_scope)."
+        }
+      },
+      "required": [
+        "evidence_sufficiency",
+        "summary",
+        "interpretations",
+        "recommendations",
+        "limitations",
+        "uncertainties",
+        "observations"
+      ]
+    },
+    "AnalysisFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.5"
+        },
+        "store_type": {
+          "const": "analysis"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "record_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "analysis_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "analysis_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "attempt_seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "supersedes_analysis_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trigger": {
+          "type": "string",
+          "enum": [
+            "automatic",
+            "explicit_retry",
+            "explicit_reanalysis"
+          ]
+        },
+        "run_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "repo_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "report_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "report_json_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "commit_oid": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GitOid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/AnalysisTerminalStatus"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnalysisReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason_redacted": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "idempotency_key": {
+          "$ref": "#/$defs/Digest"
+        },
+        "evidence_snapshot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ai_evidence_coverage": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "partial",
+            "none"
+          ]
+        },
+        "data_categories": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "repository_metadata",
+              "redacted_source",
+              "redacted_findings",
+              "schema_documents",
+              "app_metadata"
+            ]
+          }
+        },
+        "approval_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "uniqueItems": true
+        },
+        "inference_scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InferenceScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider_id": {
+          "anyOf": [
+            {
+              "const": "openrouter"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requested_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actual_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actual_provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "routing_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProviderPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt_template_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_schema_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "redaction_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finished_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "provider_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProviderRequest"
+          },
+          "maxItems": 4
+        },
+        "usage": {
+          "$ref": "#/$defs/AnalysisUsage"
+        },
+        "validation": {
+          "$ref": "#/$defs/AnalysisValidation"
+        },
+        "content": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnalysisContent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "store_type",
+        "updated_at",
+        "record_id",
+        "analysis_id",
+        "analysis_version",
+        "attempt_seq",
+        "supersedes_analysis_id",
+        "trigger",
+        "run_id",
+        "repo_id",
+        "report_id",
+        "report_json_digest",
+        "commit_oid",
+        "status",
+        "reason_code",
+        "reason_redacted",
+        "idempotency_key",
+        "evidence_snapshot",
+        "ai_evidence_coverage",
+        "data_categories",
+        "approval_ids",
+        "inference_scope",
+        "provider_id",
+        "requested_model",
+        "actual_model",
+        "actual_provider",
+        "routing_policy",
+        "prompt_template_version",
+        "analysis_schema_version",
+        "redaction_version",
+        "started_at",
+        "finished_at",
+        "provider_requests",
+        "usage",
+        "validation",
+        "content"
+      ]
+    },
+    "AnalysisAttemptRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempt_seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "record_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "$ref": "#/$defs/AnalysisTerminalStatus"
+        },
+        "record_path": {
+          "type": "string"
+        },
+        "record_digest": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "attempt_seq",
+        "record_id",
+        "status",
+        "record_path",
+        "record_digest"
+      ]
+    },
+    "AnalysisManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analysis_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "report_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "repo_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "analysis_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "supersedes_analysis_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/AnalysisStatus"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnalysisReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attempts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnalysisAttemptRef"
+          }
+        },
+        "completed_record_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "analysis_id",
+        "report_id",
+        "repo_id",
+        "analysis_version",
+        "supersedes_analysis_id",
+        "status",
+        "reason_code",
+        "attempts",
+        "completed_record_id",
+        "updated_at"
+      ]
+    },
+    "AssessmentCompletion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "in_progress",
+            "complete",
+            "incomplete"
+          ]
+        },
+        "incomplete_stages": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "scanner",
+              "analysis",
+              "report"
+            ]
+          }
+        }
+      },
+      "required": [
+        "state",
+        "incomplete_stages"
+      ]
+    },
+    "AnalysisSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_snapshot_bytes": {
+          "type": "integer",
+          "minimum": 4096,
+          "maximum": 262144
+        },
+        "max_excerpts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "max_excerpt_bytes": {
+          "type": "integer",
+          "minimum": 256,
+          "maximum": 8192
+        },
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 256,
+          "maximum": 16384
+        },
+        "max_response_bytes": {
+          "type": "integer",
+          "minimum": 16384,
+          "maximum": 1048576
+        },
+        "connect_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60
+        },
+        "first_byte_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "total_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        },
+        "max_transport_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "max_retry_after_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120
+        },
+        "max_repair_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_logical_analyses_per_run": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "max_provider_requests_per_run": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "max_reported_cost_per_run": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reported_cost_unit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "max_snapshot_bytes",
+        "max_excerpts",
+        "max_excerpt_bytes",
+        "max_output_tokens",
+        "max_response_bytes",
+        "connect_timeout_seconds",
+        "first_byte_timeout_seconds",
+        "total_timeout_seconds",
+        "max_transport_retries",
+        "max_retry_after_seconds",
+        "max_repair_attempts",
+        "max_logical_analyses_per_run",
+        "max_provider_requests_per_run",
+        "max_reported_cost_per_run",
+        "reported_cost_unit"
+      ]
+    }
+  }
+}

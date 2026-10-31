@@ -3,6 +3,8 @@
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
 Version: 0.3.5 (amendments CA-01, CA-02, CA-03, CA-04; store contract 1.4, wrapper protocol 1.1, app contract 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed design for review
+
+Change record 2026-10-31 (proposed, not implemented): **CA-05 automatic LLM evidence analysis** (PRD ANL-01–ANL-12; change contract `planning/CA-05-automatic-evidence-analysis.md`). Sections marked "CA-05" describe proposed behaviour pending owner approval; current contract versions above are unchanged until CA-05 is applied.
 Related document: PRD v0.3. Requirement IDs refer to that PRD.
 
 ## 1. Technical decision
@@ -56,7 +58,7 @@ workbench/
   Cargo.toml
   crates/
     domain/          # IDs, records, states, invariants; no TUI dependency
-    application/     # use cases, workflow/run coordinator, permission policy
+    application/     # use cases, workflow/run coordinator, permission policy, analysis coordinator (CA-05, proposed)
     repositories/    # Git operations, checkout checks and inventory
     scanning/        # plans, adapters, parsing and normalisation
     retrieval/       # redaction, indexing, retrieval, provider integration
@@ -184,9 +186,13 @@ Capabilities: repository acquisition/update, external reference retrieval, vulne
 
 Scope includes workflow ID/revision (if any), repository IDs, category, approved hosts/resources, permitted data categories, purpose, validity and approval ID. Secrets are never an approved transmission category.
 
+Automatic evidence analysis (CA-05, §26) uses the existing `model_transmission` capability with a matching inference scope (provider, model, routing policy, source IDs, redaction version). A saved workflow's workflow-scope grant lets analysis run without prompting; an ad-hoc run or a changed model/provider/policy/data category raises one approval request and the analysis waits (`awaiting_approval`) without blocking scanner evidence. Automatic does not mean pre-approved.
+
 Every action produces a concrete permission request. Compare normalised arguments and destinations against grants; a changed workflow, provider, destination or data category requires fresh approval where scope changes. Denials are persisted without sensitive payloads. Do not treat “external access allowed” as a wildcard permanent network grant.
 
 ## 12. RAG subsystem
+
+Scope note (2026-10-31, CA-05): this section describes **interactive chat**. The required automatic evidence analysis is specified in §26; it reuses the provider adapter, redaction and citation validation described here but never depends on a chat session. Chat can retrieve the saved analysis as AI-generated secondary material (`SourceRef.kind = ai_analysis`, proposed).
 
 Runtime provider: OpenRouter with user-owned BYOK and an explicit configurable model. No PWT-hosted inference gateway. Claude Code is development tooling, not a runtime requirement. Keep a provider interface for future integrations.
 
@@ -228,13 +234,14 @@ Required test suites:
 - Multi-repo isolation, selection semantics, template-source/generated mapping and schema fetch denial.
 - JSON schema checks, write interruption/recovery, report/export-set consistency and migrations.
 - TUI resize/input snapshots and manual mouse tests on approved terminals.
+- (CA-05) Automatic evidence analysis with mock HTTP: trigger without chat, evidence-snapshot digest and scope binding, structured-output and citation validation (fabricated IDs, unsupported assertions), seeded-secret absence from request/record/report/index, prompt injection in excerpts and tool output, cross-repository isolation, provider denial/outage/timeout/rate limit, bounded retries and limits, cancellation/restart/idempotency, staleness and re-analysis, historical records without analysis, scanner usability when analysis cannot complete plus attempts/authority/recovery, AI-only finding rejection and the four separate dimensions (acceptance AC-01–AC-18, `planning/CA-05-automatic-evidence-analysis.md` §11). Model-quality evaluation is a separate, human-reviewed corpus exercise, not part of the deterministic suite.
 - Platform-specific Git, dependency installation, subprocess cleanup and packaging.
 
 Release artifacts: signed/checksummed builds as policy requires, dependency manifest/SBOM, locked versions, known limitations, installation/prerequisite guide, sample sanitised reports and schema migration notes. Scanner licensing and redistribution need review.
 
 ## 15. Performance and observability
 
-Measure UI input-to-render latency, discovery throughput, queue wait, scanner runtime by adapter, peak memory, report-write latency, retrieval latency and model token/cost usage where applicable. No secret values in metrics. Establish p95 targets on agreed hardware/data before sign-off; do not attach unsupported numeric guarantees.
+Measure UI input-to-render latency, discovery throughput, queue wait, scanner runtime by adapter, peak memory, report-write latency, retrieval latency, analysis stage duration, attempts and model token/cost usage where the provider reports it (never estimated as fact). No secret values in metrics. Establish p95 targets on agreed hardware/data before sign-off; do not attach unsupported numeric guarantees.
 
 ## 16. Outstanding sign-offs
 
@@ -342,7 +349,7 @@ Handle invalid key, credits, rate limits, incompatible/private route, streaming 
 
 ## 21. Deterministic reports and restricted PDF
 
-Normalised evidence -> JSON -> deterministic Markdown -> local PDF. Optional cited AI narrative is separate from evidence. No key/model outage can block assessment or basic reports. A new narrative generation creates a new/versioned report, not silent mutation of accepted history.
+Normalised evidence -> JSON evidence report -> automatic evidence analysis (§26) -> combined deterministic Markdown -> local PDF. The JSON evidence report never contains or waits for AI content. The combined Markdown/PDF renders, without AI, the evidence plus the validated analysis or an explicit analysis-stage notice (`blocked`, `failed`, `awaiting_approval`, …). No key/model outage can block scanning or the evidence report; it makes the assessment `incomplete` and says so. A new analysis version produces a new export revision, never a silent mutation of accepted history. (Amended 2026-10-31, CA-05; the earlier "optional cited AI narrative" is superseded.)
 
 The renderer is not yet selected (D-07). Candidates are compared in an approved spike against restricted-rendering requirements, runtime dependencies, platform implications and packaging; a tool being installed on the planning host (e.g. WeasyPrint) is not a selection criterion. Spike/select a renderer with Unicode/table support, license/runtime and platform packaging checked. Disable active HTML/scripts, automatic remote assets and unrestricted local filesystem references. Bound process resources; check nonempty output before success. JSON/MD/PDF have independent manifests/digests/errors; retry derived exports from retained evidence without rescanning. Keep the installation directory separate from writable app data.
 
@@ -400,3 +407,18 @@ kubeconform needs Kubernetes JSON schemas. The pilot plans an approved, versione
 | Freshness | Retrieval date and target version shown in diagnostics and reports; staleness thresholds are an open policy decision |
 | Network | Populating or refreshing the cache is a `schema_fetch` operation requiring approval; scans use the cache only (`network_policy="cache_only"`), verified per pinned kubeconform version |
 | Missing CRD / kind | A resource without a cached schema yields `unsupported` (gap), never `passed`; user-supplied CRD schemas are local inputs with recorded digest |
+
+## 26. Automatic LLM evidence analysis (CA-05; design direction accepted with qualifications 2026-10-31; not implemented)
+
+Authoritative requirement and full tables: `planning/CA-05-automatic-evidence-analysis.md` r2 (ANL-01–ANL-12, four dimensions, attempts and authority, failure table, acceptance AC-01–AC-18). Proposed limits and retry ownership (not ratified): `planning/CA-05-decision-proposals.md` §1. Draft store definitions: Data Schema §26. Canonical schema/application changes are not authorised yet; the lead contract task precedes any dependent implementation.
+
+1. **Trigger.** When a per-repository evidence report JSON is finalised and validated, the coordinator asks the analysis coordinator to start attempt 1 of a new logical analysis. Eligibility is deterministic: explicit model ID, credential present, valid `model_transmission` grant with matching inference scope, snapshot within limits, useful evidence present, report digest matches. Missing grant → `awaiting_approval` (one approval request; approval resumes the same attempt); other unmet conditions → terminal `blocked`/`not_performed` with a typed reason. No chat session or manual action is involved.
+2. **Evidence snapshot builder** (deterministic, offline). Reads only that report: findings (redacted evidence, rule, engine/version, severity, locations), check outcomes and execution failures, coverage gaps and unsupported/skipped checks, suppression data when RES-06 exists, engine/rule/schema versions and freshness, plus bounded approved redacted excerpts around cited locations (from the checkout at the report's commit, through the redaction module) and local approved rule/schema descriptions. Priority under the byte budget: execution failures, coverage gaps and finding headers first (mandatory), then excerpts by severity. Eligible and included counts and exclusions (with reasons) are recorded; they determine **AI evidence coverage** (`complete` / `partial` / `none`), which is separate from scanner coverage, workflow completion and finding presence. Canonical encoding → SHA-256 snapshot digest. The snapshot is not persisted verbatim; its manifest is.
+3. **Request.** Through the shared model adapter and network gateway: explicit model, routing policy `data_collection=deny`, `zdr=true`, `allow_fallbacks=false`, no tools/plugins/web, structured-output schema (analysis-schema version) where supported, versioned prompt template stating that the evidence is untrusted data. Repository text and tool output are delimited data and cannot change instructions, scope or approvals.
+4. **Validation.** Parse against the analysis schema (no field can express a check outcome, severity change, executed test or resolution). Every citation and finding/check ID must be in the snapshot; recommendations must reference a finding or check. Free-text rule checks flag claims that a check passed, a test ran or an issue is resolved. In the pilot any independent AI-only finding (a problem no scanner reported, presented as a result) is rejected (`ai_only_finding_out_of_scope`); cited interpretation, recommendations and uncertainty are kept. Rejected items are counted; an unsupported summary or schema failure allows at most one repair request, then `failed`. Only a validated response completes an attempt.
+5. **Limits and retry ownership.** Snapshot bytes, excerpt count/size, output tokens, response bytes, connect/first-byte/total timeouts, ≤ 2 transport retries with bounded backoff and bounded `Retry-After`, ≤ 1 repair, ≤ 4 provider requests per attempt, per-run logical-analysis and request caps, optional reported-cost cap (values proposed in `CA-05-decision-proposals.md` §1, not ratified). The HTTP library's own retries and redirects are disabled; the coordinator owns and records every request. Transport retries only when no generation happened (connection failure before sending, 429, 502–504 before any body). Timeout or disconnect after sending → `uncertain_generation`, no automatic retry. No provider or model fallback. The idempotency key (report digest, snapshot digest, template, schema, redaction version, model, policy digest) prevents a new request for unchanged inputs that already have a completed attempt.
+6. **Attempts and persistence.** Each attempt ends in one immutable `AnalysisFile` record written through the single writer, then the run log manifest (per logical analysis: attempts and `completed_record_id`). Non-terminal state exists only in the manifest. A write failure halts the writer (P02 rule); the attempt is not completed. Raw prompts and responses are not persisted; usage/cost only when the provider reports it. The scanner evidence report is never modified.
+7. **Recovery.** At startup every non-terminal attempt is written as `interrupted`/`application_interrupted`, recording an in-flight request as possibly billed. No automatic replay. Pending approvals never become grants.
+8. **Authority, retry and re-analysis.** Only attempt 1 starts automatically. `ReanalyseReport` adds an attempt to the latest logical analysis when it has no completed attempt and unchanged inputs (`explicit_retry`), otherwise creates a new logical analysis with `analysis_version + 1` and `supersedes_analysis_id` (`explicit_reanalysis`; for unchanged inputs only after the user confirms the possible charge). The authoritative analysis of a report is the completed attempt of the highest version that has one. Staleness is derived at read time and never written back. No exactly-once execution or billing is claimed.
+9. **Reports, history and RAG.** The combined Markdown/PDF renders validated content deterministically with origin labels and the four dimensions, or an explicit stage notice; each export records the analysis record it used. Store 1.4 `ai_enrichment` content is presented as a legacy narrative "not validated under CA-05", distinct from absent AI content and from a CA-05 analysis; it is never certified or deleted. RAG may index the authoritative analysis as `ai_analysis` secondary chunks under the same redaction and isolation rules.
+10. **Evaluation.** Deterministic tests use mock HTTP. Model quality is evaluated separately (O-AN-6 proposal: synthetic 30-case corpus, expected-outcome sheets, rubric, blind human review, thresholds). Real-provider runs need separate owner approval of the request in `CA-05-decision-proposals.md` §3.

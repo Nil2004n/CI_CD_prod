@@ -1,6 +1,6 @@
 # PWT YAML Security Workbench — Development Plan
 
-Plan revision: 1 (2026-10-23), with updates of 2026-10-24, 2026-10-26, 2026-10-27/28 (P02 progress, FR-32/FR-33) and 2026-10-29 (P02 accepted and merged; **P03 planned, §5C; C1–C10 = recommended**), 2026-10-30/31 (P03 T01–T04 accepted, wave 1 + P03-D01 done, cargo-audit installed; progress only, no scope change) (P01 progress, D-16/CA-03, FR-31, **D-17 headless CLI §4.1**): status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries (§5.2). Scope/estimate change on 2026-10-26: D-17 adds a headless CLI increment to every feature phase from P02 (§4.1, §7.1); no phases added or removed. Current Git state: see `status.md`.
+Plan revision: 1 (2026-10-23), with updates of 2026-10-24, 2026-10-26, 2026-10-27/28 (P02 progress, FR-32/FR-33) and 2026-10-29 (P02 accepted and merged; **P03 planned, §5C; C1–C10 = recommended**), 2026-10-30/31 (P03 T01–T04 accepted, wave 1 + P03-D01 done, cargo-audit installed; progress only, no scope change), 2026-10-31 (**owner requirement D-18 automatic LLM evidence analysis; CA-05 design direction accepted with qualifications the same day — not implementation or release acceptance**, §1, §4, §5D, §7, §8) (P01 progress, D-16/CA-03, FR-31, **D-17 headless CLI §4.1**): status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries (§5.2). Scope/estimate change on 2026-10-26: D-17 adds a headless CLI increment to every feature phase from P02 (§4.1, §7.1); no phases added or removed. Current Git state: see `status.md`.
 
 This plan is a schedule and control proposal, not evidence of implemented code or passed tests. No phase starts without explicit owner approval. Specification references are to the v0.3.1 documents (`01_PRD.md` … `05_Database_Data_Schema.md`).
 
@@ -26,6 +26,7 @@ Owner decisions received 2026-10-23 (planning-stage approval message). Recorded 
 | D-14 | Phase-branch policy; no commits/merges/pushes without explicit approval; record actual revisions and dirty state | §3.6 |
 | D-16 | (2026-10-26) CA-03 before the P01 merge: canonical tool availability `ready, missing, incompatible, unconfigured, unavailable, deferred` in store and UI; `denied` is a permission badge, not a tool state; store 1.3 → 1.4, UI schema 1.0 → 1.1, app contract stays 1.0 | Data §24, UI §5/§14, P01 |
 | D-15 | (2026-10-24) Korean (Hangul script) support is **out of scope for the entire project**. Korean text in assessed files is still processed as data: never silently dropped and never a crash; where displayed or rendered it degrades visibly (e.g. `<U+XXXX>`). No Hangul font, IME or Korean-specific layout is a project target | PRD §16, P00-T08 |
+| D-18 | (2026-10-31) Automatic LLM evidence analysis is a required product capability: after scanning and evidence sanitisation the configured LLM analyses each assessment's evidence automatically, without the chat being opened; interactive RAG chat stays a separate optional interface. Newly explicit; not covered by earlier approvals. **CA-05 design direction accepted with qualifications (owner, 2026-10-31)**: required in the pilot; chat separate; independent AI-only findings out of the pilot; cited interpretation, recommendations and uncertainty in scope; cross-repository analysis out of the pilot; Q-02 superseded (history kept); the lead contract task precedes dependent implementation; canonical schema/application changes not authorised. Open: O-AN-2 limits, O-AN-6 evaluation (`planning/CA-05-decision-proposals.md`); real-API evaluation unapproved (`planning/CA-05-automatic-evidence-analysis.md` r2) | PRD §6 ANL-01–ANL-12, all specs (CA-05 sections), §4, §5D, §7 |
 | D-17 | (2026-10-26) Headless developer CLI: from P02, every feature phase adds command-line access to the feature it creates, so each feature can be exercised headless as soon as it exists (detail §4.1). The CLI is a second presentation adapter over the same coordinator and Arch §6 command/event contract as the TUI; it never bypasses permissions, redaction or the store writer | §4, §4.1, §7 |
 
 Planning corrections 1–6 from the same message are applied: capability labels (PRD §16, SCAN-05/SCAN-06/RAG sources kept), minimal AI kept, early slice carries redaction/coverage (P01/P06/P07), per-tool hypothesis spikes (P00-T09), narrow retrieval sources (P17), and the agent loop (§3).
@@ -37,7 +38,7 @@ Pre-implementation contract amendment **CA-01** (store schema, wrapper protocol,
 | ID | Question | Blocks |
 |---|---|---|
 | Q-01 | Sessions per week (cadence) for the four-week cap | Schedule fit only |
-| Q-02 | Confirm AI report narration (RES-07 optional part) is deferred, as labelled | P11/P17 scope |
+| Q-02 | Confirm AI report narration (RES-07 optional part) is deferred, as labelled | **Superseded 2026-10-31 by D-18/CA-05** (owner decision; narration replaced by the required automatic analysis). Question text above kept as the historical record |
 | Q-03 | Keep version identifiers under CA-01/CA-02, or bump store 1.3 / protocol 1.1 before P01 | **Answered 2026-10-24:** CA-02 versioned — store 1.3, wrapper protocol 1.1 |
 | Q-04 | Production OpenRouter model ID (owner-supplied) | Real-API acceptance only; mocks need none |
 | Q-05 | Which scope exchanges (§7.4), if any, to accept | Pilot cut |
@@ -119,27 +120,30 @@ P15a (demo TUI on mocks) may start after P01; P18 (Figma) after P15a + Figma del
 | P03 | pilot | **In progress (detail §5C): T01–T04 accepted 2026-10-30; wave 1 (T05–T07) + P03-D01 and wave 2 (T08, T09) done 2026-10-31; wave 3 (T10) awaits owner.** Permission evaluator (scope/revision/fingerprint), child-env sanitiser (strip model key/unrelated secrets), credential abstraction (session-only; keyring behind spike result) | Scope-match tables; env-strip tests; no key in any serialised output | P01, P02 |
 | P04 | pilot | URL validation (HTTPS/SSH only), clone/fast-forward update, unsafe-state detection, per-repo locks, provenance, Git safety controls from P00-T04 | Local fixture repos (dirty, diverged, hooks, filters, submodules); no source mutation | P00-T04, P02 |
 | P05 | pilot | Inventory, exclusions/symlinks/limits, classifier (generic/Actions/Kubernetes; Compose/Helm reported conditional), tristate selection + selectors, reference detection recorded as gaps (SCAN-05) | Hostile filenames, symlink escape, limits, selector semantics | P04 |
+| CA-05 | pilot (required; owner 2026-10-31) | **Lead contract task — must precede every dependent CA-05 implementation; execution not authorised yet:** apply CA-05 (domain analysis types, store 1.5 schema + D26 rules, app contract 1.2, UI schema 1.2, migration notes) before P07; proposed at the start of P06 (§5D) | Schema/contract checks; floors; 1.4 records stay readable | Separate owner approval to execute; P03 closed |
 | P06 | pilot | Process supervisor (timeout/cancel/process-tree kill per CA-01/CA-02), adapter trait + protocol DTOs, output bounds, preflight + `tools.json`, **minimal redaction module and coverage ledger core**; must satisfy FR-01–FR-03 (§5.2) | Fake-tool fixtures: crash, timeout, oversized/malformed output, ANSI, early stdout close, secret-bearing stderr, tree kill; regression RC-FLOOD (FR-01) | P00-T05, P02 |
-| P07★ | pilot | Vertical slice (headless): local synthetic repo → discover → select → in-process YAML syntax check → redacted finding + coverage ledger (other categories explicit `unsupported`) → JSON report via store → deterministic Markdown | Seeded secret absent from report/log; malformed YAML yields finding + honest coverage; velocity recalibration | P05, P06 |
+| P07★ | pilot | Vertical slice (headless): local synthetic repo → discover → select → in-process YAML syntax check → redacted finding + coverage ledger (other categories explicit `unsupported`) → JSON report via store → deterministic Markdown | Seeded secret absent from report/log; malformed YAML yields finding + honest coverage; velocity recalibration; (CA-05) deterministic evidence snapshot + digest, analysis stage reported `blocked`/`no_provider_configured` honestly | P05, P06 (+ CA-05 if approved) |
 | P08 | pilot | yamllint, Gitleaks, rust-schema adapters per frozen contract sheets | Per-tool golden outputs, exit maps, repo-config injection, scope, redaction | P07, installs |
 | P09 | pilot | Checkov adapter (app-owned config, no platform APIs, custom checks blocked) | Same per-tool suite | P07, install |
 | P10 | pilot | Normalisation extension: fingerprints, cross-engine dedup with provenance, coverage aggregation | Dedup provenance; counts agree with checks | P08, P09 |
-| P11 | pilot | Report finalisation, naming, export manifests, regenerate without rescanning (`RegenerateExport`) | JSON/MD agree; regeneration; collision | P10 |
+| P11 | pilot | Report finalisation, naming, export manifests, regenerate without rescanning (`RegenerateExport`); (CA-05) combined report sections for scanner evidence / AI analysis / limitations and stage notices, export revisions per analysis version | JSON/MD agree; regeneration; collision; AI-incomplete report never shows success | P10 |
 | P12 | pilot | Restricted local PDF with selected renderer, independent export state | No remote fetch/active content/local file read; PDF failure keeps JSON/MD | P00-T08 decision, P11 |
 | P13 | pilot | actionlint + kubeconform adapters; schema cache consumption (cache-only) | Missing CRD = gap; workflow commands never run | P00-T09/T10, installs, cache approval |
 | P14 | pilot | Saved workflows, revision-bound approvals, app-open triggers, overlap/missed handling | DST/timezone, overlap, no run after exit | P11 |
 | P15a | pilot | Demo TUI on labelled mocks using Arch §6 DTOs (terminal-ui crate only) | Snapshot/resize/input tests; mock marker visible | P01 |
 | P15b | pilot | TUI ↔ real backend integration | UI acceptance scenarios (UI §12) automated parts; manual matrix pending | P14, P15a |
-| P16 | pilot | OpenRouter BYOK client: explicit model, `allow_fallbacks=false`, ZDR/deny, streaming, typed errors, no tools; mock HTTP only | Mock HTTP suite incl. no-route fail-closed, redirect auth-strip, key absent from logs | P03 |
-| P17 | pilot | Local lexical retrieval over selected findings, redacted excerpts, local approved rule descriptions and schema metadata; context isolation; citations; chat panel | Cross-repo leakage, seeded-secret payload, invalid citation, prompt-injection fixtures | P10, P15b, P16 |
+| P16 | pilot | OpenRouter BYOK client: explicit model, `allow_fallbacks=false`, ZDR/deny, streaming, typed errors, no tools; mock HTTP only. **(CA-05, scope extension pending approval)** structured output, analysis coordinator (trigger, eligibility, limits, retries, idempotency, reconciliation), response/citation validation, `AnalysisFile` persistence | Mock HTTP suite incl. no-route fail-closed, redirect auth-strip, key absent from logs; CA-05 AC-01–AC-16 | P03, P11 (+ CA-05) |
+| P17 | pilot | (CA-05) Chat retrieves the saved analysis as `ai_analysis` secondary material and stays optional. Local lexical retrieval over selected findings, redacted excerpts, local approved rule descriptions and schema metadata; context isolation; citations; chat panel | Cross-repo leakage, seeded-secret payload, invalid citation, prompt-injection fixtures | P10, P15b, P16 |
 | P18 | conditional | Figma translation (presentation only) | Snapshots + manual terminal checks | Figma delivery (D-12) |
-| P19 | pilot | Recovery/security/privacy regression hardening | Full agreed regression | P17 |
-| P20 | pilot | Linux x86_64 packaging, prerequisite/install guide, tool manifest, notices, manual acceptance | Release gates PRD §9/§15 | P19 |
+| P19 | pilot | Recovery/security/privacy regression hardening; (CA-05) adversarial analysis fixtures and model-quality evaluation corpus/rubric (O-AN-6) | Full agreed regression | P17 |
+| P20 | pilot | Linux x86_64 packaging, prerequisite/install guide, tool manifest, notices, manual acceptance | Release gates PRD §9/§15 (incl. gate 8, CA-05) | P19 |
 | X1–X6 | conditional | zizmor, Compose, Helm, Trivy (needs pinnable build), Windows/macOS, `.sh` parity | Own contract sheets | Separate approval each |
 
 Every feature phase from P02 also delivers its §4.1 CLI increment and that increment's scripted scenarios, as part of its own acceptance checks.
 
-Deferred (no phase; interfaces reserved): SCAN-06 live verification, SCAN-05 non-image references, SCAN-09 historical secrets, RES-06 suppression/baseline, run comparison, AI report narration (Q-02), embeddings, chat persistence/historical chat, remote documentation ingestion, draggable splits.
+AI report narration is no longer a deferred item: D-18 replaces it with the required automatic evidence analysis (CA-05, phases above, §5D).
+
+Deferred (no phase; interfaces reserved): SCAN-06 live verification, SCAN-05 non-image references, SCAN-09 historical secrets, RES-06 suppression/baseline, run comparison, embeddings, chat persistence/historical chat, remote documentation ingestion, draggable splits.
 
 ### 4.1 Headless developer CLI (D-17, owner decision 2026-10-26)
 
@@ -525,6 +529,22 @@ Dependencies: T01 → T02, T03, T04; T04 → wave 1 (T05 ∥ T06 ∥ T07); wave 
 | C9 | Workers and commits | **9a (chosen)** up to three `sonnet-implementer` workers per wave in lead-prepared worktrees; lead commits B0/B1/B2/B3/report on `phase/P03-permissions-credentials` with non-force pushes; merge to `main` separate; 9b lead-only |
 | C10 | Debug cycles | **10a (chosen)** pre-authorised, two attempts per defect, then owner (as P02 A9); 10b each cycle needs owner approval |
 
+## 5D. CA-05 — automatic LLM evidence analysis (design direction accepted with qualifications 2026-10-31; implementation not approved, not started)
+
+Change contract r2 (vocabulary, four separate dimensions, logical analysis vs attempts and authoritative selection, legacy `ai_enrichment` handling, AI-only findings out of the pilot, ANL-01–ANL-12, failure design, acceptance AC-01–AC-18, recorded decisions): `planning/CA-05-automatic-evidence-analysis.md`. Proposals for the open O-AN-2 limits and O-AN-6 evaluation, and a separate real-API evaluation request: `planning/CA-05-decision-proposals.md` (nothing ratified). Draft store 1.5 definitions: `planning/CA-05-draft/`, Data Schema §26. All implementation work below is **pending**; documenting the design does not complete it.
+
+| Work | Phase | Owner | Pending decision |
+|---|---|---|---|
+| Foundational types/contract (domain analysis types, store 1.5, app contract 1.2, UI 1.2) | CA-05 lead task before P07 (proposed: start of P06); precedes all rows below | Lead | Execution approval |
+| Evidence snapshot builder, digest, honest stage state without provider | P07 | W + lead | — |
+| Excerpt redaction for snapshots | P06/P07 | W | — |
+| Combined report sections, stage notices, export revisions | P11 | W | — |
+| UI analysis tab, stage progress and failure states | P15a (labelled mocks) / P15b | W | — |
+| Provider integration with structured output, application-owned retries | P16 | W | O-AN-2 limits |
+| Automatic orchestration: attempts, authoritative selection, recovery, validation, idempotency | P16 (scope extension) | W + lead | — (pilot scope decided) |
+| RAG reuse of the authoritative analysis | P17 | W | — |
+| Safety/adversarial regression, model-quality evaluation, release gate | P19/P20 | Lead + owner | O-AN-6; real-API evaluation approval |
+
 ## 6. Pilot acceptance anchors
 Release gates PRD §9 and §15 apply. Mocks never satisfy real-scan acceptance. Manual terminal/mouse/PDF checks stay listed as manual-pending until performed. Real OpenRouter behaviour is unverified until a separately approved real-API acceptance check.
 
@@ -548,6 +568,8 @@ Unit: hands-on hours (Opus orchestration + Sonnet implementation + Opus review/v
 | P09 | 8–14 | P20 | 8–12 |
 | P10 | 6–10 | | |
 
+**CA-05 automatic evidence analysis (D-18, 2026-10-31; not yet in the figures above or §7.2):** contract task 3–5 h; P07 +1–2 h; P11 +2–3 h; P15a/P15b +2–4 h; P16 +8–12 h; P17 +1–2 h; P19 +3–5 h; evaluation corpus/rubric 4–8 h — about **+24–41 h** hands-on (low confidence; recorded at the owner's acceptance of the CA-05 direction, 2026-10-31). This widens the four-week gap in §7.3; no dates, budget or staffing are assumed.
+
 **CLI increments (D-17), not yet in the figures above:** about +2–3 h in P02 (crate, skeleton, scenario harness) and +1–2 h per later feature phase (~14 phases), so roughly **+16–31 h** hands-on in total. To be folded into each phase's estimate in its request.
 
 Separately estimated, not in the pilot total: P18 Figma translation 8–16 h (timing unknown); X1–X6 ≈ 54–96 h combined.
@@ -564,6 +586,8 @@ Separately estimated, not in the pilot total: P18 Figma translation 8–16 h (ti
 ### 7.3 Fit against the four-week cap
 Sessions per week are not confirmed (Q-01). Fitting 25–41 sessions in four weeks needs about 6.3–10.4 ten-hour sessions per week, before any approval waiting. At 5 sessions/week (200 h, **not** an assumed fact) the AI-inclusive pilot does not fit even at the low hands-on estimate (220 h > 200 h, before contingency); cumulative hands-on hours would reach about P10 at the high estimate or P16 at the low estimate. This is reported as-is rather than lowering estimates.
 
+**Schedule assumption (owner, 2026-10-31):** the four-week cap is no longer treated as an assured commitment. With D-18 (+24–41 h, low confidence) the AI-inclusive pilot is about 244–386 h hands-on before contingency, plus the CLI increments. No scope exchange (§7.4) has been chosen; each needs explicit owner approval together with Q-01 (cadence) and Q-05 (scope exchanges).
+
 ### 7.4 Scope exchanges for owner consideration (none applied)
 | Option | Effect | Approx. saving |
 |---|---|---|
@@ -574,7 +598,7 @@ Sessions per week are not confirmed (Q-01). Fitting 25–41 sessions in four wee
 | E5 | Checkov → conditional (explicit baseline downgrade; only by owner decision) | 8–14 h |
 | E6 | Extend the calendar cap or increase sessions/week | — |
 
-E1–E4 together save about 16–25 h and do not by themselves make the pilot fit at 5 sessions/week. Safety controls, redaction, coverage honesty, PDF, and the minimal assistant are not proposed for cutting.
+E1–E4 together save about 16–25 h and do not by themselves make the pilot fit at 5 sessions/week. Safety controls, redaction, coverage honesty, PDF, and the minimal assistant are not proposed for cutting; since D-18 (2026-10-31) the required automatic evidence analysis is in the same category, and any reduction of it is an owner decision (O-AN-1).
 
 ## 8. Risks and blockers
 
@@ -588,6 +612,8 @@ E1–E4 together save about 16–25 h and do not by themselves make the pilot fi
 | B-06 | Linux Secret Service may be unavailable (headless) | **Resolved for P00** by P00-T07 (qualified); OS-store mode decision stays with P03 (FR-18–FR-24) |
 | B-07 | Some tools may not neutralise repo config or honour explicit files | **Resolved for P00** by P00-T09 (qualified): repo-config channels recorded per tool; Checkov revision 2 only; FR-25–FR-28 |
 | B-08 | Schedule does not fit four weeks at 5 sessions/week | Owner decision (Q-01, Q-05) |
+| R-AN-1 | (CA-05) Automatic analysis widens routine provider disclosure and cost; model output can be wrong, uncited or manipulated by repository text | Mitigations designed (snapshot bounds, approvals, redaction, validation, limits, no tools); unverified until P16/P19; model quality needs a reviewed corpus (O-AN-6) |
+| R-AN-2 | (CA-05) Contract change (store 1.5, app 1.2, UI 1.2) after P02's implemented store 1.4 | Lead contract task before P07 keeps it ahead of the first real reports; 1.4 records stay readable (Data §26) |
 | B-09 | Python 3.14 compatibility with Checkov/yamllint unknown | **Resolved** by B1: standalone CPython 3.12.15 in isolated venvs (system Python untouched) |
 
 ## 9. Debug-cycle log

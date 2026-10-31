@@ -3,11 +3,13 @@
 Consolidated revision 0.3. Includes all decisions through 23 October 2026: OpenRouter BYOK; local JSON/Markdown/PDF; named tool and wrapper plan; one core developer plus a Figma design team; Opus-led verification, Sonnet implementation, Haiku documentation and owner-approved debug cycles. This specification is not evidence of implemented code or completed tests. Earlier v0.1/v0.2 wording is superseded by this consolidated set.
 
 Version: 0.3.5 (amendments CA-01, CA-02, CA-03, CA-04; store contract 1.4, wrapper protocol 1.1, app contract 1.1, UI schema 1.1) | Date: 2026-10-23 | Status: Proposed architecture
+
+Change record 2026-10-31 (proposed, not implemented): **CA-05 automatic LLM evidence analysis** (PRD ANL-01–ANL-12; change contract `planning/CA-05-automatic-evidence-analysis.md`). Sections marked "CA-05" describe proposed behaviour pending owner approval; current contract versions above are unchanged until CA-05 is applied.
 Scope: Single-user local application; Rust-oriented reference design, subject to language sign-off.
 
 ## 1. Architectural intent
 
-Use a modular monolith with an event-driven terminal UI, a bounded assessment coordinator, JSON persistence, capability-gated external integrations and an optional RAG subsystem. External scanners are supervised subprocesses, not separate product microservices. The core must remain useful if every AI service is unavailable.
+Use a modular monolith with an event-driven terminal UI, a bounded assessment coordinator, JSON persistence, capability-gated external integrations, a required automatic evidence-analysis stage (CA-05) and an optional interactive RAG chat. External scanners are supervised subprocesses, not separate product microservices. Scanning, findings, coverage and the JSON evidence report must remain usable if every AI service is unavailable; the assessment is then reported `incomplete` (analysis stage not completed), never as fully completed.
 
 ## 2. System context
 
@@ -23,6 +25,8 @@ flowchart LR
   N --> V[Vulnerability and schema sources]
   N --> OR[OpenRouter with user BYOK]
   OR --> M[Eligible downstream provider]
+  T -. automatic evidence analysis: approved redacted snapshot (CA-05) .-> N
+  T -. optional interactive chat: approved redacted context .-> N
 ```
 
 Trust boundaries:
@@ -32,6 +36,7 @@ Trust boundaries:
 3. App-owned storage may contain sensitive repository metadata even after secret redaction.
 4. Network/provider access crosses a disclosure boundary requiring explicit scope.
 5. Models produce untrusted advisory text; they do not control permission grants or execution.
+6. (CA-05) Automatic evidence analysis crosses boundary 4 during the normal workflow, not only when chat is used: the redacted evidence snapshot leaves the device to OpenRouter and the downstream provider under an approved `model_transmission` scope. Model output re-enters as untrusted data and is validated (schema, citations) before persistence.
 
 ## 3. Component architecture
 
@@ -52,6 +57,13 @@ flowchart TB
   O --> E[Assessment executor]
   O --> Q[RAG coordinator]
   O --> K[Permission evaluator]
+  O --> AN[Analysis coordinator - CA-05]
+  AN --> SB[Evidence snapshot builder]
+  SB --> RD
+  AN --> K
+  AN --> MA
+  AN --> VAL[Response and citation validator]
+  VAL --> PW
   E --> X[Named scanner / schema / renderer adapters]
   X --> PS[Process supervisor]
   PS --> WR[App-owned wrappers or native tool execution]
@@ -64,10 +76,15 @@ flowchart TB
   E --> F[Finding normaliser and coverage ledger]
   F --> PW
   Q --> PW
+  F --> SB
   PW --> DS[JSON store and backup reports]
+  PW --> RG[Combined report generator]
+  DS -. saved analysis as secondary source .-> IX
   O --> EV[Typed application events]
   EV --> B
 ```
+
+The analysis coordinator (CA-05) is started by the application coordinator when a per-repository report is finalised. It shares the model adapter, network gateway, redaction module and permission evaluator with chat, but no chat component is on its path: closing or never opening the chat panel has no effect on it.
 
 Every network/process operation must be authorised before execution. Adapters that perform their own network I/O must expose/enforce equivalent policy; merely drawing a gateway does not constrain their internal traffic.
 
@@ -86,10 +103,13 @@ A headless developer CLI (`pwt-workbench-cli`, D-17, CA-04) is a second presenta
 | Executor | Bounded task execution, cancellation, outcomes | UI state or unrestricted command strings |
 | Permission evaluator | Scope matching, grant/deny/revoke records | Model-authored approvals |
 | Normaliser | Finding IDs, source attribution, redaction and coverage | Invented locations or scanner evidence |
-| RAG coordinator | Context selection, retrieval and provider requests | File modification or command execution |
+| RAG coordinator | Context selection, retrieval and provider requests for interactive chat | File modification or command execution; being a prerequisite for evidence analysis |
+| Analysis coordinator (CA-05) | Eligibility, logical analyses and their attempts, authoritative-result selection, recovery of interrupted attempts, limits/application-owned retries/idempotency, stage events | Changing findings, outcomes, severities or coverage; modifying the evidence report; granting approvals; provider fallback; automatic replay |
+| Evidence snapshot builder (CA-05) | Deterministic bounded snapshot and digest from one finalised report | Reading other repositories, sending unredacted text, unbounded excerpts |
+| Response/citation validator (CA-05) | Analysis-schema and citation checks, rejection counts | Repairing more than once, inventing or reassigning citations |
 | Persistence writer | Validation, serialised writes, recovery, exports | Security decisions based on filenames alone |
 
-Core domain types: RepoId, FileId, WorkflowId, RunId, TaskId, FindingId, ApprovalId, ConversationId, ChunkId, SourceRef, CheckOutcome and ExecutionStatus. Prefer typed IDs over interchangeable strings in Rust internals.
+Core domain types: RepoId, FileId, WorkflowId, RunId, TaskId, FindingId, ApprovalId, ConversationId, ChunkId, SourceRef, CheckOutcome and ExecutionStatus; CA-05 proposes AnalysisId, AnalysisStatus, AnalysisReason and AssessmentCompletion. Prefer typed IDs over interchangeable strings in Rust internals.
 
 ## 5. End-to-end manual assessment sequence
 
@@ -102,6 +122,8 @@ sequenceDiagram
   participant Git
   participant Planner
   participant Executor
+  participant Analysis as Analysis coordinator (CA-05)
+  participant Model as Model adapter / OpenRouter
   participant Store
   User->>UI: Add repo URL
   UI->>Coordinator: Register/acquire
@@ -125,11 +147,24 @@ sequenceDiagram
     Coordinator->>Store: Persist sanitised checkpoint
     Coordinator-->>UI: Progress/event projection
   end
-  Coordinator->>Store: JSON + Markdown + restricted local PDF
-  Coordinator-->>UI: Final execution and assessment state
+  Coordinator->>Store: Per-repo JSON evidence report (never waits for AI)
+  Coordinator-->>UI: Scanner stage terminal (findings and coverage usable)
+  Coordinator->>Analysis: Report finalised (automatic, no user action)
+  Analysis->>Policy: model_transmission + inference scope
+  alt grant missing
+    Policy-->>UI: Approval request (analysis awaiting_approval)
+    User->>UI: Approve / deny
+  end
+  Analysis->>Model: Redacted evidence snapshot (bounded)
+  Model-->>Analysis: Structured response
+  Analysis->>Analysis: Validate schema + citations (≤ 1 repair)
+  Analysis->>Store: Immutable attempt record (AnalysisFile) + run log manifest
+  Analysis-->>UI: AnalysisFinished (completed / blocked / failed …)
+  Coordinator->>Store: Combined Markdown + restricted local PDF (evidence + analysis or stage notice)
+  Coordinator-->>UI: Final execution, assessment, coverage and completion state
 ```
 
-Denied tasks do not become passes. Dynamic discoveries that introduce new network scope pause at a new approval boundary.
+Denied tasks do not become passes. Dynamic discoveries that introduce new network scope pause at a new approval boundary. The analysis branch (CA-05, proposed) runs per repository; a denied or failed analysis leaves scanner evidence and the JSON report untouched and the assessment `incomplete`.
 
 ## 6. Runtime model
 
@@ -175,7 +210,9 @@ Status: **pilot** = command/event is implemented in the pilot. **reserved (defer
 | RequestShutdown | pilot | Cancel work, persist, restore terminal |
 | SuppressFinding / UpdateSuppression | reserved (deferred) | RES-06 suppression/baseline |
 | CompareRuns | reserved (deferred) | History comparison with scope-compatibility warnings |
-| GenerateReportNarrative | reserved (deferred) | Optional cited AI narration as a new/versioned report (RES-07) |
+| GenerateReportNarrative | reserved (deferred); **withdrawn if CA-05 is applied** | Superseded by automatic evidence analysis (ANL) and `ReanalyseReport` |
+| ReanalyseReport | proposed (CA-05, app contract 1.2; not implemented) | Explicit retry (new attempt of an uncompleted logical analysis with unchanged inputs) or re-analysis (new logical analysis version) for a report (ANL-11) |
+| CancelAnalysis | proposed (CA-05, app contract 1.2; not implemented) | Cancel an in-flight analysis (ANL-08) |
 | PersistConversation | reserved (deferred) | Opt-in sanitised chat history |
 | StartLiveVerification | reserved (deferred) | SCAN-06 non-mutating verification |
 
@@ -203,6 +240,8 @@ Status: **pilot** = command/event is implemented in the pilot. **reserved (defer
 | ChatResponseChunk | pilot | coalescible by merging text, never dropping it (replaces ChatTokenReceived) |
 | ChatFailed | pilot | must-deliver; typed reason (invalid key, credits, rate limit, no compliant route, timeout, truncation, provider outage — the last added 2026-10-26 by owner acceptance at P01-T09, from UI Schema §15; app contract 1.0 unchanged as no implementation had been released) |
 | StorageFailure, OperationFailed | pilot | must-deliver |
+| AnalysisStateChanged | proposed (CA-05, app contract 1.2) | must-deliver; analysis ID, report ID, state, reason code (no content) |
+| AnalysisFinished | proposed (CA-05, app contract 1.2) | must-deliver; analysis ID, attempt, terminal status, reason, validation outcome, AI evidence coverage, workflow completion state |
 | SuppressionChanged, RunComparisonReady | reserved (deferred) | — |
 
 Persisted `log.json` events use these names in `event_type`; mock events in the demo TUI carry a visible mock marker and cannot satisfy real-scan acceptance.
@@ -247,6 +286,36 @@ A task can produce findings and still fail later: retain findings and mark its c
 
 `pending -> approved | denied | cancelled`. Approved grants may later be revoked or expire. An operation is permitted only while its exact relevant constraints match a valid grant.
 
+### Evidence analysis attempt (CA-05, design direction accepted with qualifications; not implemented)
+
+```mermaid
+stateDiagram-v2
+  [*] --> pending: report finalised
+  pending --> awaiting_approval: grant missing
+  pending --> running: grant valid
+  pending --> blocked: no provider / no key / limit reached / no compliant route
+  pending --> not_performed: insufficient evidence
+  awaiting_approval --> running: approved
+  awaiting_approval --> blocked: denied
+  running --> validating: response received
+  validating --> running: one repair attempt
+  validating --> completed: schema + citations valid
+  validating --> failed: invalid after repair / unsupported summary
+  running --> failed: timeout after send / provider error after retries
+  running --> cancelled: user cancel
+  awaiting_approval --> cancelled
+  running --> interrupted: crash / exit
+  awaiting_approval --> interrupted: crash / exit
+```
+
+Each diagram path is one **attempt** of a **logical analysis**; its terminal state is written once as an immutable record. Only attempt 1 starts automatically; explicit retry adds attempt n+1 to a logical analysis without a completed attempt; explicit re-analysis creates a new logical analysis version. At most one attempt per logical analysis completes. The authoritative analysis of a report is the completed attempt of the highest version that has one; a failed newer version does not erase it. At startup, non-terminal attempts become `interrupted` records (an in-flight request may have been billed) and are not replayed. No exactly-once execution or billing is claimed.
+
+### Workflow completion and the four dimensions (CA-05)
+
+`in_progress -> complete | incomplete`. `complete` requires: scanner execution terminal (`completed` or `partial`), an authoritative completed analysis for every repository report, and every JSON evidence report written. Otherwise `incomplete` with `incomplete_stages ⊆ {scanner, analysis, report}`.
+
+Four dimensions are kept separate in records, events, UI and reports: **workflow completion** (stages), **scanner coverage** (`complete`/`partial`/`none`), **AI evidence coverage** (how much eligible evidence the validated analysis covered: `complete`/`partial`/`none`) and **finding presence** (`findings`/`no_findings`/`unknown`). None implies another; workflow completion never means "no security findings".
+
 ## 8. Scope, provenance and generated artifacts
 
 A run stores an immutable snapshot of selected repository refs, commit IDs, file paths/digests, categories, settings, dependency versions and workflow revision. File identity is repository plus relative path; content identity is digest plus commit context.
@@ -281,6 +350,7 @@ Requirements:
 - Validate citation references against retrieved source IDs; flag unsupported assertions rather than manufacturing citations.
 - Stale history remains available for explicit historical questions, with stale badges.
 - Chat availability cannot determine scan availability.
+- (CA-05) Automatic evidence analysis does not use this chat path's context selection; it uses the deterministic evidence snapshot (Technical Specification §26). Chat may retrieve the saved analysis as `ai_analysis` secondary chunks and must label it AI-generated.
 
 ## 10. Permission architecture
 
@@ -306,6 +376,7 @@ No unrestricted secret verification: an adapter must not submit detected secret 
   backup/<utc-time>_<repo-slug>_<run-id>.json
   backup/<utc-time>_<repo-slug>_<run-id>.md
   backup/<utc-time>_<repo-slug>_<run-id>.pdf
+  analysis/<utc-time>_<repo-slug>_<run-id>_a<version>-t<attempt>.json   # proposed (CA-05): one immutable record per analysis attempt
   rag/index.json
   rag/conversations.json       # sanitised persistence only if enabled
   cache/...                    # approved sanitised/cache material
@@ -315,7 +386,7 @@ No unrestricted secret verification: an adapter must not submit detected secret 
 Directory root is resolved by the platform application-data mechanism or explicit user configuration. No exact OS path is assumed here. User-facing backup directory can be relocated by configuration.
 
 - No cross-file transaction guarantee. Persist run lifecycle before tasks and final report identity after finalisation.
-- JSON report is authoritative assessment evidence. Deterministic Markdown and restricted local PDF derive from the same evidence; optional AI narrative is labelled.
+- JSON report is authoritative scanner evidence. Deterministic Markdown and restricted local PDF derive from the same evidence plus, under CA-05, the validated analysis record or a stage notice; AI content is labelled by origin and never replaces evidence.
 - Persist independent JSON/Markdown/PDF export outcomes; regenerate failed derived formats without rerunning assessment.
 - Startup reconciles logs with reports and marks abandoned runs interrupted.
 - Incomplete writes never overwrite the only validated copy; use validated replacement/recovery handling tested per OS.
@@ -334,7 +405,12 @@ Directory root is resolved by the platform application-data mechanism or explici
 | Approval denied | Skip affected operation; qualified summary |
 | Terminal resize | Reflow layout; preserve app/run state |
 | Storage full/permission denied | Prominent error; stop starting new tasks if durable evidence cannot be preserved |
-| Model unavailable | Chat error only; scans remain usable |
+| Model unavailable | Scans and evidence reports remain usable; chat shows an error; automatic analysis (CA-05) becomes `blocked`/`failed` with a reason and the assessment is `incomplete` |
+| Analysis output invalid / citations unsupported (CA-05) | At most one repair attempt; then `failed`; rejected items counted; nothing invented in reports |
+| Analysis interrupted by exit/crash (CA-05) | `interrupted` at startup reconciliation; no automatic replay (possible charge) |
+| Analysis record not persisted (CA-05) | Writer halts; attempt not completed; scanner records and evidence report untouched |
+| Evidence report unreadable or digest mismatch (CA-05) | No request; attempt `blocked`/`evidence_unavailable` |
+| Combined export fails (CA-05) | Evidence JSON and analysis records kept; export marked failed and regenerable without rescanning or re-analysis |
 | Forced termination | Reconcile orphaned runs/reports at next startup |
 | External API rate limit | Bounded retry only for safe operations; preserve failure context |
 
@@ -347,6 +423,7 @@ Directory root is resolved by the platform application-data mechanism or explici
 - Do not automatically open URLs or execute copied suggested commands.
 - Network destination policy alone does not prevent every scanner subprocess from making connections; integrate enforceable tool settings or appropriate isolation.
 - Secret redaction cannot guarantee all sensitive business information is removed; provider disclosure remains explicitly approved.
+- (CA-05) Automatic analysis widens routine provider disclosure compared with chat-only use; it is bounded by the evidence snapshot, approved data categories and limits, and the model has no tools.
 
 ## 14. Architecture decisions and unresolved items
 
@@ -362,6 +439,7 @@ Directory root is resolved by the platform application-data mechanism or explici
 | A-08 | No implicit all-network grant | Approval matches requested external access requirement |
 | A-09 | Native Rust process adapters implement protocol v1.1 DTOs | Accepted (D-03); supervisor owns timeout/cancel/process-tree kill out-of-band (CA-01) |
 | A-10 | Linux x86_64 first pilot target, portable interfaces | Accepted (D-02); Windows/macOS unverified extensions (X5) |
+| A-12 | (Proposed, CA-05) Automatic evidence analysis as a separate coordinator stage reusing the provider adapter | Required by the owner (2026-10-31); keeps chat optional and scanner evidence independent; pending approval |
 | A-11 | Independent version lines: document 0.3.x, store 1.4, wrapper protocol 1.1, app command/event contract 1.1 (CA-04), UI schema 1.1 (CA-03) | Resolves C6; see Data Schema §17 and §22 |
 
 Physical deployment matrix, scanner/framework coverage, OpenRouter inference-model choice and performance budgets are sign-off gates, not architecture facts established by this draft.
@@ -407,6 +485,8 @@ flowchart LR
     SCAN[Local scanners] --> EVID[Normalised JSON evidence]
     EVID --> MD[Deterministic Markdown]
     MD --> PDF[Restricted local PDF]
+    EVID --> SNAP[Evidence snapshot builder - CA-05]
+    SNAP --> CONSENT
     EVID --> RET[Local filtered redacted retrieval]
     RET --> CONSENT[Approved disclosure and routing policy]
     KEY[OS key store or session memory] --> CLIENT[OpenRouter client]
@@ -416,9 +496,9 @@ flowchart LR
   OR --> LLM[Eligible downstream model endpoint]
 ```
 
-No PWT inference server/account/shared key. External AI is optional; no-key/network failure does not stop scanning or basic reports. Model receives no execution tools. Local lexical retrieval requires no vector database/embedding API. Request policy initially denies data collection, requires ZDR endpoints and disables fallback; no eligible route produces an explicit error. It is not a promise that intermediary metadata is absent.
+No PWT inference server/account/shared key. Interactive chat is optional; automatic evidence analysis is a required stage (CA-05) that uses the same client. No-key/network failure does not stop scanning or the evidence report; it leaves the analysis stage `blocked`/`failed` and the assessment `incomplete`. Model receives no execution tools. Local lexical retrieval requires no vector database/embedding API. Request policy initially denies data collection, requires ZDR endpoints and disables fallback; no eligible route produces an explicit error. It is not a promise that intermediary metadata is absent.
 
-Record independent export states in log manifests. JSON report snapshots are immutable; Markdown/PDF regeneration uses retained evidence and approved narrative version. Updating AI content creates a new/versioned report, not mutation of accepted evidence.
+Record independent export states in log manifests. JSON report snapshots are immutable; Markdown/PDF regeneration uses retained evidence and the validated analysis version it names (CA-05; earlier text: approved narrative version). A new analysis version creates a new export revision, not mutation of accepted evidence.
 
 ## 18. Development control plane
 
@@ -459,3 +539,4 @@ Root plan/status/handover carry phase, code revision, command evidence, dirty wo
 - Cross-engine overlap, missing dependencies, denied requests and unknown schemas remain explicit.
 - Licensing/source/NOTICE obligations checked before bundling; Docker Desktop and hosted features not assumed universally free.
 - Four-week pilot cut approved for one developer with Figma design support; broad target coverage remains an explicit roadmap.
+- (CA-05) Automatic evidence analysis: deterministic contract/security cases AC-01–AC-18 pass with mock HTTP; analysis failure never hides behind a completed assessment; model-quality evaluation on a reviewed corpus is reported separately.

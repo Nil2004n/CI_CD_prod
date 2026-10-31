@@ -1,0 +1,16 @@
+schema AnalysisFile: valid
+schema AnalysisFile: valid
+schema AnalysisFile: valid
+schema AnalysisManifest: valid
+schema AssessmentCompletion: valid
+schema AnalysisManifest: valid
+schema AssessmentCompletion: valid
+semantic record 031 (interrupted): ok
+semantic record 032 (completed): ok
+semantic record 033 (blocked): ok
+semantic analysis 011: ok
+semantic analysis 012: ok
+semantic completion (complete): ok
+semantic completion (incomplete): ok
+jsonschema 4.26.0; draft/base $defs name clashes: []
+OVERALL PASS
