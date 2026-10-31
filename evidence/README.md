@@ -8,9 +8,14 @@ Development-control evidence only (code changes and verification). Not end-user 
 evidence/
   P00-planning/   # documentation-only planning stage (2026-10-23)
   P00/            # P00 spike records, once P00 is approved
-  Pxx/            # one directory per approved feature phase
-  debug/Pxx-Dnn/  # one directory per owner-approved debug cycle
+  Pxx/            # one directory per approved feature phase (P01, P02, P03 present): task records, baselines B0..Bn,
+                  #   Pxx-report.md, Pxx-freeze.json, continuity/ (verbatim status/handover archives at phase close)
+  debug/Pxx-Dnn/  # one directory per owner-approved debug cycle (index: debug/README.md)
+  CA-05-docs/     # offline checks of the CA-05 documentation/draft-schema change (2026-10-31)
+  cleanup-2026-11-01/  # runner env/static after the post-P03 deep clean-up
 ```
+
+Latest phase: P03, accepted and merged 2026-11-01 — report `P03/P03-report.md`, final check `P03/T12/final/`.
 
 ## Check record format
 

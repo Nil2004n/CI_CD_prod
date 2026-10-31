@@ -19,15 +19,15 @@ Document v0.3.3 (amendments CA-01 2026-10-23, CA-02 2026-10-24) and store schema
 
 No current app tests, scanners, API calls, platform installs or Git operations were executed in preparing this package. Package verification covers document structure and schema fixtures only.
 
-## Start here (current state, 2026-10-31)
+## Start here (current state, 2026-11-01)
 
 The sections above describe the original v0.3 specification package and are kept as history. Current facts:
 
 - **Product (intended, not yet built in full):** a configuration-security workbench combining established checks, automatic evidence-grounded LLM analysis and interactive RAG investigation. Automatic analysis is a newly explicit requirement (2026-10-31, D-18) whose design direction (CA-05) the owner accepted with qualifications the same day (`planning/CA-05-automatic-evidence-analysis.md`); it is not implemented, and canonical schema/application changes are not yet authorised.
 - **Specs/contracts now:** spec v0.3.5 (CA-01–CA-04), store schema 1.4 (`schemas/workbench-store-v1.4.schema.json`), wrapper protocol 1.1, app contract 1.1, UI schema 1.1.
-- **Code:** Rust workspace in `workbench/` (crates `domain`, `application`, `persistence`, `cli`, plus placeholders `repositories`, `scanning`, `retrieval`, `terminal-ui`). P00–P02 are accepted and merged into `main`; P03 (permissions, child environment, session credentials) is in progress on `phase/P03-permissions-credentials`.
-- **Read in this order:** `CLAUDE.md` (working contract) → `status.md` (live state, open owner decisions) → `handover.md` (how to resume, how to run checks, lessons) → `plan.md` (§4 roadmap, §5C current phase) → `planning/P03-T01-request.md` (frozen P03 interfaces).
-- **Checks:** only through `dev/p03_check.py` on the P03 branch (see `handover.md`); do not run `cargo` directly.
+- **Code:** Rust workspace in `workbench/` (crates `domain`, `application`, `persistence`, `cli`, plus placeholders `repositories`, `scanning`, `retrieval`, `terminal-ui`). **P00–P03 are accepted and merged into `main`** (P03 = permission evaluator, approval lifecycle, child-environment sanitiser, session credentials, FR-33, headless CLI with 16 commands); 1138 tests + 41 compile_fail pass. No phase is active; the next step (P04 or the CA-05 contract task) needs the owner.
+- **Taking over?** Start with `handover.md` §0 "First hour". Then: `CLAUDE.md` (binding working contract) → `status.md` (live state, open owner decisions) → `handover.md` (full guide: environment, commands, phase procedure, codebase tour, next steps, lessons) → `plan.md` (§3 control, §4 roadmap, §5C last phase, §5D CA-05) → `evidence/P03/P03-report.md` (latest phase report).
+- **Checks:** only through `dev/p03_check.py` (see `handover.md` §5); never run `cargo` directly. No build directory exists after the 2026-11-01 clean-up; the first run rebuilds offline (≈10 min).
 - **Agents:** active definitions are in `.claude/agents/` and skills in `.claude/skills/`; `proposals/` holds not-yet-adopted items (`haiku-docs`, a CLAUDE.md amendment) and the original `sonnet-implementer` proposal; the active copy is the one in `.claude/agents/`.
 
 ## Repository state note (2026-10-23, historical)
