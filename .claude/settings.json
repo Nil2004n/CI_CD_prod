@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -I -B dev/p03_check.py *)",
+      "Bash(python3 -I -B /home/kali/Desktop/CI_CD_prod/.claude/worktrees/*/dev/p03_check.py *)"
+    ]
+  }
+}
