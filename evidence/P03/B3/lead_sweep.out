@@ -1,0 +1,4 @@
+exit codes: [('store init', 0), ('credential set', 0), ('credential status', 0), ('credential delete', 0), ('dev env-preview', 0), ('--json dev', 0), ('dev env-preview', 0), ('--json dev', 0), ('dev env-preview', 0), ('--json dev', 0), ('dev env-preview', 0), ('--json dev', 0), ('dev env-preview', 0), ('--json dev', 0), ('dev env-preview', 0), ('--json dev', 0), ('dev env-preview', 0), ('--json dev', 0), ('--json dev', 6), ('approvals list', 0), ('--json approvals', 0), ('approvals approve', 0), ('dev permission-check', 0), ('approvals list', 0)]
+processes 24, files scanned 8, approval recorded True
+hits: none
+credential set exit: 0

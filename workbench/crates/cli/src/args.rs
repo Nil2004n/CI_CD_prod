@@ -13,7 +13,9 @@ use std::ffi::OsString;
 use std::fmt;
 use std::path::PathBuf;
 
+use application::child_env::ToolProfile;
 use application::dev_store::parse_root;
+use domain::ids::ApprovalId;
 use domain::store::StoreKind;
 
 /// The flags the CLI knows.
@@ -29,6 +31,10 @@ pub enum Flag {
     Root,
     /// `--restore-previous <root>`: restore a root in `store recover`.
     RestorePrevious,
+    /// `--scope once|workflow`: the scope of `approvals approve`.
+    Scope,
+    /// `--session`: the key of `credential set` is held for this process only.
+    Session,
 }
 
 impl Flag {
@@ -40,6 +46,8 @@ impl Flag {
             Self::DataDir => "--data-dir",
             Self::Root => "--root",
             Self::RestorePrevious => "--restore-previous",
+            Self::Scope => "--scope",
+            Self::Session => "--session",
         }
     }
 }
@@ -73,6 +81,20 @@ pub enum UsageError {
     FlagNotAllowed(Flag),
     /// `--version` together with a command.
     VersionWithCommand,
+    /// A command group (`approvals`, `credential`, `dev`) without a subcommand.
+    MissingSubcommandFor(&'static str),
+    /// `approvals approve|deny|revoke` without an approval identifier.
+    MissingId,
+    /// An approval identifier that is not a canonical UUID.
+    InvalidId,
+    /// A `--scope` value other than `once` or `workflow`.
+    InvalidScope,
+    /// `credential set` without `--session` (the only supported mode).
+    SessionRequired,
+    /// `dev env-preview` without a tool name.
+    MissingTool,
+    /// A tool name that is not one of the seven profiles.
+    UnknownTool,
 }
 
 impl fmt::Display for UsageError {
@@ -95,12 +117,30 @@ impl fmt::Display for UsageError {
                 return write!(f, "{} is not accepted by this command", flag.as_str());
             }
             Self::VersionWithCommand => "--version cannot be combined with a command",
+            Self::MissingSubcommandFor(group) => {
+                return write!(f, "the {group} command needs a subcommand");
+            }
+            Self::MissingId => "an approval identifier is required",
+            Self::InvalidId => "the approval identifier is not a valid identifier",
+            Self::InvalidScope => "the scope must be once or workflow",
+            Self::SessionRequired => "credential set needs --session (the only supported mode)",
+            Self::MissingTool => "a tool name is required",
+            Self::UnknownTool => "unknown tool name",
         };
         f.write_str(text)
     }
 }
 
 impl std::error::Error for UsageError {}
+
+/// The scope of `approvals approve` (request §5.7).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum ApprovalScope {
+    /// `--scope once` (the default): this one operation (a `run` request keeps its run lifetime).
+    Once,
+    /// `--scope workflow`: the saved workflow at its current revision.
+    Workflow,
+}
 
 /// A parsed command with its arguments.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -140,6 +180,52 @@ pub enum Command {
         /// Root to restore from its previous generation.
         restore_previous: Option<StoreKind>,
     },
+    /// `approvals list --data-dir D`.
+    ApprovalsList {
+        /// The data directory.
+        data_dir: PathBuf,
+    },
+    /// `approvals approve <id> --data-dir D [--scope once|workflow]`.
+    ApprovalsApprove {
+        /// The data directory.
+        data_dir: PathBuf,
+        /// The pending approval.
+        id: ApprovalId,
+        /// The scope of the grant.
+        scope: ApprovalScope,
+    },
+    /// `approvals deny <id> --data-dir D`.
+    ApprovalsDeny {
+        /// The data directory.
+        data_dir: PathBuf,
+        /// The pending approval.
+        id: ApprovalId,
+    },
+    /// `approvals revoke <id> --data-dir D`.
+    ApprovalsRevoke {
+        /// The data directory.
+        data_dir: PathBuf,
+        /// The approved grant.
+        id: ApprovalId,
+    },
+    /// `credential set --session` (the key is read from standard input).
+    CredentialSet,
+    /// `credential status`.
+    CredentialStatus,
+    /// `credential delete`.
+    CredentialDelete,
+    /// `dev env-preview <tool> --data-dir D`.
+    DevEnvPreview {
+        /// The data directory the tool directories are placed under.
+        data_dir: PathBuf,
+        /// The tool profile.
+        tool: ToolProfile,
+    },
+    /// `dev permission-check --data-dir D` (a JSON request on standard input).
+    DevPermissionCheck {
+        /// The data directory.
+        data_dir: PathBuf,
+    },
 }
 
 impl Command {
@@ -153,6 +239,15 @@ impl Command {
             Self::StoreValidate { .. } => "store validate",
             Self::StoreShow { .. } => "store show",
             Self::StoreRecover { .. } => "store recover",
+            Self::ApprovalsList { .. } => "approvals list",
+            Self::ApprovalsApprove { .. } => "approvals approve",
+            Self::ApprovalsDeny { .. } => "approvals deny",
+            Self::ApprovalsRevoke { .. } => "approvals revoke",
+            Self::CredentialSet => "credential set",
+            Self::CredentialStatus => "credential status",
+            Self::CredentialDelete => "credential delete",
+            Self::DevEnvPreview { .. } => "dev env-preview",
+            Self::DevPermissionCheck { .. } => "dev permission-check",
         }
     }
 }
@@ -174,6 +269,8 @@ struct Raw {
     data_dir: Option<PathBuf>,
     root: Option<String>,
     restore_previous: Option<String>,
+    scope: Option<String>,
+    session: bool,
     words: Vec<String>,
 }
 
@@ -207,6 +304,18 @@ fn scan(tokens: &[String]) -> Result<Raw, UsageError> {
                     return Err(UsageError::DuplicateFlag(Flag::RestorePrevious));
                 }
                 raw.restore_previous = Some(value(&mut iter, Flag::RestorePrevious)?.to_owned());
+            }
+            "--scope" => {
+                if raw.scope.is_some() {
+                    return Err(UsageError::DuplicateFlag(Flag::Scope));
+                }
+                raw.scope = Some(value(&mut iter, Flag::Scope)?.to_owned());
+            }
+            "--session" => {
+                if raw.session {
+                    return Err(UsageError::DuplicateFlag(Flag::Session));
+                }
+                raw.session = true;
             }
             other if other.starts_with('-') => return Err(UsageError::UnknownFlag),
             other => raw.words.push(other.to_owned()),
@@ -252,15 +361,20 @@ where
         .collect::<Result<_, _>>()?;
     let raw = scan(&tokens)?;
     let words: Vec<&str> = raw.words.iter().map(String::as_str).collect();
+    // The P02 commands accept neither of the P03 flags.
     let store_flags = |extra_root: bool, extra_restore: bool| -> Result<(), UsageError> {
         deny(extra_root, Flag::Root)?;
-        deny(extra_restore, Flag::RestorePrevious)
+        deny(extra_restore, Flag::RestorePrevious)?;
+        deny(raw.scope.is_some(), Flag::Scope)?;
+        deny(raw.session, Flag::Session)
     };
     if raw.version {
         if !words.is_empty()
             || raw.data_dir.is_some()
             || raw.root.is_some()
             || raw.restore_previous.is_some()
+            || raw.scope.is_some()
+            || raw.session
         {
             return Err(UsageError::VersionWithCommand);
         }
@@ -268,6 +382,11 @@ where
             json: raw.json,
             command: Command::Version,
         });
+    }
+    // The P02 command groups accept neither of the P03 flags.
+    if matches!(words.first(), Some(&("help" | "features" | "store"))) {
+        deny(raw.scope.is_some(), Flag::Scope)?;
+        deny(raw.session, Flag::Session)?;
     }
     let command = match words.as_slice() {
         [] => return Err(UsageError::NoCommand),
@@ -340,11 +459,136 @@ where
                 }
             }
         }
+        ["approvals"] => return Err(UsageError::MissingSubcommandFor("approvals")),
+        ["approvals", sub, rest @ ..] => parse_approvals(&raw, sub, rest)?,
+        ["credential"] => return Err(UsageError::MissingSubcommandFor("credential")),
+        ["credential", sub, rest @ ..] => parse_credential(&raw, sub, rest)?,
+        ["dev"] => return Err(UsageError::MissingSubcommandFor("dev")),
+        ["dev", sub, rest @ ..] => parse_dev(&raw, sub, rest)?,
         _ => return Err(UsageError::UnknownCommand),
     };
     Ok(Invocation {
         json: raw.json,
         command,
+    })
+}
+
+/// The flags no P03 command accepts: `--root` and `--restore-previous`.
+fn deny_store_only(raw: &Raw) -> Result<(), UsageError> {
+    deny(raw.root.is_some(), Flag::Root)?;
+    deny(raw.restore_previous.is_some(), Flag::RestorePrevious)
+}
+
+/// The single approval identifier of `approvals approve|deny|revoke`.
+fn approval_id(rest: &[&str]) -> Result<ApprovalId, UsageError> {
+    match rest {
+        [] => Err(UsageError::MissingId),
+        [id] => ApprovalId::parse(id).map_err(|_| UsageError::InvalidId),
+        _ => Err(UsageError::UnexpectedArgument),
+    }
+}
+
+/// `approvals <sub> ...`.
+fn parse_approvals(raw: &Raw, sub: &str, rest: &[&str]) -> Result<Command, UsageError> {
+    if !matches!(sub, "list" | "approve" | "deny" | "revoke") {
+        return Err(UsageError::UnknownCommand);
+    }
+    deny_store_only(raw)?;
+    deny(raw.session, Flag::Session)?;
+    if sub != "approve" {
+        deny(raw.scope.is_some(), Flag::Scope)?;
+    }
+    let data_dir = raw.data_dir.clone().ok_or(UsageError::MissingDataDir);
+    Ok(match sub {
+        "list" => {
+            if !rest.is_empty() {
+                return Err(UsageError::UnexpectedArgument);
+            }
+            Command::ApprovalsList {
+                data_dir: data_dir?,
+            }
+        }
+        "approve" => {
+            let id = approval_id(rest)?;
+            let scope = match raw.scope.as_deref() {
+                None | Some("once") => ApprovalScope::Once,
+                Some("workflow") => ApprovalScope::Workflow,
+                Some(_) => return Err(UsageError::InvalidScope),
+            };
+            Command::ApprovalsApprove {
+                data_dir: data_dir?,
+                id,
+                scope,
+            }
+        }
+        "deny" => {
+            let id = approval_id(rest)?;
+            Command::ApprovalsDeny {
+                data_dir: data_dir?,
+                id,
+            }
+        }
+        _ => {
+            let id = approval_id(rest)?;
+            Command::ApprovalsRevoke {
+                data_dir: data_dir?,
+                id,
+            }
+        }
+    })
+}
+
+/// `credential <sub> ...`: no data directory (the key is held in the process, never stored).
+fn parse_credential(raw: &Raw, sub: &str, rest: &[&str]) -> Result<Command, UsageError> {
+    if !matches!(sub, "set" | "status" | "delete") {
+        return Err(UsageError::UnknownCommand);
+    }
+    deny_store_only(raw)?;
+    deny(raw.data_dir.is_some(), Flag::DataDir)?;
+    deny(raw.scope.is_some(), Flag::Scope)?;
+    if sub != "set" {
+        deny(raw.session, Flag::Session)?;
+    }
+    if !rest.is_empty() {
+        return Err(UsageError::UnexpectedArgument);
+    }
+    Ok(match sub {
+        "set" => {
+            if !raw.session {
+                return Err(UsageError::SessionRequired);
+            }
+            Command::CredentialSet
+        }
+        "status" => Command::CredentialStatus,
+        _ => Command::CredentialDelete,
+    })
+}
+
+/// `dev <sub> ...`.
+fn parse_dev(raw: &Raw, sub: &str, rest: &[&str]) -> Result<Command, UsageError> {
+    if !matches!(sub, "env-preview" | "permission-check") {
+        return Err(UsageError::UnknownCommand);
+    }
+    deny_store_only(raw)?;
+    deny(raw.scope.is_some(), Flag::Scope)?;
+    deny(raw.session, Flag::Session)?;
+    let data_dir = raw.data_dir.clone().ok_or(UsageError::MissingDataDir);
+    if sub == "env-preview" {
+        let tool = match rest {
+            [] => return Err(UsageError::MissingTool),
+            [name] => ToolProfile::parse(name).ok_or(UsageError::UnknownTool)?,
+            _ => return Err(UsageError::UnexpectedArgument),
+        };
+        return Ok(Command::DevEnvPreview {
+            data_dir: data_dir?,
+            tool,
+        });
+    }
+    if !rest.is_empty() {
+        return Err(UsageError::UnexpectedArgument);
+    }
+    Ok(Command::DevPermissionCheck {
+        data_dir: data_dir?,
     })
 }
 
@@ -496,5 +740,264 @@ mod tests {
     fn usage_messages_do_not_echo_arguments() {
         let err = parse_str(&["secret-marker-xyz"]).unwrap_err();
         assert!(!err.to_string().contains("secret-marker-xyz"));
+    }
+
+    const ID: &str = "00000000-0000-4000-8000-0000000000aa";
+
+    fn id() -> ApprovalId {
+        ApprovalId::parse(ID).unwrap()
+    }
+
+    /// Fails if an approvals command parses to the wrong variant, scope default or data directory.
+    #[test]
+    fn approvals_commands_parse() {
+        let d = ["--data-dir", "/a"];
+        let cmd = |parts: &[&str]| {
+            let mut all = parts.to_vec();
+            all.extend(d);
+            parse_str(&all).unwrap().command
+        };
+        assert_eq!(
+            cmd(&["approvals", "list"]),
+            Command::ApprovalsList {
+                data_dir: PathBuf::from("/a")
+            }
+        );
+        assert_eq!(
+            cmd(&["approvals", "approve", ID]),
+            Command::ApprovalsApprove {
+                data_dir: PathBuf::from("/a"),
+                id: id(),
+                scope: ApprovalScope::Once
+            }
+        );
+        assert_eq!(
+            cmd(&["approvals", "approve", ID, "--scope", "workflow"]),
+            Command::ApprovalsApprove {
+                data_dir: PathBuf::from("/a"),
+                id: id(),
+                scope: ApprovalScope::Workflow
+            }
+        );
+        assert_eq!(
+            cmd(&["approvals", "approve", "--scope", "once", ID]),
+            Command::ApprovalsApprove {
+                data_dir: PathBuf::from("/a"),
+                id: id(),
+                scope: ApprovalScope::Once
+            }
+        );
+        assert_eq!(
+            cmd(&["approvals", "deny", ID]),
+            Command::ApprovalsDeny {
+                data_dir: PathBuf::from("/a"),
+                id: id()
+            }
+        );
+        assert_eq!(
+            cmd(&["approvals", "revoke", ID]),
+            Command::ApprovalsRevoke {
+                data_dir: PathBuf::from("/a"),
+                id: id()
+            }
+        );
+    }
+
+    /// Fails if an approvals mistake is not the specific usage error: missing or malformed ID, bad scope,
+    /// `--scope` on another subcommand, no data directory, other flags, extra words, no subcommand.
+    #[test]
+    fn approvals_mistakes_are_specific_usage_errors() {
+        let with = |parts: &[&str]| {
+            let mut all = parts.to_vec();
+            all.extend(["--data-dir", "/a"]);
+            parse_str(&all)
+        };
+        assert_eq!(with(&["approvals", "approve"]), Err(UsageError::MissingId));
+        assert_eq!(
+            with(&["approvals", "approve", "nope"]),
+            Err(UsageError::InvalidId)
+        );
+        assert_eq!(
+            with(&["approvals", "approve", ID, ID]),
+            Err(UsageError::UnexpectedArgument)
+        );
+        assert_eq!(
+            with(&["approvals", "approve", ID, "--scope", "x"]),
+            Err(UsageError::InvalidScope)
+        );
+        assert_eq!(
+            with(&["approvals", "deny", ID, "--scope", "once"]),
+            Err(UsageError::FlagNotAllowed(Flag::Scope))
+        );
+        assert_eq!(
+            with(&["approvals", "list", "--session"]),
+            Err(UsageError::FlagNotAllowed(Flag::Session))
+        );
+        assert_eq!(
+            with(&["approvals", "list", "--root", "log"]),
+            Err(UsageError::FlagNotAllowed(Flag::Root))
+        );
+        assert_eq!(
+            with(&["approvals", "list", "x"]),
+            Err(UsageError::UnexpectedArgument)
+        );
+        assert_eq!(
+            with(&["approvals", "bogus"]),
+            Err(UsageError::UnknownCommand)
+        );
+        assert_eq!(
+            parse_str(&["approvals", "approve", ID]),
+            Err(UsageError::MissingDataDir)
+        );
+        assert_eq!(
+            parse_str(&["approvals"]),
+            Err(UsageError::MissingSubcommandFor("approvals"))
+        );
+    }
+
+    /// Fails if the credential commands accept a data directory, miss the `--session` requirement or accept
+    /// it where it has no meaning.
+    #[test]
+    fn credential_commands_parse() {
+        assert_eq!(
+            parse_str(&["credential", "set", "--session"])
+                .unwrap()
+                .command,
+            Command::CredentialSet
+        );
+        assert_eq!(
+            parse_str(&["--json", "credential", "status"])
+                .unwrap()
+                .command,
+            Command::CredentialStatus
+        );
+        assert_eq!(
+            parse_str(&["credential", "delete"]).unwrap().command,
+            Command::CredentialDelete
+        );
+        assert_eq!(
+            parse_str(&["credential", "set"]),
+            Err(UsageError::SessionRequired)
+        );
+        assert_eq!(
+            parse_str(&["credential", "status", "--session"]),
+            Err(UsageError::FlagNotAllowed(Flag::Session))
+        );
+        assert_eq!(
+            parse_str(&["credential", "status", "--data-dir", "/a"]),
+            Err(UsageError::FlagNotAllowed(Flag::DataDir))
+        );
+        assert_eq!(
+            parse_str(&["credential"]),
+            Err(UsageError::MissingSubcommandFor("credential"))
+        );
+    }
+
+    /// Fails if a `dev` command parses to the wrong variant, accepts an unknown tool, or accepts a
+    /// positional word where it takes none.
+    #[test]
+    fn dev_commands_parse() {
+        for tool in ToolProfile::ALL {
+            assert_eq!(
+                parse_str(&["dev", "env-preview", tool.as_str(), "--data-dir", "/a"])
+                    .unwrap()
+                    .command,
+                Command::DevEnvPreview {
+                    data_dir: PathBuf::from("/a"),
+                    tool
+                }
+            );
+        }
+        assert_eq!(
+            parse_str(&["dev", "permission-check", "--data-dir", "/a"])
+                .unwrap()
+                .command,
+            Command::DevPermissionCheck {
+                data_dir: PathBuf::from("/a")
+            }
+        );
+        let d = ["--data-dir", "/a"];
+        let with = |parts: &[&str]| {
+            let mut all = parts.to_vec();
+            all.extend(d);
+            parse_str(&all)
+        };
+        assert_eq!(with(&["dev", "env-preview"]), Err(UsageError::MissingTool));
+        assert_eq!(
+            with(&["dev", "env-preview", "nope"]),
+            Err(UsageError::UnknownTool)
+        );
+        assert_eq!(
+            with(&["dev", "env-preview", "git", "git"]),
+            Err(UsageError::UnexpectedArgument)
+        );
+        assert_eq!(
+            with(&["dev", "permission-check", "x"]),
+            Err(UsageError::UnexpectedArgument)
+        );
+        assert_eq!(
+            parse_str(&["dev", "permission-check"]),
+            Err(UsageError::MissingDataDir)
+        );
+        assert_eq!(
+            parse_str(&["dev"]),
+            Err(UsageError::MissingSubcommandFor("dev"))
+        );
+    }
+
+    /// Fails if a new flag is accepted by a P02 command, or `--scope` / `--session` repeat.
+    #[test]
+    fn new_flags_are_rejected_by_the_p02_commands() {
+        for parts in [
+            vec!["features", "--scope", "once"],
+            vec!["features", "--session"],
+            vec!["help", "--session"],
+            vec!["store", "init", "--data-dir", "/a", "--scope", "once"],
+            vec!["store", "show", "--data-dir", "/a", "log", "--session"],
+            vec!["store", "validate", "--data-dir", "/a", "--session"],
+            vec!["store", "recover", "--data-dir", "/a", "--scope", "once"],
+        ] {
+            assert!(
+                matches!(parse_str(&parts), Err(UsageError::FlagNotAllowed(_))),
+                "{parts:?}"
+            );
+        }
+        assert_eq!(
+            parse_str(&["--version", "--session"]),
+            Err(UsageError::VersionWithCommand)
+        );
+        assert_eq!(
+            parse_str(&["credential", "set", "--session", "--session"]),
+            Err(UsageError::DuplicateFlag(Flag::Session))
+        );
+    }
+
+    /// Fails if a command name does not match what the parser produced for it.
+    #[test]
+    fn new_command_names_match_the_table() {
+        let names: Vec<&str> = [
+            Command::ApprovalsList {
+                data_dir: PathBuf::new(),
+            },
+            Command::CredentialSet,
+            Command::CredentialStatus,
+            Command::CredentialDelete,
+            Command::DevPermissionCheck {
+                data_dir: PathBuf::new(),
+            },
+        ]
+        .iter()
+        .map(Command::name)
+        .collect();
+        assert_eq!(
+            names,
+            [
+                "approvals list",
+                "credential set",
+                "credential status",
+                "credential delete",
+                "dev permission-check"
+            ]
+        );
     }
 }

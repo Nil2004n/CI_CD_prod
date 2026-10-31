@@ -1,7 +1,8 @@
-//! Headless developer CLI (D-17; Architecture §3/§4 as amended by CA-04; frozen surface
-//! `planning/P02-T01-request.md` §5.9). Parses arguments into application calls and prints the resulting
-//! events; never touches Git, scanners, the store or HTTP directly, and never finds a data directory on
-//! its own (`--data-dir` is required for store commands).
+//! Headless developer CLI (D-17; Architecture §3/§4 as amended by CA-04; frozen surfaces
+//! `planning/P02-T01-request.md` §5.9 and `planning/P03-T01-request.md` §5.7). Parses arguments into
+//! application calls and prints the resulting events; never touches Git, scanners, the store or HTTP
+//! directly, and never finds a data directory on its own (`--data-dir` is required for store, approval and
+//! `dev` commands).
 #![forbid(unsafe_code)]
 
 pub mod args;
@@ -80,13 +81,7 @@ where
     W: Write,
     E: Write,
 {
-    // B0: the P03 commands (T10) use the session, standard input and the terminal flag.
-    let _ = (
-        &session.credentials,
-        &session.host_env,
-        stdin,
-        stdin_is_terminal,
-    );
+    let mut stdin = stdin;
     let exit = match args::parse(args) {
         Err(error) => {
             let mut out = Output::new(false, stdout, stderr);
@@ -96,7 +91,13 @@ where
         }
         Ok(invocation) => {
             let mut out = Output::new(invocation.json, stdout, stderr);
-            let mut exit = commands::execute(&invocation.command, &mut out);
+            let mut exit = commands::execute(
+                &invocation.command,
+                session,
+                &mut stdin,
+                stdin_is_terminal,
+                &mut out,
+            );
             out.finish();
             if out.stdout_failed() && exit == Exit::Executed {
                 out.error_line(&sanitise("error: output could not be written"));
