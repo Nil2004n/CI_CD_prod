@@ -25,7 +25,7 @@ Updated: 2026-11-01 by Opus directly (no Haiku documentation agent installed), f
 ## Open owner decisions
 | ID | Item | Recommended |
 |---|---|---|
-| Next phase | P04 (Git acquisition/update) planning, or scheduling the CA-05 lead contract task first | Owner choice; CA-05 contract task must precede any CA-05-dependent work and is proposed before P07 (start of P06) |
+| P04 T01 | E1–E14 decided (all recommended, 2026-11-01); T01 (request, frozen interfaces, procedures, credential policy) not started | Give the go for T01 (and T02–T04 if wanted, as for P03) |
 | R7/R8 scope | R7/R8 ignore `inference_scope`: a pending/denied `model_transmission` request for one model blocks a valid grant for another (fails closed). One-line fix, but changes the frozen request §6 table | Decide before P16; lean to fixing |
 | P06 entry gate | `approvals.json` has no integrity binding; a same-user process can edit it or run `approvals approve` | Record as a hard P06 entry gate: scanner children must not reach the data dir or the CLI (sandbox or separate uid) |
 | §5.7 reading | After a workflow revision change, a request at the old revision gets exit 5 (`stale_workflow_revision`), one at the new revision gets 6 | Confirm |
@@ -56,4 +56,4 @@ Updated: 2026-11-01 by Opus directly (no Haiku documentation agent installed), f
 - `plan.md` has 9 pre-existing malformed table rows in §5B (P02 tables); harmless, not yet repaired.
 
 ## Next permitted action
-None without the owner. On the owner's go: plan P04 (see `handover.md` §8) or schedule the CA-05 contract task. **Not approved:** P04 or any later phase, CA-05 application or implementation, network access (including real OpenRouter calls), new dependencies or installs, merges other than owner-approved ones.
+None without the owner. **P04 is planned (`plan.md` §5E; 12 tasks T01–T12, 3 waves, ~20–29 h, acceptance criteria 1–14); owner chose all recommended options E1–E14 on 2026-11-01 ("I approve all recommended options, commit and push to phase branch"); phase branch `phase/P04-git-acquisition` holds the plan. Next: T01 on the owner's explicit go.** **Not approved:** P04 or any later phase, CA-05 application or implementation, network access (including real OpenRouter calls), new dependencies or installs, merges other than owner-approved ones.
