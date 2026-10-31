@@ -8,6 +8,9 @@
 //! [`PermissionRequest`] and hands it to [`ApprovalService::authorise`], whose result is the only decision
 //! (D01 H1: only `approvals.rs` acts on a permitted evaluation).
 //!
+//! Resource constraints are bounded (16 entries of 512 bytes) and must be plain one-line text; anything else
+//! is a `Decode` rejection (P03-D02 A1).
+//!
 //! The request document is a developer tool, not a stable interface. Unknown members, an unknown capability,
 //! lifetime or data category and every malformed identifier are rejected. Argument values are hashed into the
 //! operation fingerprint and never stored, printed or logged; the document is not echoed in any result.
@@ -38,6 +41,10 @@ use crate::permission::{
 
 /// Largest accepted request document, in bytes.
 pub const MAX_REQUEST_BYTES: usize = 65_536;
+/// Most resource constraints a request may carry (P03-D02 A1).
+pub const MAX_CONSTRAINTS: usize = 16;
+/// Longest resource constraint, in bytes (P03-D02 A1).
+pub const MAX_CONSTRAINT_BYTES: usize = 512;
 
 /// Why the request document was rejected before evaluation. Fieldless.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -120,6 +127,15 @@ struct RequestDoc {
     inference_scope: Option<InferenceScope>,
 }
 
+/// Whether a constraint is acceptable text: at most [`MAX_CONSTRAINT_BYTES`] bytes, no character below
+/// U+0020 (line breaks and tabs included), no U+007F, and nothing that `sanitise` would escape. A constraint
+/// is stored and later shown on a line of its own, so it must be one visible line (P03-D02 A1).
+fn constraint_is_plain(constraint: &str) -> bool {
+    constraint.len() <= MAX_CONSTRAINT_BYTES
+        && !constraint.chars().any(|c| c < '\u{20}' || c == '\u{7f}')
+        && sanitise(constraint).as_str() == constraint
+}
+
 /// Turns the document bytes into a request: size bound, decoding, name and destination validation, and the
 /// fixed purpose. Nothing is read from or written to disk.
 fn decode(doc: &[u8]) -> Result<(PermissionRequest, Option<WorkflowId>), RequestDocError> {
@@ -127,6 +143,14 @@ fn decode(doc: &[u8]) -> Result<(PermissionRequest, Option<WorkflowId>), Request
         return Err(RequestDocError::Read);
     }
     let parsed: RequestDoc = serde_json::from_slice(doc).map_err(|_| RequestDocError::Decode)?;
+    if parsed.resource_constraints.len() > MAX_CONSTRAINTS
+        || !parsed
+            .resource_constraints
+            .iter()
+            .all(|c| constraint_is_plain(c))
+    {
+        return Err(RequestDocError::Decode);
+    }
     let operation = OperationName::parse(&parsed.operation).map_err(|_| RequestDocError::Name)?;
     let mut arguments = Vec::with_capacity(parsed.arguments.len());
     for argument in parsed.arguments {

@@ -56,7 +56,7 @@ pub struct FeatureRow {
 }
 
 /// The feature index as of P03.
-pub const FEATURES: [FeatureRow; 57] = [
+pub const FEATURES: [FeatureRow; 64] = [
     FeatureRow {
         requirement: "D-17; Architecture A-11 (contract versions)",
         command: "--version",
@@ -331,7 +331,7 @@ pub const FEATURES: [FeatureRow; 57] = [
         reason: None,
     },
     FeatureRow {
-        requirement: "FR-33 (root running against a foreign data directory, exit 5)",
+        requirement: "FR-33: exit-5 mapping only; no CLI seam for a root/foreign-dir process test (gap recorded by the lead; FR-33 covered in persistence/tests/p03_fr33.rs)",
         command: "approvals list",
         scenario: "fr33_refusal_maps_to_exit_5_with_the_fixed_message",
         mode: FeatureMode::Real,
@@ -366,9 +366,9 @@ pub const FEATURES: [FeatureRow; 57] = [
         reason: None,
     },
     FeatureRow {
-        requirement: "KEY-01 (no key in output, argv or files)",
+        requirement: "KEY-01 (no key in any output or file)",
         command: "credential set",
-        scenario: "seeded_key_appears_in_no_output_argv_or_file",
+        scenario: "seeded_key_appears_in_no_output_or_file",
         mode: FeatureMode::Real,
         reason: None,
     },
@@ -453,6 +453,55 @@ pub const FEATURES: [FeatureRow; 57] = [
         requirement: "Request 5.7 (exit codes 6, 0, 5 of the process)",
         command: "dev permission-check",
         scenario: "binary_permission_check_exit_codes",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Architecture 10; FR-31 (stored text shown on one visible line, P03-D02 A1)",
+        command: "approvals list",
+        scenario: "planted_control_characters_render_on_one_visible_line",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Architecture 10; Request 5.4 (inference scope shown, P03-D02 A3)",
+        command: "approvals list",
+        scenario: "approvals_list_shows_the_inference_scope",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.7 (JSON records of approve, deny, revoke)",
+        command: "approvals approve",
+        scenario: "approval_decision_json_records_have_an_exact_shape",
+        mode: FeatureMode::Real,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "T01-D6 (resource constraints are plain one-line text, bounded 16 x 512 bytes; P03-D02 A1)",
+        command: "dev permission-check",
+        scenario: "permission_check_rejects_constraints_that_are_not_plain_one_line_text",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 (a run grant holds for its run only, not consumed)",
+        command: "dev permission-check",
+        scenario: "run_lifetime_grant_holds_for_its_run_only",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.4 and 6 (a model-transmission grant is tied to its inference scope)",
+        command: "dev permission-check",
+        scenario: "model_transmission_grant_is_tied_to_its_inference_scope",
+        mode: FeatureMode::Dev,
+        reason: None,
+    },
+    FeatureRow {
+        requirement: "Request 5.9 (lost output never reports success; P03-D02 A6)",
+        command: "dev permission-check",
+        scenario: "a_closed_stdout_keeps_permission_check_in_the_safe_direction",
         mode: FeatureMode::Dev,
         reason: None,
     },

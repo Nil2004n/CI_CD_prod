@@ -538,7 +538,8 @@ fn status_name(status: CredentialStatus) -> String {
     snake(&status)
 }
 
-/// The standard-error text of a key that was refused. Fixed: never the input, not even its length.
+/// The standard-error text of a key that was refused. Fixed text per refusal class: it never contains the
+/// input or its exact length, but the class itself reveals a coarse length class (empty, too short, too long).
 pub fn key_error_text(error: KeyFormatError) -> &'static str {
     match error {
         KeyFormatError::Empty => "error: no key was provided on standard input",

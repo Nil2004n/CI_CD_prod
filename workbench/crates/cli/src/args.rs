@@ -5,9 +5,10 @@
 //! valid UTF-8, so a usage message never needs to repeat raw bytes; and no usage message repeats any
 //! argument at all.
 //!
-//! The parser performs no file-system access and reads no environment: `--data-dir` is mandatory for store
-//! commands and there is no default. Whether the directory exists and is private is decided later by
-//! `application::dev_store`.
+//! The parser performs no file-system access and reads no environment: `--data-dir` is mandatory for every
+//! command that uses a data directory (`store`, `approvals`, `dev`; not `credential`, `help`, `features`)
+//! and there is no default. Whether the directory exists and is private is decided later by the
+//! application layer (`dev_store`, `approvals`, `dev_permission`).
 
 use std::ffi::OsString;
 use std::fmt;
@@ -25,7 +26,7 @@ pub enum Flag {
     Json,
     /// `--version`: print the contract versions.
     Version,
-    /// `--data-dir <dir>`: the data directory of a store command.
+    /// `--data-dir <dir>`: the data directory of a command that uses one.
     DataDir,
     /// `--root <root>`: restrict `store validate` to one root.
     Root,
@@ -71,7 +72,7 @@ pub enum UsageError {
     DuplicateFlag(Flag),
     /// A flag that needs a value has none.
     MissingValue(Flag),
-    /// A store command without `--data-dir`.
+    /// A command that uses a data directory, without `--data-dir`.
     MissingDataDir,
     /// `store show` without a root.
     MissingRoot,
@@ -110,7 +111,7 @@ impl fmt::Display for UsageError {
                 return write!(f, "{} given more than once", flag.as_str());
             }
             Self::MissingValue(flag) => return write!(f, "{} needs a value", flag.as_str()),
-            Self::MissingDataDir => "--data-dir is required for store commands",
+            Self::MissingDataDir => "--data-dir is required for this command",
             Self::MissingRoot => "a root name is required",
             Self::UnknownRoot => "unknown root name",
             Self::FlagNotAllowed(flag) => {

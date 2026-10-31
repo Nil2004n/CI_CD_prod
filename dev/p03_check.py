@@ -608,6 +608,9 @@ GRANT_DIR = "crates/application/src/permission/"
 # permission module itself defines and produces them.
 PERMITTED_OK = {"crates/application/src/approvals.rs"}
 PERMITTED_RE = r"\bEvaluation\s*::\s*(?:Permitted\b|\*|\{[^}]*(?:\bPermitted\b|\*))"
+# P03-D02 C1: `RequestOutcome::Permitted` is an unconsumed "a grant exists" answer, never a go-ahead; only
+# approvals.rs (which defines and returns it) may name it in src.
+REQUEST_PERMITTED_RE = r"\bRequestOutcome\s*::\s*(?:Permitted\b|\*|\{[^}]*(?:\bPermitted\b|\*))"
 EVALUATE_RE = r"\bpermission\s*::\s*(?:evaluate\b|\*|\{[^}]*(?:\bevaluate\b|\*))"
 TODO_RE = r"\btodo\s*!|\bunimplemented\s*!|clippy::todo"
 ALLOW_RE = r"#!?\s*\[\s*(?:cfg_attr\s*\([^\[\]]*?,\s*)?(?:allow|expect)\s*\(([^)]*)"
@@ -678,6 +681,10 @@ def evaluate_hits(prod):
     return [h for h in scan(prod, EVALUATE_RE, PERMITTED_OK) if not h.startswith(GRANT_DIR)]
 
 
+def request_permitted_hits(prod):
+    return scan(prod, REQUEST_PERMITTED_RE, PERMITTED_OK)
+
+
 def check_p03(prod):
     checks = []
     for label, fn in (
@@ -690,7 +697,8 @@ def check_p03(prod):
             ("Authorisation { .. } constructed only in application/src/approvals.rs", authorisation_hits),
             ("Grant { .. } constructed only under application/src/permission/", grant_hits),
             ("Evaluation::Permitted acted on only in application/src/approvals.rs (and permission/)", permitted_hits),
-            ("permission::evaluate referenced only in application/src/approvals.rs (and permission/)", evaluate_hits)):
+            ("permission::evaluate referenced only in application/src/approvals.rs (and permission/)", evaluate_hits),
+            ("RequestOutcome::Permitted named only in application/src/approvals.rs (unconsumed; never a go-ahead)", request_permitted_hits)):
         hits = fn(prod)
         checks.append({"check": label, "hits": hits, "ok": not hits})
     return checks
@@ -889,13 +897,27 @@ def p03_selftest():
            {A + "dev_permission.rs": "use crate::permission::{PermissionRequest, fingerprint};"})
     passes("evaluate: evaluate_due or other names are not permission::evaluate", evaluate_hits,
            {A + "x.rs": "fn f() { scheduler::evaluate_due(); permission::evaluated_at(); }"})
+    # --- rule 13 (P03-D02 C1): RequestOutcome::Permitted only in approvals.rs ---
+    caught("RequestOutcome::Permitted caught in cli", request_permitted_hits,
+           {CLI + "commands.rs": "match o { RequestOutcome::Permitted => go(), _ => {} }"})
+    caught("RequestOutcome :: Permitted with spaces caught", request_permitted_hits,
+           {A + "dev_permission.rs": "if let RequestOutcome :: Permitted = o {}"})
+    caught("use RequestOutcome::{Permitted, ..} caught", request_permitted_hits,
+           {A + "lib.rs": "use crate::approvals::RequestOutcome::{Pending, Permitted};"})
+    caught("use RequestOutcome::* caught", request_permitted_hits, {CLI + "lib.rs": "use application::approvals::RequestOutcome::*;"})
+    passes("RequestOutcome::Permitted allowed in approvals.rs", request_permitted_hits,
+           {A + "approvals.rs": "Evaluation::Permitted(_) => Ok(RequestOutcome::Permitted),"})
+    passes("RequestOutcome::Pending elsewhere passes", request_permitted_hits,
+           {CLI + "commands.rs": "RequestOutcome::Pending(id) => id, AuthOutcome::Authorised(a) => a"})
+    passes("RequestOutcome::Permitted in a #[cfg(test)] module ignored", request_permitted_hits,
+           {CLI + "x.rs": "fn p() {}\n#[cfg(test)]\nmod tests {\n    fn t() { let _ = RequestOutcome::Permitted; }\n}\n"})
     # --- check_p03 wiring: every rule reports a check entry and the clean map passes all ---
     clean = check_p03(prod_map({A + "lib.rs": "pub fn ok() {}\n"}))
-    res.append({"case": "check_p03: clean map passes all rules and yields 10 checks", "ok": len(clean) == 10 and all(c["ok"] for c in clean)})
+    res.append({"case": "check_p03: clean map passes all rules and yields 11 checks", "ok": len(clean) == 11 and all(c["ok"] for c in clean)})
     dirty = check_p03(prod_map({A + "lib.rs": "std::env::vars_os(); Command::new(x); s.expose(); CredentialSecret::new(s); "
                                               "serde_json::from_slice(b); redact_validated(x); Authorisation { a }; Grant { a }; "
-                                              "Evaluation::Permitted(g); permission::evaluate(r)"}))
-    res.append({"case": "check_p03: one file violating every rule fails all 10 checks", "ok": len(dirty) == 10 and not any(c["ok"] for c in dirty)})
+                                              "Evaluation::Permitted(g); permission::evaluate(r); RequestOutcome::Permitted"}))
+    res.append({"case": "check_p03: one file violating every rule fails all 11 checks", "ok": len(dirty) == 11 and not any(c["ok"] for c in dirty)})
     return res
 
 

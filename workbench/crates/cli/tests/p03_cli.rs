@@ -559,7 +559,7 @@ fn workflow_scope_grant_holds_until_the_workflow_revision_changes() {
 
 /// Fails if `--scope workflow` approves a request that has no workflow binding, or one whose revision is no
 /// longer the saved one (both must be exit 5 with the fixed message, the record staying pending), or if
-/// `--scope once` explicitly differs from the default.
+/// an explicit `--scope once` on a workflow-bound request does not grant lifetime `once`.
 #[test]
 fn workflow_scope_is_unavailable_without_a_saved_workflow_at_the_revision() {
     let tmp = Tmp::new("scope-unavailable");
@@ -671,7 +671,7 @@ fn revoke_ends_a_grant_and_only_an_approved_grant_can_be_revoked() {
 }
 
 /// Fails if an unknown approval ID (a well-formed one) is anything but exit 5 with the fixed message for
-/// approve, deny and revoke, or if it creates the store files.
+/// approve, deny and revoke, or if it records an approval.
 #[test]
 fn unknown_approval_ids_exit_5() {
     let tmp = Tmp::new("not-found");
@@ -920,8 +920,7 @@ fn credential_lifecycle_in_one_session_and_absent_in_a_fresh_one() {
 }
 
 /// Fails if `set` reads even one byte from a terminal, accepts it, or changes an existing key; if the
-/// refusal is not exit 5 with the fixed message; or if a terminal flag on any other command changes its
-/// behaviour.
+/// refusal is not exit 5 with the fixed message; or if the same key through a pipe is not read in full.
 #[test]
 fn credential_set_refuses_a_terminal_and_reads_nothing() {
     let mut session = fresh();
@@ -1224,13 +1223,13 @@ fn binary_key_is_held_for_one_process_only() {
 // ---------------------------------------------------------------------------------------------------
 // seeded key sweep
 
-/// Fails if the seeded key appears in any standard output, standard error, argument list or `Debug` text,
+/// Fails if the seeded key appears in any standard output, standard error or `Debug` text of the session,
 /// or in any file under the data directory (every file is read, whatever its name), after a script that
 /// sets the key, reads its status, previews every tool's environment with the key seeded in the host
 /// environment (under innocent and key-like names, also embedded in longer values), checks a permission
 /// request whose argument value is the key, lists, approves and re-checks, and deletes the key.
 #[test]
-fn seeded_key_appears_in_no_output_argv_or_file() {
+fn seeded_key_appears_in_no_output_or_file() {
     let tmp = Tmp::new("sweep");
     let embedded = format!("prefix-{KEY}-suffix");
     let tz = format!("Etc/{KEY}");
@@ -1252,11 +1251,9 @@ fn seeded_key_appears_in_no_output_argv_or_file() {
     let mut session = Session::new(host);
 
     let mut streams: Vec<(String, Vec<u8>)> = Vec::new();
-    let mut argvs: Vec<String> = Vec::new();
     let mut step = |session: &mut Session, args: &[&str], stdin: &[u8], expect: u8| {
         let run = go(session, args, stdin, false);
         assert_exit(&run, expect);
-        argvs.push(args.join(" "));
         streams.push((format!("stdout of {args:?}"), run.stdout.clone()));
         streams.push((format!("stderr of {args:?}"), run.stderr.clone()));
         run
@@ -1353,9 +1350,6 @@ fn seeded_key_appears_in_no_output_argv_or_file() {
             !contains(bytes, KEY_CORE),
             "the key's core is in the {name}"
         );
-    }
-    for argv in &argvs {
-        assert!(!argv.contains(KEY_CORE), "the key is in an argument list");
     }
     let debug = format!("{session:?}");
     assert!(
@@ -2343,4 +2337,362 @@ fn a_closed_stdout_makes_the_new_commands_exit_5() {
                 .contains("output could not be written")
         );
     }
+}
+
+// ---------------------------------------------------------------------------------------------------
+// P03-D02 (A1 to A3, A6)
+
+/// Rewrites `approvals.json` through `edit` (the file keeps its private mode).
+fn edit_approvals(tmp: &Tmp, edit: impl FnOnce(&mut Value)) {
+    let mut doc: Value = serde_json::from_slice(&tmp.read("approvals.json")).unwrap();
+    edit(&mut doc);
+    std::fs::write(
+        tmp.path("approvals.json"),
+        serde_json::to_vec_pretty(&doc).unwrap(),
+    )
+    .unwrap();
+}
+
+/// The text planted in the stored-text tests: a line break followed by a forged "approved" line, a carriage
+/// return, a tab, an ESC sequence and a right-to-left override.
+const PLANTED: &str = "max_size_mb=100\nFORGED 00000000-0000-4000-8000-0000000000ff approved git_acquire\r\tESC\u{1b}[2J\u{202e}end";
+
+/// Fails if a stored multi-line constraint, purpose or actor forges lines in the human `approvals list`
+/// (P03-D02 A1): the view of one approval must stay exactly its own lines, the line break, carriage
+/// return and tab must be shown as `<U+000A>`, `<U+000D>` and `<U+0009>`, and ESC and U+202E as escapes;
+/// the JSON form must stay one record on one line. Without the `one_line` step of the renderer a
+/// `FORGED` line would start in column 0 and the line count would grow.
+#[test]
+fn planted_control_characters_render_on_one_visible_line() {
+    let tmp = Tmp::new("planted");
+    init(&tmp);
+    let id = pending_id(&check(&tmp, &net("git.clone")));
+    edit_approvals(&tmp, |doc| {
+        let record = &mut doc["approvals"][0];
+        record["resource_constraints"] = json!([PLANTED]);
+        record["purpose"] = json!(PLANTED);
+        record["actor"] = json!(PLANTED);
+    });
+
+    let human = dir_run(&tmp, &["approvals", "list"]);
+    assert_exit(&human, 0);
+    let out = human.out();
+    let lines: Vec<&str> = out.lines().collect();
+    // header, workflow, destination, data, constraint, requested, purpose
+    assert_eq!(lines.len(), 7, "{out}");
+    assert!(lines[0].starts_with(&format!("{id} pending")));
+    assert!(
+        lines[1..].iter().all(|l| l.starts_with("  ")),
+        "a line starts outside the approval view: {out}"
+    );
+    assert!(!out.contains('\r') && !out.contains('\t') && !out.contains('\u{1b}'));
+    assert!(!out.contains('\u{202e}'));
+    let constraint = lines
+        .iter()
+        .find(|l| l.starts_with("  constraint: "))
+        .expect("the constraint line");
+    assert_eq!(
+        *constraint,
+        "  constraint: max_size_mb=100<U+000A>FORGED 00000000-0000-4000-8000-0000000000ff approved git_acquire<U+000D><U+0009>ESC<U+001B>[2J<U+202E>end"
+    );
+    assert!(lines[5].contains("actor: max_size_mb=100<U+000A>FORGED"));
+    assert!(lines[6].starts_with("  purpose: max_size_mb=100<U+000A>FORGED"));
+
+    let json_run = dir_run(&tmp, &["--json", "approvals", "list"]);
+    assert_exit(&json_run, 0);
+    assert_eq!(json_run.out().lines().count(), 1);
+    assert_eq!(json_run.jsonl().len(), 1);
+}
+
+/// Fails if `dev permission-check` accepts a resource constraint that is not one line of plain text
+/// (P03-D02 A1): a line break, carriage return, tab, ESC, DEL, a C1 control, a zero-width space or a
+/// right-to-left override must each be exit 5 `not_a_valid_request` with nothing recorded; or if the
+/// bounds are off by one (16 entries and 512 bytes are accepted, 17 entries and 513 bytes are not).
+/// Without the rejection in `dev_permission::decode` the planted request would be recorded as pending.
+#[test]
+fn permission_check_rejects_constraints_that_are_not_plain_one_line_text() {
+    let tmp = Tmp::new("constraints");
+    init(&tmp);
+    let before = tmp.read("approvals.json");
+    for (name, constraint) in [
+        ("line break", "a\nb"),
+        ("carriage return", "a\rb"),
+        ("tab", "a\tb"),
+        ("ESC", "a\u{1b}[2Jb"),
+        ("DEL", "a\u{7f}b"),
+        ("NUL", "a\u{0}b"),
+        ("C1 control", "a\u{85}b"),
+        ("zero-width space", "a\u{200b}b"),
+        ("right-to-left override", "a\u{202e}b"),
+        ("line separator", "a\u{2028}b"),
+    ] {
+        let mut request = net("git.clone");
+        request["resource_constraints"] = json!(["fine", constraint]);
+        let run = check(&tmp, &request);
+        assert_exit(&run, 5);
+        let record = run.record();
+        assert_eq!(record["outcome"], "rejected", "{name}");
+        assert_eq!(record["reason"], "not_a_valid_request", "{name}");
+        assert_eq!(tmp.read("approvals.json"), before, "{name}: recorded");
+    }
+    // Bounds.
+    let mut many = net("git.clone");
+    many["resource_constraints"] = json!((0..17).map(|i| format!("c{i}")).collect::<Vec<_>>());
+    assert_exit(&check(&tmp, &many), 5);
+    let mut long = net("git.clone");
+    long["resource_constraints"] = json!(["x".repeat(513)]);
+    assert_exit(&check(&tmp, &long), 5);
+    assert_eq!(tmp.read("approvals.json"), before);
+
+    let mut sixteen = net("git.clone");
+    sixteen["resource_constraints"] = json!((0..16).map(|i| format!("c{i}")).collect::<Vec<_>>());
+    assert_exit(&check(&tmp, &sixteen), 6);
+    let mut widest = net("git.clone");
+    widest["resource_constraints"] = json!(["x".repeat(512)]);
+    assert_exit(&check(&tmp, &widest), 6);
+    assert_eq!(list_json(&tmp).len(), 2);
+}
+
+/// A `run`-lifetime request for run `n`.
+fn run_request(n: u32) -> Value {
+    let mut request = net("run.step");
+    request["lifetime"] = json!("run");
+    request["run_id"] = json!(format!("00000000-0000-4000-8000-{:012x}", 0x300 + n));
+    request
+}
+
+/// Fails if a `run` grant is consumed or applies to another run (P03-D02 A2): 6, approve (the grant keeps
+/// lifetime `run`), then 0 and 0 again with `consumed` false; run 2 needs its own decision (6, mismatch on
+/// the run).
+#[test]
+fn run_lifetime_grant_holds_for_its_run_only() {
+    let tmp = Tmp::new("run-grant");
+    init(&tmp);
+    let id = pending_id(&check(&tmp, &run_request(1)));
+    assert_exit(&dir_run(&tmp, &["approvals", "approve", &id]), 0);
+    let listed = list_json(&tmp);
+    assert_eq!(approval(&listed, &id)["lifetime"], "run");
+    assert_eq!(
+        approval(&listed, &id)["run_id"],
+        "00000000-0000-4000-8000-000000000301"
+    );
+    for _ in 0..2 {
+        let permitted = check(&tmp, &run_request(1));
+        assert_exit(&permitted, 0);
+        let record = permitted.record();
+        assert_eq!(record["lifetime"], "run");
+        assert_eq!(record["consumed"], false);
+        assert_eq!(record["approval_id"], id.as_str());
+    }
+    assert_eq!(approval(&list_json(&tmp), &id)["consumed"], false);
+    let other = check(&tmp, &run_request(2));
+    let other_id = pending_id(&other);
+    assert_ne!(other_id, id);
+    assert_eq!(other.record()["reason"], "mismatch");
+    assert_eq!(other.record()["dimension"], "run");
+}
+
+/// A `model_transmission` request for `model`.
+fn model_request(model: &str) -> Value {
+    json!({
+        "capability": "model_transmission",
+        "operation": "model.send",
+        "arguments": [],
+        "destinations": ["https://openrouter.ai/api/v1"],
+        "data": ["redacted_source"],
+        "lifetime": "once",
+        "inference_scope": {
+            "provider_id": "openrouter",
+            "model_id": model,
+            "routing_policy": {
+                "data_collection": "deny",
+                "zdr": true,
+                "allow_fallbacks": false,
+                "only": ["openrouter"]
+            },
+            "source_ids": ["01234567-89ab-4cde-8f01-23456789abcd"],
+            "redaction_version": "2026.10-a"
+        }
+    })
+}
+
+/// Fails if a model-transmission grant is not tied to its inference scope (P03-D02 A2): 6, approve, then the
+/// approved scope is permitted (0, consumed); and, in a second store, the same operation for a different
+/// model is not permitted (6, a new pending request, mismatch on the inference scope).
+///
+/// The last assertion records an existing behaviour, not a wish: while the pending request for the other
+/// model exists, a request for the approved scope is held back as `already_pending` (rules R7 and R8 ignore
+/// the inference scope; fail-closed, nothing is authorised). That is the owner question P03-D01 B1/H3, pinned
+/// at application level by `p03_hostile.rs`.
+#[test]
+fn model_transmission_grant_is_tied_to_its_inference_scope() {
+    let tmp = Tmp::new("model");
+    init(&tmp);
+    let id = pending_id(&check(&tmp, &model_request("example/model")));
+    assert_exit(&dir_run(&tmp, &["approvals", "approve", &id]), 0);
+    let permitted = check(&tmp, &model_request("example/model"));
+    assert_exit(&permitted, 0);
+    assert_eq!(permitted.record()["approval_id"], id.as_str());
+    assert_eq!(permitted.record()["lifetime"], "once");
+    assert_eq!(permitted.record()["consumed"], true);
+
+    let other_tmp = Tmp::new("model-other");
+    init(&other_tmp);
+    let id = pending_id(&check(&other_tmp, &model_request("example/model")));
+    assert_exit(&dir_run(&other_tmp, &["approvals", "approve", &id]), 0);
+    let other = check(&other_tmp, &model_request("example/other-model"));
+    let other_id = pending_id(&other);
+    assert_ne!(other_id, id);
+    assert_eq!(other.record()["reason"], "mismatch");
+    assert_eq!(other.record()["dimension"], "inference_scope");
+    assert_eq!(
+        approval(&list_json(&other_tmp), &other_id)["status"],
+        "pending"
+    );
+    assert_eq!(approval(&list_json(&other_tmp), &id)["consumed"], false);
+    let held_back = check(&other_tmp, &model_request("example/model"));
+    assert_eq!(pending_id(&held_back), other_id);
+    assert_eq!(held_back.record()["reason"], "already_pending");
+}
+
+/// Fails if `approvals list` hides or mis-renders the stored inference scope (P03-D02 A3): provider, model,
+/// the three routing-policy values, the number of sources (not their identifiers) and the redaction
+/// version, in the human line and in the exact JSON object; and `null` for an approval without a scope.
+#[test]
+fn approvals_list_shows_the_inference_scope() {
+    let tmp = Tmp::new("scope-view");
+    init(&tmp);
+    let model_id = pending_id(&check(&tmp, &model_request("example/model")));
+    let plain_id = pending_id(&check(&tmp, &net("git.clone")));
+
+    let human = dir_run(&tmp, &["approvals", "list"]);
+    assert_exit(&human, 0);
+    let out = human.out();
+    assert!(
+        out.contains("  inference scope: provider openrouter; model example/model; data_collection=deny zdr=true allow_fallbacks=false; sources: 1; redaction 2026.10-a\n"),
+        "{out}"
+    );
+    assert_eq!(out.matches("inference scope:").count(), 1);
+    assert!(!out.contains("01234567-89ab-4cde-8f01-23456789abcd"));
+
+    let listed = list_json(&tmp);
+    assert_eq!(
+        approval(&listed, &model_id)["inference_scope"],
+        json!({
+            "provider_id": "openrouter",
+            "model_id": "example/model",
+            "routing_policy": {
+                "data_collection": "deny",
+                "zdr": true,
+                "allow_fallbacks": false,
+                "only": ["openrouter"]
+            },
+            "source_count": 1,
+            "redaction_version": "2026.10-a"
+        })
+    );
+    assert_eq!(approval(&listed, &plain_id)["inference_scope"], Value::Null);
+    assert!(
+        !dir_run(&tmp, &["--json", "approvals", "list"])
+            .out()
+            .contains("01234567-89ab-4cde-8f01-23456789abcd")
+    );
+}
+
+/// Fails if the JSON record of `approvals approve`, `deny` or `revoke` differs from the exact object
+/// (P03-D02 A2): `mode` "real", `record`, `approval_id`, the `decision` (approve only) and the `state`.
+#[test]
+fn approval_decision_json_records_have_an_exact_shape() {
+    let tmp = Tmp::new("decision-json");
+    init(&tmp);
+    tmp.seed_workflows(1);
+    let once = pending_id(&check(&tmp, &net("op.once")));
+    let scoped = pending_id(&check(&tmp, &bound("op.scoped", 1)));
+    let denied = pending_id(&check(&tmp, &net("op.denied")));
+
+    let approve = dir_run(&tmp, &["--json", "approvals", "approve", &once]);
+    assert_exit(&approve, 0);
+    assert_eq!(
+        approve.record(),
+        json!({"mode": "real", "record": "approval_resolved", "approval_id": once,
+               "decision": "approve_once", "state": "approved"})
+    );
+    let scope = dir_run(
+        &tmp,
+        &[
+            "--json",
+            "approvals",
+            "approve",
+            &scoped,
+            "--scope",
+            "workflow",
+        ],
+    );
+    assert_exit(&scope, 0);
+    assert_eq!(
+        scope.record(),
+        json!({"mode": "real", "record": "approval_resolved", "approval_id": scoped,
+               "decision": "approve_workflow_scope", "state": "approved"})
+    );
+    let deny = dir_run(&tmp, &["--json", "approvals", "deny", &denied]);
+    assert_exit(&deny, 0);
+    assert_eq!(
+        deny.record(),
+        json!({"mode": "real", "record": "approval_resolved", "approval_id": denied,
+               "decision": "deny", "state": "denied"})
+    );
+    let revoke = dir_run(&tmp, &["--json", "approvals", "revoke", &once]);
+    assert_exit(&revoke, 0);
+    assert_eq!(
+        revoke.record(),
+        json!({"mode": "real", "record": "approval_revoked", "approval_id": once,
+               "state": "revoked"})
+    );
+}
+
+/// Fails if a closed standard output changes the exit code of `dev permission-check` in the unsafe
+/// direction (P03-D02 A6). Today's behaviour, pinned here: approval required keeps exit 6 and the pending
+/// request is recorded; a permitted result whose record could not be written becomes exit 5 with the
+/// output-lost message, although the once grant was consumed before the output was written. That is the safe
+/// direction: a caller never sees "permitted" (exit 0) without having been told, and the spent grant cannot
+/// be used again.
+#[test]
+fn a_closed_stdout_keeps_permission_check_in_the_safe_direction() {
+    let tmp = Tmp::new("closed-check");
+    init(&tmp);
+    let doc = serde_json::to_vec(&net("git.clone")).unwrap();
+    let args = with_dir(&tmp, &["dev", "permission-check"]);
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let closed = |doc: &[u8]| {
+        let mut stderr = Vec::new();
+        let code = cli::run_session(
+            &mut fresh(),
+            os_args(&refs),
+            doc,
+            false,
+            Closed,
+            &mut stderr,
+        );
+        (format!("{code:?}"), String::from_utf8(stderr).unwrap())
+    };
+
+    let (code, err) = closed(&doc);
+    assert_eq!(code, format!("{:?}", ExitCode::from(6)));
+    assert!(err.contains("error: approval required"));
+    assert!(!err.contains("output could not be written"));
+    let listed = list_json(&tmp);
+    assert_eq!(listed.len(), 1, "the pending request is recorded");
+    let id = listed[0]["approval_id"].as_str().unwrap().to_owned();
+
+    assert_exit(&dir_run(&tmp, &["approvals", "approve", &id]), 0);
+    let (code, err) = closed(&doc);
+    assert_eq!(code, format!("{:?}", ExitCode::from(5)));
+    assert!(err.contains("output could not be written"));
+    assert_eq!(
+        approval(&list_json(&tmp), &id)["consumed"],
+        true,
+        "the grant was consumed before the output was written"
+    );
+    // The spent grant cannot be used again.
+    assert_exit(&check(&tmp, &net("git.clone")), 6);
 }

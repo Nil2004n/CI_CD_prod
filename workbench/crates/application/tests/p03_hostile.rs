@@ -2277,7 +2277,7 @@ fn a_seeded_key_reaches_no_file_no_debug_text_and_no_child_environment() {
     );
 
     // The key in a ToolDirs path: the build fails closed for every profile that uses that directory (all use
-    // `home`; `git` has no `tmp`). The error carries nothing.
+    // `home`; `git` has no `tmp`). The error carries nothing, and neither does the `Debug` of the ToolDirs.
     let keyed = format!("/w/{KEY}");
     for (label, home, config, cache, tmpdir, unaffected) in [
         (
@@ -2320,8 +2320,11 @@ fn a_seeded_key_reaches_no_file_no_debug_text_and_no_child_environment() {
             &mut debug,
             &build(ToolProfile::Yamllint, &dirs, &host, &credentials).err(),
         );
+        // P03-D02 B2: a ToolDirs over a key-bearing path is part of the Debug sweep.
+        debug_texts(&mut debug, &dirs);
     }
     let under = ToolDirs::under(Path::new(&keyed), ToolProfile::Git).expect("under");
+    debug_texts(&mut debug, &under);
     assert_eq!(
         build(ToolProfile::Git, &under, &host, &credentials).err(),
         Some(EnvError::SecretValue)

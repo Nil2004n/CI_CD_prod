@@ -1,7 +1,7 @@
 //! Headless developer CLI (D-17; Architecture §3/§4 as amended by CA-04; frozen surfaces
 //! `planning/P02-T01-request.md` §5.9 and `planning/P03-T01-request.md` §5.7). Parses arguments into
 //! application calls and prints the resulting events; never touches Git, scanners, the store or HTTP
-//! directly, and never finds a data directory on its own (`--data-dir` is required for store, approval and
+//! directly, and never finds a data directory on its own (`--data-dir` is required for the store, approvals and
 //! `dev` commands).
 #![forbid(unsafe_code)]
 

@@ -18,6 +18,7 @@ use domain::ids::{ApprovalId, RepoId, RunId, WorkflowId};
 use domain::states::ApprovalState;
 use domain::store::StoreKind;
 use domain::store::approval::Approval;
+use domain::store::provider::{InferenceScope, ProviderPolicy};
 use domain::text::{SanitisedText, sanitise};
 use domain::time::UtcTimestamp;
 use domain::vocab::Capability;
@@ -118,6 +119,49 @@ impl<W: Write, E: Write> Output<W, E> {
     }
 }
 
+/// The inference scope of an approval as listed: provider, model, routing policy, how many sources and the
+/// redaction version. Source identifiers and any content are not shown (P03-D02 A3).
+#[derive(Serialize)]
+struct ScopeView<'a> {
+    provider_id: String,
+    model_id: String,
+    routing_policy: &'a ProviderPolicy,
+    source_count: usize,
+    redaction_version: String,
+}
+
+impl<'a> ScopeView<'a> {
+    fn of(scope: &'a InferenceScope) -> Self {
+        Self {
+            provider_id: snake(&scope.provider_id),
+            model_id: snake(&scope.model_id),
+            routing_policy: &scope.routing_policy,
+            source_count: scope.source_ids.len(),
+            redaction_version: snake(&scope.redaction_version),
+        }
+    }
+}
+
+/// The human text of an inference scope (one line).
+fn scope_text(scope: &InferenceScope) -> String {
+    let policy = serde_json::to_value(&scope.routing_policy).unwrap_or(serde_json::Value::Null);
+    let member = |name: &str| {
+        policy
+            .get(name)
+            .map_or_else(|| String::from("?"), |v| v.to_string().replace('"', ""))
+    };
+    format!(
+        "provider {}; model {}; data_collection={} zdr={} allow_fallbacks={}; sources: {}; redaction {}",
+        one_line(&snake(&scope.provider_id)),
+        one_line(&snake(&scope.model_id)),
+        member("data_collection"),
+        member("zdr"),
+        member("allow_fallbacks"),
+        scope.source_ids.len(),
+        one_line(&snake(&scope.redaction_version))
+    )
+}
+
 /// How a destination of an approval record is shown (D01 L1): the canonical form where the stored text
 /// allows it, otherwise the store form, labelled.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize)]
@@ -177,6 +221,7 @@ struct ApprovalRecord<'a> {
     destinations: Vec<DestinationView>,
     resource_constraints: Vec<&'a str>,
     data_categories: &'a [DataCategory],
+    inference_scope: Option<ScopeView<'a>>,
     requested_at: UtcTimestamp,
     decided_at: Option<UtcTimestamp>,
     expires_at: Option<UtcTimestamp>,
@@ -205,6 +250,7 @@ impl<'a> ApprovalRecord<'a> {
                 .collect(),
             resource_constraints: a.resource_constraints.iter().map(|c| c.as_str()).collect(),
             data_categories: &a.data_categories,
+            inference_scope: a.inference_scope.as_ref().map(ScopeView::of),
             requested_at: a.requested_at,
             decided_at: a.decided_at,
             expires_at: a.expires_at,
@@ -213,6 +259,23 @@ impl<'a> ApprovalRecord<'a> {
             consumed: a.consumed,
         }
     }
+}
+
+/// Makes free text one visible line: LF, CR and TAB, which the frozen escape set of `sanitise` keeps or
+/// treats as layout, are shown as `<U+000A>`, `<U+000D>` and `<U+0009>` (P03-D02 A1). Applied to every
+/// free-text field of the human approval view before the line is sanitised, so a multi-line constraint
+/// cannot forge further lines.
+fn one_line(text: &str) -> String {
+    let mut shown = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            '\n' => shown.push_str("<U+000A>"),
+            '\r' => shown.push_str("<U+000D>"),
+            '\t' => shown.push_str("<U+0009>"),
+            other => shown.push(other),
+        }
+    }
+    shown
 }
 
 /// `-` for an absent value, the value otherwise.
@@ -251,16 +314,19 @@ pub fn render_approval(a: &Approval) -> Vec<SanitisedText> {
         lines.push(format!("  data: {}", names.join(", ")));
     }
     for constraint in &a.resource_constraints {
-        lines.push(format!("  constraint: {}", constraint.as_str()));
+        lines.push(format!("  constraint: {}", one_line(constraint.as_str())));
     }
     lines.push(format!(
         "  requested: {}; decided: {}; expires: {}; actor: {}",
         a.requested_at,
         or_dash(a.decided_at),
         or_dash(a.expires_at),
-        a.actor.as_str()
+        one_line(a.actor.as_str())
     ));
-    lines.push(format!("  purpose: {}", a.purpose.as_str()));
+    if let Some(scope) = &a.inference_scope {
+        lines.push(format!("  inference scope: {}", scope_text(scope)));
+    }
+    lines.push(format!("  purpose: {}", one_line(a.purpose.as_str())));
     lines.iter().map(|l| sanitise(l)).collect()
 }
 

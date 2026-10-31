@@ -576,9 +576,25 @@ pub fn list(dir: &Path) -> Result<Vec<Approval>, ApprovalError> {
     let _held = lock::acquire(&data, &fs).map_err(store_error)?;
     let path =
         StorePath::root(StoreKind::Approvals).ok_or(ApprovalError::Store(DevError::Refused))?;
-    let bytes = match fs.read(&data.join(&path), MAX_DOCUMENT_BYTES) {
+    let file = data.join(&path);
+    // Classified exactly like the writer's read path (`persistence::writer`): a file that is not a regular
+    // file (directory, symlink, device) is `Malformed`, one over the size bound is `Malformed` (the writer
+    // path reports it as `Invalid`, which `store_error` maps to `Malformed`), a missing one lists nothing,
+    // anything else is a storage failure.
+    match fs.symlink_metadata(&file) {
+        Ok(info) if info.is_regular() => {}
+        Ok(_) => return Err(store_error(StoreError::Malformed(StoreKind::Approvals))),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(_) => return Err(ApprovalError::Store(DevError::Storage)),
+    }
+    let bytes = match fs.read(&file, MAX_DOCUMENT_BYTES) {
         Ok(bytes) => bytes,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) if e.kind() == std::io::ErrorKind::FileTooLarge => {
+            return Err(ApprovalError::Store(DevError::Malformed(
+                StoreKind::Approvals,
+            )));
+        }
         Err(_) => return Err(ApprovalError::Store(DevError::Storage)),
     };
     match read::decode(StoreKind::Approvals, &bytes, &SchemaValidator::new()) {

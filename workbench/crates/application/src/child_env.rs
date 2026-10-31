@@ -92,13 +92,21 @@ pub trait SecretProbe {
     fn appears_in(&self, value: &[u8]) -> bool;
 }
 
-/// The app-owned directories of one tool (created by P06, not here).
-#[derive(Clone, PartialEq, Eq, Debug)]
+/// The app-owned directories of one tool (created by P06, not here). `Debug` prints no path (P03-D02 B2):
+/// a path is caller-supplied text and could carry a credential, so it is treated like the values of
+/// [`HostEnv`] and [`ChildEnv`].
+#[derive(Clone, PartialEq, Eq)]
 pub struct ToolDirs {
     home: PathBuf,
     config: PathBuf,
     cache: PathBuf,
     tmp: PathBuf,
+}
+
+impl std::fmt::Debug for ToolDirs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ToolDirs(<paths withheld>)")
+    }
 }
 
 impl ToolDirs {

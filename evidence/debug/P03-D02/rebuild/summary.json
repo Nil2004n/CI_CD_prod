@@ -1,0 +1,86 @@
+{
+  "tool": "dev/p03_check.py",
+  "repo": "/home/kali/Desktop/CI_CD_prod",
+  "target_dir": "/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c",
+  "mode": "build",
+  "slot": "lead",
+  "package": null,
+  "final": false,
+  "repo_head": "6b53883f188ad0177226cf102da4f91b421b1156",
+  "dirty": [
+    " M dev/p03_check.py",
+    " M workbench/crates/application/src/approvals.rs",
+    " M workbench/crates/application/src/child_env.rs",
+    " M workbench/crates/application/src/dev_permission.rs",
+    " M workbench/crates/application/tests/p03_hostile.rs",
+    " M workbench/crates/cli/src/args.rs",
+    " M workbench/crates/cli/src/commands.rs",
+    " M workbench/crates/cli/src/features.rs",
+    " M workbench/crates/cli/src/lib.rs",
+    " M workbench/crates/cli/src/output.rs",
+    " M workbench/crates/cli/tests/p03_cli.rs",
+    "?? .commandcode/",
+    "?? evidence/debug/P03-D02/check-lead-final.console",
+    "?? evidence/debug/P03-D02/check-lead-final/",
+    "?? evidence/debug/P03-D02/lead_sweep.out",
+    "?? evidence/debug/P03-D02/negctl/",
+    "?? evidence/debug/P03-D02/rebuild.console",
+    "?? evidence/debug/P03-D02/static-rule13.console",
+    "?? evidence/debug/P03-D02/static-rule13/",
+    "?? workbench/crates/application/tests/p03_d02.rs",
+    "?? workbench/target/"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.97.1 (c980f4866 2026-06-30)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.97.1 (8bab26f4f 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.97 (8bab26f4f6 2026-07-14)",
+          "ok": true
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "errno 101",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/home/kali/.local/share/pwt-dev-tools/_cargo-target/p03-lead-47835b267e4c",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "build",
+      "command": "cargo build --workspace --frozen",
+      "exit": 0,
+      "log": "build.log",
+      "seconds": 0.76,
+      "protected_files_unchanged": true,
+      "ok": true
+    }
+  ],
+  "ok": true
+}
