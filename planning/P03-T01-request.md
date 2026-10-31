@@ -139,6 +139,7 @@ impl ApprovalService<'_> {
     pub fn revoke(&mut self, id: ApprovalId, actor: Actor) -> Result<(), ApprovalError>;
     pub fn expire_due(&mut self) -> Result<u32, ApprovalError>;
     pub fn authorise(&mut self, req: &PermissionRequest, current_rev: Option<u32>) -> Result<AuthOutcome, ApprovalError>;
+    pub fn expire_run(&mut self, run_id: RunId) -> Result<u32, ApprovalError>;   // added 2026-10-31 (D01 H2), see below
 }
 pub enum RequestOutcome { Permitted, Pending(ApprovalId), Refused(RefusalReason) }
 pub enum AuthOutcome { Authorised(Authorisation), NeedsApproval(NeedReason, ApprovalId), Refused(RefusalReason) }
@@ -159,6 +160,11 @@ The exact generic parameters of `ApprovalService` are fixed by W1 at T08 and rev
 - Only `resolve`/`revoke` with an `Actor` change status. There is no other path (rule 12, UI §10).
 - `authorise` on a `once` grant writes `consumed = true` through `StoreWriter::replace` **before** returning `Authorised`. A failed write returns `Err` and the operation must not run. After an interruption the grant is consumed (never re-granted) or unconsumed (the caller never received `Authorised`), never both.
 - `run` and `workflow_revision` grants are not consumed.
+- **Amendment 2026-10-31 (lead, from P03-D01; wave-2 packet `T08-W1.md`):**
+  - `expire_run(run_id)` marks every `approved` grant with lifetime `run` and that `run_id` as `expired` (D01 H2: a run grant ends with its run) and returns how many. Like `expire_due`, it emits no event (the contract has no expiry event).
+  - `approve_workflow_scope` stores `run_id = null`, whatever the pending request carried (D01 A1; evaluator G6 stays strict).
+  - Requests for a deferred capability (`documentation_fetch`, `embedding_transmission`, `non_mutating_verification`) are refused with `RefusalReason::InvalidRequest` before any write, because semantic rule D18-06a rejects such records (D01 B6).
+  - User-facing destination text is `NormalisedDestination::canonical()`; the event field `ApprovalRequested.destinations` uses `to_store().to_redacted()`, which drops an ssh path (D01 L1, recorded limitation).
 - Events: `ApprovalRequested` (new pending only), `ApprovalResolved`, `ApprovalRevoked`. They go through the P02 `Emitter` and are appended to `log.json` after the approvals write. A log-write failure halts the writer and is reported, and the approval state already written stays.
 
 ### 5.5 `application::child_env` (T06)
