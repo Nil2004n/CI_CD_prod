@@ -1,0 +1,38 @@
+--- original/Cargo.toml
++++ scratch/Cargo.toml
+@@ -31,6 +31,7 @@
+ domain = { path = "crates/domain" }
+ persistence = { path = "crates/persistence" }
+ application = { path = "crates/application" }
++repositories = { path = "crates/repositories" }
+ 
+ [workspace.lints.rust]
+ unsafe_code = "forbid"
+--- original/crates/repositories/Cargo.toml
++++ scratch/crates/repositories/Cargo.toml
+@@ -6,5 +6,15 @@
+ license.workspace = true
+ publish.workspace = true
+ 
++[dependencies]
++domain = { workspace = true }
++
++[features]
++default = []
++fixture-transport = []
++
++[dev-dependencies]
++repositories = { path = ".", features = ["fixture-transport"] }
++
+ [lints]
+ workspace = true
+--- original/crates/application/Cargo.toml
++++ scratch/crates/application/Cargo.toml
+@@ -7,6 +7,7 @@
+ publish.workspace = true
+ 
+ [dependencies]
++repositories = { workspace = true }
+ domain = { workspace = true }
+ persistence = { workspace = true }
+ serde = { workspace = true }

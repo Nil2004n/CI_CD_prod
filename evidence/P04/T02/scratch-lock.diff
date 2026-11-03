@@ -1,0 +1,21 @@
+--- workbench/Cargo.lock	2026-11-03 11:45:49.907904077 -0500
++++ /tmp/p04-t02-V8iJku/workbench/Cargo.lock	2026-11-03 14:46:08.031033124 -0500
+@@ -37,6 +37,7 @@
+ dependencies = [
+  "domain",
+  "persistence",
++ "repositories",
+  "serde",
+  "serde_json",
+  "sha2",
+@@ -577,6 +578,10 @@
+ [[package]]
+ name = "repositories"
+ version = "0.1.0"
++dependencies = [
++ "domain",
++ "repositories",
++]
+ 
+ [[package]]
+ name = "retrieval"

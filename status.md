@@ -1,6 +1,8 @@
 # Status — P04 takeover, 2026-11-03
 
-P00–P03 are accepted and merged to main. P04-T01 is complete and its design approved by the owner (“okay i approve”); T02–T12 have not started. The owner authorized committing and pushing this documentation checkpoint to `phase/P04-git-acquisition`. Starting T02 or later requires a separate go. Check actual Git status and HEAD at takeover; this document cannot predict its own commit ID.
+P00–P03 are accepted and merged to main. P04-T01 is complete and its design approved by the owner (“okay i approve”). P04-T02 dependency and lockfile checks passed in scratch after authorized restoration of missing locked cache artifacts; see `evidence/P04/T02/record.md`. Product manifests and lockfile remain unchanged. T03–T12 have not started; stop for owner review. Check actual Git status and HEAD at takeover; this document cannot predict its own commit ID.
+
+For T02, the owner requested branch-session workers. One read-only worker was spawned with requested model `gpt-6.1-terra` in `/tmp/p04-t02-worker` on `task/P04-T02-dependencies` at `140f61c`; its resolved model identity is not independently observable and any self-report is unverified. The primary session performed verification. The owner subsequently authorized committing and pushing the takeover documentation to the phase branch; T03 remains separately gated.
 
 The approved T01 design is in `planning/P04-T01-request.md` §10, the Git procedure in `planning/P04-T01-git-safety.md`, and the approved CA-06 design in `planning/P04-T01-CA06-proposal.md`. URL-only registration retains an unresolved initial reference; discovery and the resolved target require separate authorizations. Git version provenance is to be stored. The canonical schema and code are unchanged. T03 must reconcile CA-05 and CA-06 schema versions and migration ordering before applying an amendment. T05–T10 packet templates are unapproved and need a verified baseline.
 
