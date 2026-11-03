@@ -1,0 +1,5 @@
+{
+  "comment": "P04 starts at the accepted P03 regression floors (D02); never lower without owner approval.",
+  "min_passed": 1138,
+  "min_compile_fail": 41
+}

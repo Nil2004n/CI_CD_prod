@@ -545,7 +545,7 @@ Change contract r2 (vocabulary, four separate dimensions, logical analysis vs at
 | RAG reuse of the authoritative analysis | P17 | W | — |
 | Safety/adversarial regression, model-quality evaluation, release gate | P19/P20 | Lead + owner | O-AN-6; real-API evaluation approval |
 
-## 5E. P04 — repository registration, hardened Git acquisition/update, checkout safety and CLI (planned 2026-11-01; **E1–E14 = recommended options recorded 2026-11-01**; execution not started)
+## 5E. P04 — repository registration, hardened Git acquisition/update, checkout safety and CLI (planned 2026-11-01; **E1–E14 = recommended options recorded 2026-11-01**; current status below)
 
 Prepared by Opus at owner request ("plan P04 with muliple sub-tasks with utmost details") from plan §4 (P04 row), §4.1 (P04 CLI row), §5.2, D-13, PRD REP-01–REP-06 and §16, Tech §5 and §11, Arch §3/§4/§6/§10/§11/§12, Data §2/§4/§11/§14 and the `Repository` model, the accepted P00-T04 Git-safety spike (`evidence/P00/P00-T04/record.md`, run 2 after D01), the P03 interfaces (`planning/P03-T01-request.md` §5–§7) and the P03 report §8. **Owner 2026-11-01: "I approve all recommended options, commit and push to phase branch"** — E1=1a, E2=2a, E3=3a, E4=4a, E5=5a, E6=6a, E7=7a, E8=8a, E9=9a, E10=10a, E11=11a, E12=12a, E13=13a, E14=14a are recorded as the plan's decisions (§5E.6). Phase branch `phase/P04-git-acquisition` created from `main` to hold this plan. Starting T01 still waits for an explicit owner go; network (including the E6 real-remote check), installs, new crates and anything outside these decisions still need separate approval.
 
@@ -582,6 +582,8 @@ Prepared by Opus at owner request ("plan P04 with muliple sub-tasks with utmost 
 | Runner floors 1138/41; `dev/p03_check.py` static rules incl. 12/13 | P04 runner derives from it; floors start at 1138/41 | `dev/p03_baseline.json` |
 
 ### 5E.3 Tasks
+
+**Current T04 checkpoint, 2026-11-03:** owner authorized T04, requested a final check and then requested the checkpoint commit and push to the phase branch. The integrated B0 scaffold passed local `all --final`: 1140/0/0 tests, 41 compile-fail and 101/0/0 CLI tests, plus fmt, clippy, build and static. Details and qualification: `evidence/P04/T04/record.md`; actual revision and worktree: `status.md` and Git. The empty fixture feature was removed with owner approval after a release negative control; no fixture transport exists, and future test-only isolation requires a reviewed design. Git/SSH runner and service remain fail-closed stubs; canonical CA-06/approval amendments, migration, real Git and remote tests remain pending. T05–T12 have not started and need owner authorization. The earlier T01–T03 paragraphs below are historical checkpoints, not current authorization or status.
 
 **T01 checkpoint 2026-11-03:** owner explicitly approved T01 only and requested GPT-6.1 Terra sub-agents in branch sessions, with the primary session orchestrating/testing and no commits or pushes. Request prepared at `planning/P04-T01-request.md`, procedures at `planning/P04-T01-git-safety.md`, future unapproved packets at `planning/P04-T01-packets/`, evidence/report at `evidence/P04/T01/record.md`. Owner approved the initial-ref and provenance design ("okay i approve"); interfaces are frozen under request §10. T02–T12 remain unstarted and unapproved by the current instruction. No commit/push/merge authority is inferred from historical E9.
 

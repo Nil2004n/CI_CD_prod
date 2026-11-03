@@ -1,0 +1,3 @@
+    Checking domain v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/domain)
+    Checking cli v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/cli)
+    Finished `dev` profile [unoptimized] target(s) in 2.35s

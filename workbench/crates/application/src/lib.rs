@@ -12,3 +12,5 @@ pub mod dev_permission;
 pub mod dev_store;
 pub mod emit;
 pub mod permission;
+pub mod repository_registry;
+pub mod repository_service;

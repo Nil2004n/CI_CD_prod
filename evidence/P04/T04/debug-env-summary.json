@@ -1,0 +1,74 @@
+{
+  "tool": "dev/p04_check.py",
+  "repo": "/home/debjoyy/Projects/CI_CD_prod",
+  "target_dir": "/home/kali/.local/share/pwt-dev-tools/_cargo-target/p04-lead-28298bde50aa",
+  "mode": "env",
+  "slot": "lead",
+  "package": null,
+  "final": false,
+  "repo_head": "d40ad71ce72724073de4e86f5d53c20bf29ea7b5",
+  "dirty": [
+    " M handover.md",
+    " M status.md",
+    " M workbench/Cargo.lock",
+    " M workbench/Cargo.toml",
+    " M workbench/crates/application/Cargo.toml",
+    " M workbench/crates/application/src/lib.rs",
+    " M workbench/crates/domain/src/contract.rs",
+    " M workbench/crates/repositories/Cargo.toml",
+    " M workbench/crates/repositories/src/lib.rs",
+    "?? dev/p04_baseline.json",
+    "?? dev/p04_check.py",
+    "?? evidence/P04/T04/",
+    "?? workbench/crates/application/src/repository_registry.rs",
+    "?? workbench/crates/application/src/repository_service.rs",
+    "?? workbench/crates/repositories/src/git/",
+    "?? workbench/crates/repositories/src/lock.rs",
+    "?? workbench/crates/repositories/src/remote.rs",
+    "?? workbench/target/"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "",
+          "ok": false
+        },
+        {
+          "check": "cargo --version",
+          "value": "",
+          "ok": false
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "",
+          "ok": false
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "",
+          "ok": false
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "",
+          "ok": false
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "",
+          "ok": false
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/home/kali/.local/share/pwt-dev-tools/_cargo-target/p04-lead-28298bde50aa",
+          "ok": true
+        }
+      ],
+      "ok": false
+    }
+  ],
+  "ok": false
+}

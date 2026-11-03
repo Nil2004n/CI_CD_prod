@@ -1,0 +1,11 @@
+Diff in /home/debjoyy/Projects/CI_CD_prod/workbench/crates/cli/src/repository_seam.rs:16:
+     /// Show one repository's status.
+     Status(RepoId),
+     /// Remove a repository with explicit retention options.
+-    Remove { repo_id: RepoId, options: RemoveOptions },
++    Remove {
++        repo_id: RepoId,
++        options: RemoveOptions,
++    },
+ }
+ 

@@ -1,0 +1,91 @@
+{
+  "tool": "dev/p04_check.py",
+  "repo": "/home/debjoyy/Projects/CI_CD_prod",
+  "target_dir": "/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa",
+  "mode": "cli",
+  "slot": "lead",
+  "package": null,
+  "final": false,
+  "repo_head": "d40ad71ce72724073de4e86f5d53c20bf29ea7b5",
+  "dirty": [
+    " M handover.md",
+    " M status.md",
+    " M workbench/Cargo.lock",
+    " M workbench/Cargo.toml",
+    " M workbench/crates/application/Cargo.toml",
+    " M workbench/crates/application/src/lib.rs",
+    " M workbench/crates/domain/src/contract.rs",
+    " M workbench/crates/domain/tests/store_models_a.rs",
+    " M workbench/crates/repositories/Cargo.toml",
+    " M workbench/crates/repositories/src/lib.rs",
+    "?? dev/p04_baseline.json",
+    "?? dev/p04_check.py",
+    "?? evidence/P04/T04/",
+    "?? workbench/crates/application/src/repository_registry.rs",
+    "?? workbench/crates/application/src/repository_service.rs",
+    "?? workbench/crates/repositories/src/git/",
+    "?? workbench/crates/repositories/src/lock.rs",
+    "?? workbench/crates/repositories/src/remote.rs"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.99.1 (5f94df478 2026-08-27)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.99 (58cf8f9c35 2026-10-13)",
+          "ok": true
+        },
+        {
+          "check": "netns outbound connect fails",
+          "value": "errno 1",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "cli",
+      "command": "cargo test -p cli --frozen --tests --no-fail-fast",
+      "exit": 0,
+      "log": "cli.log",
+      "seconds": 4.12,
+      "protected_files_unchanged": true,
+      "ok": true,
+      "counts": {
+        "suites": 5,
+        "passed": 101,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    }
+  ],
+  "ok": true
+}

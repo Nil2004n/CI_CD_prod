@@ -9,6 +9,7 @@ pub mod args;
 pub mod commands;
 pub mod features;
 pub mod output;
+pub mod repository_seam;
 
 use std::ffi::OsString;
 use std::io::{Read, Write};

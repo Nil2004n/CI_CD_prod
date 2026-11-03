@@ -1,0 +1,13 @@
+Diff in /home/debjoyy/Projects/CI_CD_prod/workbench/crates/domain/tests/store_models_a.rs:1839:
+             with(
+                 &workflow_min(),
+                 "schedule",
+-                with(
+-                    &schedule_min(),
+-                    "daily_local_time",
+-                    json!(MARKER),
+-                ),
++                with(&schedule_min(), "daily_local_time", json!(MARKER)),
+             ),
+             "workflow",
+         ),

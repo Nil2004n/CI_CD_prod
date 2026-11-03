@@ -1839,11 +1839,7 @@ fn decode_errors_do_not_echo_planted_text() {
             with(
                 &workflow_min(),
                 "schedule",
-                with(
-                    &schedule_min(),
-                    "daily_local_time",
-                    json!(format!("{MARKER}")),
-                ),
+                with(&schedule_min(), "daily_local_time", json!(MARKER)),
             ),
             "workflow",
         ),

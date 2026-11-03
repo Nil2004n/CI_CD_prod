@@ -292,15 +292,39 @@ pub enum FixedText {
     ActorLocalUserTui,
     /// The `purpose` of a `dev permission-check` request.
     PurposeDeveloperCheck,
+    /// Purpose of a repository acquisition request.
+    PurposeGitAcquire,
+    /// Purpose of a repository update request.
+    PurposeGitUpdate,
+    /// Generic repository display name.
+    RepositoryDisplay,
+    /// Repository has uncommitted changes.
+    RepositoryDirty,
+    /// Repository operation is already in progress.
+    RepositoryInProgress,
+    /// Repository history has diverged.
+    RepositoryDiverged,
+    /// Repository state is unsafe.
+    RepositoryUnsafe,
+    /// Repository operation failed.
+    RepositoryFailed,
 }
 
 impl FixedText {
     /// Every value.
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 12] = [
         Self::ActorRequester,
         Self::ActorLocalUserCli,
         Self::ActorLocalUserTui,
         Self::PurposeDeveloperCheck,
+        Self::PurposeGitAcquire,
+        Self::PurposeGitUpdate,
+        Self::RepositoryDisplay,
+        Self::RepositoryDirty,
+        Self::RepositoryInProgress,
+        Self::RepositoryDiverged,
+        Self::RepositoryUnsafe,
+        Self::RepositoryFailed,
     ];
 
     /// The fixed text.
@@ -310,6 +334,14 @@ impl FixedText {
             Self::ActorLocalUserCli => "local-user/cli",
             Self::ActorLocalUserTui => "local-user/tui",
             Self::PurposeDeveloperCheck => "developer permission check",
+            Self::PurposeGitAcquire => "repository acquisition",
+            Self::PurposeGitUpdate => "repository update",
+            Self::RepositoryDisplay => "Repository",
+            Self::RepositoryDirty => "repository has uncommitted changes",
+            Self::RepositoryInProgress => "repository operation in progress",
+            Self::RepositoryDiverged => "repository history diverged",
+            Self::RepositoryUnsafe => "repository state is unsafe",
+            Self::RepositoryFailed => "repository operation failed",
         }
     }
 
@@ -320,6 +352,18 @@ impl FixedText {
             Self::ActorLocalUserCli => crate::text::redact_static("local-user/cli"),
             Self::ActorLocalUserTui => crate::text::redact_static("local-user/tui"),
             Self::PurposeDeveloperCheck => crate::text::redact_static("developer permission check"),
+            Self::PurposeGitAcquire => crate::text::redact_static("repository acquisition"),
+            Self::PurposeGitUpdate => crate::text::redact_static("repository update"),
+            Self::RepositoryDisplay => crate::text::redact_static("Repository"),
+            Self::RepositoryDirty => {
+                crate::text::redact_static("repository has uncommitted changes")
+            }
+            Self::RepositoryInProgress => {
+                crate::text::redact_static("repository operation in progress")
+            }
+            Self::RepositoryDiverged => crate::text::redact_static("repository history diverged"),
+            Self::RepositoryUnsafe => crate::text::redact_static("repository state is unsafe"),
+            Self::RepositoryFailed => crate::text::redact_static("repository operation failed"),
         }
     }
 }

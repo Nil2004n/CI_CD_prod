@@ -31,6 +31,7 @@ libc = { version = "=0.2.191", default-features = false }
 domain = { path = "crates/domain" }
 persistence = { path = "crates/persistence" }
 application = { path = "crates/application" }
+repositories = { path = "crates/repositories" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

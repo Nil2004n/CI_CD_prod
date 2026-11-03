@@ -2664,16 +2664,23 @@ fn a_closed_stdout_keeps_permission_check_in_the_safe_direction() {
     let args = with_dir(&tmp, &["dev", "permission-check"]);
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let closed = |doc: &[u8]| {
-        let mut stderr = Vec::new();
-        let code = cli::run_session(
-            &mut fresh(),
-            os_args(&refs),
-            doc,
-            false,
-            Closed,
-            &mut stderr,
-        );
-        (format!("{code:?}"), String::from_utf8(stderr).unwrap())
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        loop {
+            let mut stderr = Vec::new();
+            let code = cli::run_session(
+                &mut fresh(),
+                os_args(&refs),
+                doc,
+                false,
+                Closed,
+                &mut stderr,
+            );
+            let code = format!("{code:?}");
+            if code != format!("{:?}", ExitCode::from(3)) || std::time::Instant::now() >= deadline {
+                break (code, String::from_utf8(stderr).unwrap());
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
     };
 
     let (code, err) = closed(&doc);

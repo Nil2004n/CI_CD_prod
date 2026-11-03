@@ -2,8 +2,8 @@
 //! environments"; frozen interface and policy `planning/P03-T01-request.md` §5.5 and §7). Owner: W2, T06.
 //!
 //! [`build`] makes a [`ChildEnv`] for one tool from an empty base: fixed values and app-owned directories
-//! per [`ToolProfile`], plus the few host variables a profile may inherit. Deny rules apply to the final
-//! result whatever the profile says; a profile that would produce a denied variable fails closed. No
+//! per [`ToolProfile`], plus the few host variables a profile may inherit. Deny rules apply except for
+//! the P04 Git-only, validated `SSH_AUTH_SOCK` exception; other denied profile variables fail closed. No
 //! process is spawned here (P06), and no environment is read here: the host environment is an explicit
 //! [`HostEnv`] input, collected once by the binary entry point.
 
@@ -251,14 +251,40 @@ pub struct PreviewLine {
 /// [`EnvError::SecretValue`] if a fixed or app-dir value that is set contains the session credential.
 /// Host entries are never an error: an entry that the profile does not list, or that fails an inheritance
 /// rule (no NUL, no session credential, a valid value for that name: `TZ` must be valid UTF-8 and an
-/// [`IanaTimezone`]), is dropped silently.
+/// [`IanaTimezone`]), is dropped silently. Git additionally accepts `SSH_AUTH_SOCK` only when its value
+/// is an absolute NUL-free path without parent components and does not contain the session credential.
 pub fn build(
     profile: ToolProfile,
     dirs: &ToolDirs,
     host: &HostEnv,
     probe: &dyn SecretProbe,
 ) -> Result<ChildEnv, EnvError> {
-    assemble(&spec_for(profile), dirs, host, probe)
+    let mut env = assemble(&spec_for(profile), dirs, host, probe)?;
+    // E3: only Git may inherit this exact name. The first occurrence decides, as for other
+    // inherited values; a malformed or secret-bearing value is discarded without replacement.
+    if profile == ToolProfile::Git
+        && let Some((_, value)) = host
+            .iter()
+            .find(|(name, _)| *name == OsStr::new("SSH_AUTH_SOCK"))
+    {
+        let bytes = value.as_bytes();
+        let path = Path::new(value);
+        if !bytes.contains(&0)
+            && path.is_absolute()
+            && !path
+                .components()
+                .any(|component| matches!(component, Component::ParentDir))
+            && !probe.appears_in(bytes)
+        {
+            env.vars.push((
+                OsString::from("SSH_AUTH_SOCK"),
+                value.to_os_string(),
+                Origin::Inherited,
+            ));
+            env.vars.sort_by(|a, b| a.0.cmp(&b.0));
+        }
+    }
+    Ok(env)
 }
 
 /// The directories a profile may point at.
