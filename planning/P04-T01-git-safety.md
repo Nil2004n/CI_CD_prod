@@ -1,6 +1,6 @@
-# P04-T01 Git safety annex — reviewed proposal for owner acceptance
+# P04-T01 Git safety annex — approved design baseline
 
-Scope: proposed implementation contract; no P04 control below is verified by this draft. P00-T04 D01 passed 36 cases and one observation with Git 2.53.0 on one host using synthetic local transport; acceptance is limited to that procedure and fixtures. Real HTTPS/SSH, network credential-helper use, local includes/rewrites, SSH configuration, macros and other limitations in its record remain unproven. All P04 tests below are pending.
+Scope: design baseline approved in `planning/P04-T01-request.md` §10; no P04 control below is verified by this document. References below to proposals or pending acceptance preserve the pre-approval design history. P00-T04 D01 passed 36 cases and one observation with Git 2.53.0 on one host using synthetic local transport; acceptance is limited to that procedure and fixtures. Real HTTPS/SSH, network credential-helper use, local includes/rewrites, SSH configuration, macros and other limitations in its record remain unproven. All P04 tests below are pending.
 
 ## Runner, isolation and credentials
 

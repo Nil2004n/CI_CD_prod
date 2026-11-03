@@ -47,3 +47,7 @@ Review planning/P04-T01-request.md §8. Initial-ref choice: explicit required re
 ## Owner approval and T01 close
 
 On 2026-11-03 the owner responded “okay i approve” to the request to approve or revise the proposed contract changes. The initial-ref discovery and durable Git-version design is approved and frozen as the T01 baseline; see `planning/P04-T01-request.md` §10. Schema version and migration ordering remain for T03 due to CA-05. No canonical schema or product implementation was changed by this approval. T01 complete; stop before T02. No commits or pushes.
+
+## Subsequent housekeeping
+
+The preceding stop and worktree statements describe the original checkpoint. At the owner's later request, the three retained worker worktrees were removed after their contents were archived to `/tmp/p04-t01-worktree-drafts-20261103.tar.gz` (temporary, not durable evidence). The request and safety annex now point readers to the approved design baseline while preserving historical wording. The owner subsequently authorized committing and pushing the takeover documentation to the phase branch; this does not authorize T02, implementation, or a merge.
