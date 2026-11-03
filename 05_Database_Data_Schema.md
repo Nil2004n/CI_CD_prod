@@ -30,6 +30,7 @@ The JSON Schema below uses Draft 2020-12, a published JSON Schema dialect. [web:
 | `rag/index.json` | RagIndexFile | Sanitised retrievable chunks and provenance |
 | `rag/conversations.json` | ConversationFile | Sanitised chat history only when persistence is enabled |
 | `checkouts/<repo-id>/` | Not a JSON store | Tool-managed Git checkout; may contain original sensitive source |
+| `checkouts/.locks/<repo-id>.lock` | Not a JSON store | Planned P04 per-repository lock (E12); application lock is acquired first |
 | `tmp/`, `cache/` | Adapter-owned bounded formats | Approved transient/generated inputs; retention controlled |
 
 The app-data root is platform-resolved or explicitly configured. Store relative internal paths where possible. Never store passwords, API keys, raw detected secrets, raw authentication output, or unrestricted raw scanner output in these JSON stores. OpenRouter is the pilot runtime provider. Credentials are session-only or an opaque OS credential-store reference, never key values. No PWT runtime server/shared key is required.

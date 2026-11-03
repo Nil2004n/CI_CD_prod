@@ -372,6 +372,7 @@ No unrestricted secret verification: an adapter must not submit detected secret 
   tools.json                   # preflight/manifest view; application-owned, not executable config
   suppressions.json            # reserved (RES-06 deferred); not written by the pilot
   .app.lock
+  checkouts/.locks/<repo-id>.lock   # P04 planned per-repository lock (E12); not a JSON store
   checkouts/<repo-id>/...
   backup/<utc-time>_<repo-slug>_<run-id>.json
   backup/<utc-time>_<repo-slug>_<run-id>.md
