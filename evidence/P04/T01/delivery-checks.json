@@ -1,0 +1,86 @@
+{
+  "utc": "2026-11-03T17:18:16.204601+00:00",
+  "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+  "revision": "c1832672f12aa41129d882f4d58dc06331df490e",
+  "dirty_state": " M handover.md\n M plan.md\n M status.md\n?? .gitignore\n?? evidence/P04/\n?? planning/P04-T01-git-safety.md\n?? planning/P04-T01-packets/\n?? planning/P04-T01-request.md\n",
+  "checks": [
+    {
+      "check": "protected source/schema/manifests unchanged",
+      "ok": true,
+      "changed": [],
+      "count": 147
+    },
+    {
+      "check": "Python AST run_rust_probe.py",
+      "ok": true
+    },
+    {
+      "check": "Python AST probe_local.py",
+      "ok": true
+    },
+    {
+      "check": "JSON parses local-probes.json",
+      "ok": true
+    },
+    {
+      "check": "JSON parses rust-process-groups.json",
+      "ok": true
+    },
+    {
+      "check": "JSON parses ssh-policy.json",
+      "ok": true
+    },
+    {
+      "check": "JSON parses environment.json",
+      "ok": true
+    },
+    {
+      "check": "Git HEAD unchanged",
+      "ok": true
+    },
+    {
+      "check": "git diff --check",
+      "exit": 0,
+      "ok": true,
+      "output": ""
+    },
+    {
+      "check": "deliverable planning/P04-T01-request.md",
+      "ok": true
+    },
+    {
+      "check": "deliverable planning/P04-T01-git-safety.md",
+      "ok": true
+    },
+    {
+      "check": "deliverable planning/P04-T01-packets/_common.md",
+      "ok": true
+    },
+    {
+      "check": "deliverable planning/P04-T01-packets/T05.md",
+      "ok": true
+    },
+    {
+      "check": "deliverable planning/P04-T01-packets/T06.md",
+      "ok": true
+    },
+    {
+      "check": "deliverable planning/P04-T01-packets/T07.md",
+      "ok": true
+    },
+    {
+      "check": "deliverable planning/P04-T01-packets/T08.md",
+      "ok": true
+    },
+    {
+      "check": "deliverable planning/P04-T01-packets/T09.md",
+      "ok": true
+    },
+    {
+      "check": "deliverable planning/P04-T01-packets/T10.md",
+      "ok": true
+    }
+  ],
+  "pass": 18,
+  "fail": 0
+}

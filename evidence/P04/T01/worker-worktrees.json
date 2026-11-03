@@ -1,0 +1,17 @@
+{
+  "request": {
+    "path": "/home/debjoyy/Projects/P04-T01-request",
+    "head": "c1832672f12aa41129d882f4d58dc06331df490e",
+    "status": "?? AGENTS.md\n?? planning/P04-T01-request.md\n"
+  },
+  "safety": {
+    "path": "/home/debjoyy/Projects/P04-T01-safety",
+    "head": "c1832672f12aa41129d882f4d58dc06331df490e",
+    "status": "?? AGENTS.md\n?? planning/P04-T01-git-safety.md\n"
+  },
+  "probes": {
+    "path": "/home/debjoyy/Projects/P04-T01-probes",
+    "head": "c1832672f12aa41129d882f4d58dc06331df490e",
+    "status": "?? AGENTS.md\n?? evidence/P04/\n?? planning/P04-T01-packets/\n"
+  }
+}

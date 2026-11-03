@@ -1,0 +1,188 @@
+{
+  "schema": 1,
+  "utc": "2026-11-03T17:13:57.797312+00:00",
+  "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+  "repository": "/home/debjoyy/Projects/CI_CD_prod",
+  "python_version": "3.14.8",
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "c1832672f12aa41129d882f4d58dc06331df490e\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/ssh",
+        "-V"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "OpenSSH_10.6p1 Debian-1, OpenSSL 3.6.5 29 Sep 2026\n"
+    },
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "--version"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "timeout (GNU coreutils) 9.10\nPackaged by Debian (9.10-1)\nCopyright (C) 2026 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Padraig Brady.\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/git",
+        "--version"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "git version 2.53.0\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/ssh",
+        "-G",
+        "-F",
+        "/tmp/p04-t01-tkpl3pn5/ssh_config",
+        "p04.invalid"
+      ],
+      "cwd": "/tmp/p04-t01-tkpl3pn5",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Pseudo-terminal will not be allocated because stdin is not a terminal.\n"
+    },
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "-k",
+        "1s",
+        "2s",
+        "/usr/bin/python3",
+        "-I",
+        "-B",
+        "/tmp/p04-t01-tkpl3pn5/helper.py",
+        "/tmp/p04-t01-tkpl3pn5/default.pid"
+      ],
+      "cwd": "/tmp/p04-t01-tkpl3pn5",
+      "process_group": 0,
+      "exit": 124,
+      "grandchild_alive_after_timeout": false,
+      "expected": false,
+      "ok": true,
+      "grandchild_alive_after_cleanup": false,
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/timeout",
+        "-k",
+        "1s",
+        "--foreground",
+        "2s",
+        "/usr/bin/python3",
+        "-I",
+        "-B",
+        "/tmp/p04-t01-tkpl3pn5/helper.py",
+        "/tmp/p04-t01-tkpl3pn5/foreground.pid"
+      ],
+      "cwd": "/tmp/p04-t01-tkpl3pn5",
+      "process_group": 0,
+      "exit": 124,
+      "grandchild_alive_after_timeout": true,
+      "expected": true,
+      "ok": true,
+      "grandchild_alive_after_cleanup": false,
+      "stderr": ""
+    }
+  ],
+  "limitations": [
+    "Local cooperative processes only; setsid escape and real network are not tested.",
+    "Cache presence is not proof of offline dependency completeness."
+  ],
+  "revision": "c1832672f12aa41129d882f4d58dc06331df490e",
+  "dirty_state": {
+    "exit": 0,
+    "entries": 3
+  },
+  "portability": {
+    "runner_toolchain_dir_exists": false,
+    "runner_cargo_home_exists": false,
+    "runner_registry_cache_exists": false,
+    "runner_hardcoded_paths": [
+      "/home/kali/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin",
+      "/home/kali/.local/share/pwt-dev-tools/_cargo-home"
+    ],
+    "rust_1_97_1": null
+  },
+  "ssh_home": {
+    "synthetic_home": "/tmp/p04-t01-tkpl3pn5/synthetic-home",
+    "passwd_home": "/home/debjoyy",
+    "identityfiles": [
+      "~/.ssh/p04-synthetic-key"
+    ],
+    "identity_agents": [
+      "/home/debjoyy/.ssh/p04-synthetic-agent"
+    ],
+    "ssh_exit": 0,
+    "status": "pass",
+    "meaning": "pass only when ssh -G expands IdentityAgent to the distinct passwd home; literal or other output is inconclusive"
+  },
+  "groups": {
+    "default": {
+      "argv": [
+        "/usr/bin/timeout",
+        "-k",
+        "1s",
+        "2s",
+        "/usr/bin/python3",
+        "-I",
+        "-B",
+        "/tmp/p04-t01-tkpl3pn5/helper.py",
+        "/tmp/p04-t01-tkpl3pn5/default.pid"
+      ],
+      "cwd": "/tmp/p04-t01-tkpl3pn5",
+      "process_group": 0,
+      "exit": 124,
+      "grandchild_alive_after_timeout": false,
+      "expected": false,
+      "ok": true,
+      "grandchild_alive_after_cleanup": false,
+      "stderr": ""
+    },
+    "foreground_control": {
+      "argv": [
+        "/usr/bin/timeout",
+        "-k",
+        "1s",
+        "--foreground",
+        "2s",
+        "/usr/bin/python3",
+        "-I",
+        "-B",
+        "/tmp/p04-t01-tkpl3pn5/helper.py",
+        "/tmp/p04-t01-tkpl3pn5/foreground.pid"
+      ],
+      "cwd": "/tmp/p04-t01-tkpl3pn5",
+      "process_group": 0,
+      "exit": 124,
+      "grandchild_alive_after_timeout": true,
+      "expected": true,
+      "ok": true,
+      "grandchild_alive_after_cleanup": false,
+      "stderr": ""
+    }
+  },
+  "counts": {
+    "pass": 3,
+    "fail": 0,
+    "inconclusive": 0
+  }
+}

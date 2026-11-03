@@ -1,0 +1,76 @@
+{
+  "utc": "2026-11-03T17:16:43.665754+00:00",
+  "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+  "compiler": "/home/debjoyy/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+  "limitation": "Direct rustc compilation, no Cargo; this does not establish behavior on the P03 runner baseline Rust 1.97.1; cooperative processes only.",
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "c1832672f12aa41129d882f4d58dc06331df490e\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/home/debjoyy/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+        "--version"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/home/debjoyy/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2024",
+        "/home/debjoyy/Projects/CI_CD_prod/evidence/P04/T01/process_group_probe.rs",
+        "-o",
+        "/tmp/p04-rust-group-g22m9b_8/probe"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "revision": "c1832672f12aa41129d882f4d58dc06331df490e",
+  "cases": [
+    {
+      "argv": [
+        "/tmp/p04-rust-group-g22m9b_8/probe",
+        "default",
+        "/tmp/p04-rust-group-g22m9b_8/helper.py",
+        "/tmp/p04-rust-group-g22m9b_8/default.pid"
+      ],
+      "cwd": "/tmp/p04-rust-group-g22m9b_8",
+      "exit": 124,
+      "stdout": "",
+      "stderr": "",
+      "grandchild_alive_after_timeout": false,
+      "ok": true,
+      "grandchild_alive_after_cleanup": false
+    },
+    {
+      "argv": [
+        "/tmp/p04-rust-group-g22m9b_8/probe",
+        "foreground",
+        "/tmp/p04-rust-group-g22m9b_8/helper.py",
+        "/tmp/p04-rust-group-g22m9b_8/foreground.pid"
+      ],
+      "cwd": "/tmp/p04-rust-group-g22m9b_8",
+      "exit": 124,
+      "stdout": "",
+      "stderr": "",
+      "grandchild_alive_after_timeout": true,
+      "ok": true,
+      "grandchild_alive_after_cleanup": false
+    }
+  ],
+  "ok": true
+}

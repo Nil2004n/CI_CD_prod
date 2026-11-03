@@ -1,0 +1,84 @@
+{
+  "utc": "2026-11-03T17:12:54.707089+00:00",
+  "revision": "c1832672f12aa41129d882f4d58dc06331df490e",
+  "commands": [
+    {
+      "command": [
+        "git",
+        "--version"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "git version 2.53.0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "ssh",
+        "-V"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "OpenSSH_10.6p1 Debian-1, OpenSSL 3.6.5 29 Sep 2026\n"
+    },
+    {
+      "command": [
+        "python3",
+        "--version"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "Python 3.14.8\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "timeout",
+        "--version"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "timeout (GNU coreutils) 9.10\nPackaged by Debian (9.10-1)\nCopyright (C) 2026 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by P\u00e1draig Brady.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "rustc",
+        "--version"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cargo",
+        "--version"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "cargo 1.99.1 (5f94df478 2026-08-27)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "unshare",
+        "-rn",
+        "true"
+      ],
+      "cwd": "/home/debjoyy/Projects/CI_CD_prod",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "paths": {
+    "/home/kali/.local/share/pwt-dev-tools": false,
+    "/home/kali/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin": false,
+    "/home/debjoyy/.local/share/pwt-dev-tools": false,
+    "/home/debjoyy/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin": true
+  },
+  "note": "No network attempted. unshare true only tests namespace creation. No P03 regression suite executed."
+}

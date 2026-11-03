@@ -1,0 +1,52 @@
+{
+  "utc": "2026-11-03T17:17:10.972718+00:00",
+  "command": [
+    "/usr/bin/ssh",
+    "-G",
+    "-F",
+    "/tmp/p04-ssh-policy-vwx5kwmm/config",
+    "p04.invalid"
+  ],
+  "cwd": "/tmp/p04-ssh-policy-vwx5kwmm",
+  "exit": 0,
+  "selected_config": {
+    "batchmode": [
+      "yes"
+    ],
+    "identitiesonly": [
+      "no"
+    ],
+    "permitlocalcommand": [
+      "no"
+    ],
+    "stricthostkeychecking": [
+      "true"
+    ],
+    "identityagent": [
+      "none"
+    ],
+    "identityfile": [
+      "none"
+    ],
+    "globalknownhostsfile": [
+      "/dev/null"
+    ],
+    "userknownhostsfile": [
+      "/tmp/p04-ssh-policy-vwx5kwmm/known_hosts"
+    ],
+    "forwardagent": [
+      "no"
+    ]
+  },
+  "checks": {
+    "config_parses": true,
+    "identityfile_none": true,
+    "batchmode": true,
+    "strict_hostkeys": true,
+    "no_local_command": true,
+    "no_agent_forward": true,
+    "synthetic_trust_file": true
+  },
+  "ok": true,
+  "limitation": "Configuration dump only; no authentication, file-access isolation, real agent or network tested. IdentityAgent none is a synthetic probe; product agent must be explicitly approved."
+}

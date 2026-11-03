@@ -582,6 +582,8 @@ Prepared by Opus at owner request ("plan P04 with muliple sub-tasks with utmost 
 | Runner floors 1138/41; `dev/p03_check.py` static rules incl. 12/13 | P04 runner derives from it; floors start at 1138/41 | `dev/p03_baseline.json` |
 
 ### 5E.3 Tasks
+
+**T01 checkpoint 2026-11-03:** owner explicitly approved T01 only and requested GPT-6.1 Terra sub-agents in branch sessions, with the primary session orchestrating/testing and no commits or pushes. Request prepared at `planning/P04-T01-request.md`, procedures at `planning/P04-T01-git-safety.md`, future unapproved packets at `planning/P04-T01-packets/`, evidence/report at `evidence/P04/T01/record.md`. Owner approved the initial-ref and provenance design ("okay i approve"); interfaces are frozen under request §10. T02–T12 remain unstarted and unapproved by the current instruction. No commit/push/merge authority is inferred from historical E9.
 Waves follow §3.8: up to three `sonnet-implementer` workers, disjoint owned files, lead-prepared worktrees from a common baseline, append-only coordination log, lead integration and verification after each wave. Ownership is fixed in T01.
 
 | Task | Content | Owner | Network/installs | Hours |
