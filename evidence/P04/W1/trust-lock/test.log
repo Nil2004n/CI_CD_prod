@@ -1,0 +1,64 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling syn v3.0.9
+   Compiling serde_derive v1.0.229
+   Compiling domain v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/domain)
+   Compiling repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+    Finished `test` profile [unoptimized] target(s) in 15.35s
+     Running unittests src/lib.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/repositories-8ab9a389649b1f15)
+
+running 2 tests
+test git::runner::operation_tests::classification_rejects_bad_status_framing_and_limits ... ok
+test git::runner::operation_tests::operations_fix_arguments_and_timeouts ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_lock.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_lock-9644c1fd8d86959b)
+
+running 7 tests
+test refuses_nonprivate_directories_and_lock_file ... ok
+test independent_repositories_have_independent_locks ... ok
+test contention_and_release ... ok
+test refuses_symlink_and_hardlinked_lock_files ... ok
+test checkout_capability_rejects_replaced_lock ... ok
+test checkout_capability_binds_id_and_rejects_symlink ... ok
+test refuses_symlinked_directory ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_remote.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_remote-56fd9071c26c489b)
+
+running 5 tests
+test canonical_identity_normalization_and_masking ... ok
+test lexical_checks_do_not_claim_dns_or_path_secret_detection ... ok
+test private_address_boundaries_and_malformed_numeric_hosts ... ok
+test accepted_and_rejected_synthetic_remotes ... ok
+test length_and_normalization_boundaries ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_runner.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_runner-69981d16f939ff15)
+
+running 4 tests
+test environment_accepts_only_the_exact_optional_agent_name_and_safe_path ... ok
+test environment_rejects_unapproved_duplicate_and_unsafe_values ... ok
+test runner_and_ssh_remain_closed_without_trust_and_policy_proofs ... ok
+test stdin_enforces_the_byte_cap_and_masks_debug ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p04_scaffold.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_scaffold-5d5a8c07ceae62f1)
+
+running 1 test
+test scaffold_refuses_git_environment_and_ssh_policy ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests repositories
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

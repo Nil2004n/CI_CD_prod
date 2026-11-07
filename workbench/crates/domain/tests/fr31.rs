@@ -861,7 +861,83 @@ fn every_store_module_is_scanned_or_excluded() {
         .collect();
     let mut covered: BTreeSet<&str> = MODEL_SOURCES.iter().map(|(m, _)| *m).collect();
     covered.extend(["classes", "values"]);
+    covered.extend(V15_SOURCES.iter().map(|(name, _)| *name));
     assert_eq!(declared, covered);
+}
+
+const V15_SOURCES: [(&str, &str); 3] = [
+    ("approval15", include_str!("../src/store/approval15.rs")),
+    ("repository15", include_str!("../src/store/repository15.rs")),
+    ("roots15", include_str!("../src/store/roots15.rs")),
+];
+
+/// Check every versioned model against its classified 1.4 counterpart, with
+/// explicit assertions for each 1.5 change. This also preserves redaction helpers.
+#[test]
+fn version15_models_preserve_classified_fields() {
+    let legacy = models();
+    for (module, src) in &V15_SOURCES[..2] {
+        let parsed = parse_structs(src);
+        let expected_names: &[&str] = if *module == "approval15" {
+            &["GitApprovalContext", "Approval", "ApprovalFile"]
+        } else {
+            &["Repository", "RepositoryFile"]
+        };
+        assert_eq!(
+            parsed.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>(),
+            expected_names
+        );
+        for (name, mut fields) in parsed {
+            if name == "GitApprovalContext" {
+                assert_eq!(
+                    fields
+                        .iter()
+                        .map(|f| (f.name.as_str(), f.ty.as_str()))
+                        .collect::<Vec<_>>(),
+                    [
+                        ("stage", "GitApprovalStage"),
+                        ("repo_id", "RepoId"),
+                        ("ref_kind", "Option<RefKind>"),
+                        ("ref_value", "Option<GitRefName>")
+                    ]
+                );
+                assert!(fields.iter().all(|f| f.attrs.is_empty()));
+                continue;
+            }
+            let extra = match name.as_str() {
+                "Approval" => Some(("git_approval_context", "Option<GitApprovalContext>")),
+                "Repository" => Some(("last_git_version", "Option<VersionLabel>")),
+                _ => None,
+            };
+            if let Some((key, ty)) = extra {
+                let index = fields
+                    .iter()
+                    .position(|f| f.name == key)
+                    .expect("1.5 field");
+                let f = fields.remove(index);
+                assert_eq!(f.ty, ty);
+                assert!(f.attrs.is_empty());
+            }
+            if name == "Repository" {
+                for key in ["default_ref_kind", "default_ref_value"] {
+                    let f = fields
+                        .iter_mut()
+                        .find(|f| f.name == key)
+                        .expect("reference field");
+                    f.ty =
+                        f.ty.strip_prefix("Option<")
+                            .and_then(|s| s.strip_suffix('>'))
+                            .expect("nullable reference")
+                            .to_owned();
+                }
+            }
+            assert_eq!(fields, legacy[&name], "{module}::{name}");
+        }
+    }
+    let roots = V15_SOURCES[2].1;
+    assert_eq!(roots.matches("root!(").count(), 6);
+    assert!(roots.contains("pub schema_version: SchemaVersion15"));
+    assert!(roots.contains("pub $field: $field_type"));
 }
 
 // --- class / type agreement ----------------------------------------------------------------------------------

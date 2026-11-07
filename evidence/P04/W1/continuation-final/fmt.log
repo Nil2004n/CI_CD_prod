@@ -1,0 +1,35 @@
+Diff in /home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories/src/git/runner.rs:110:
+ }
+ 
+ // These descriptions cannot execute until the process runner's trust gates exist.
+-#[allow(dead_code, reason = "the typed seam is staged until the runner trust gates exist")]
++#[allow(
++    dead_code,
++    reason = "the typed seam is staged until the runner trust gates exist"
++)]
+ enum GitOperation {
+     Version,
+     IsAncestor {
+Diff in /home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories/src/git/runner.rs:121:
+ pub struct GitInvocation {
+     operation: GitOperation,
+ }
+-#[allow(dead_code, reason = "the typed seam is staged until the runner trust gates exist")]
++#[allow(
++    dead_code,
++    reason = "the typed seam is staged until the runner trust gates exist"
++)]
+ #[derive(Debug, PartialEq, Eq)]
+ pub(crate) enum GitAnswer {
+     VersionSupported,
+Diff in /home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories/src/git/runner.rs:128:
+     Ancestor(bool),
+ }
+-#[allow(dead_code, reason = "the typed seam is staged until the runner trust gates exist")]
++#[allow(
++    dead_code,
++    reason = "the typed seam is staged until the runner trust gates exist"
++)]
+ impl GitInvocation {
+     pub(crate) fn version() -> Self {
+         Self {

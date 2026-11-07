@@ -663,7 +663,13 @@ fn a_once_grant_does_not_cover_any_single_change_of_the_operation() {
     assert_eq!(record.status, ApprovalState::Approved);
     assert!(!record.consumed, "probing must not consume the grant");
     match env.authorise(&base, None).expect("authorise") {
-        AuthOutcome::Authorised(proof) => assert_eq!(proof.approval_id(), granted),
+        AuthOutcome::Authorised(proof) => {
+            assert_eq!(proof.approval_id(), granted);
+            assert_eq!(
+                proof.operation_fingerprint(),
+                &application::permission::fingerprint(&base).expect("fingerprint")
+            );
+        }
         other => panic!("the original request must be authorised once, got {other:?}"),
     }
     assert!(tmp.approval(granted).consumed);

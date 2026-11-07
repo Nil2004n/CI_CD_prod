@@ -51,3 +51,42 @@ pub trait HardenedGit {
 }
 
 masked_debug!(TargetRef, Provenance, GitOutcome);
+
+/// Check complete target-tree path and filter-attribute output as opaque bytes.
+/// Callers must enforce runner limits before allocating either buffer. This
+/// check alone does not authorize a checkout.
+pub fn validate_target_filters(paths: &[u8], attributes: &[u8]) -> Result<(), GitRefusal> {
+    use crate::git::runner::{MAX_PATH_BYTES, MAX_PATHS, STDIN_CAP, STDOUT_CAP};
+    use std::collections::HashSet;
+
+    if paths.is_empty() || paths.len() > STDIN_CAP || attributes.len() > STDOUT_CAP {
+        return Err(GitRefusal::UnsafeAttributes);
+    }
+    fn fields(bytes: &[u8]) -> Option<impl Iterator<Item = &[u8]>> {
+        bytes
+            .strip_suffix(&[0])
+            .map(|body| body.split(|byte| *byte == 0))
+    }
+    let path_fields = fields(paths).ok_or(GitRefusal::UnsafeAttributes)?;
+    let mut attr_fields = fields(attributes).ok_or(GitRefusal::UnsafeAttributes)?;
+    let mut seen = HashSet::new();
+    for (index, path) in path_fields.enumerate() {
+        if index >= MAX_PATHS
+            || path.is_empty()
+            || path.len() > MAX_PATH_BYTES
+            || !seen.insert(path)
+        {
+            return Err(GitRefusal::UnsafeAttributes);
+        }
+        if attr_fields.next() != Some(path)
+            || attr_fields.next() != Some(b"filter".as_slice())
+            || attr_fields.next() != Some(b"unset".as_slice())
+        {
+            return Err(GitRefusal::UnsafeAttributes);
+        }
+    }
+    if attr_fields.next().is_some() {
+        return Err(GitRefusal::UnsafeAttributes);
+    }
+    Ok(())
+}

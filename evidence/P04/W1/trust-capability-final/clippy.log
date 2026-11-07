@@ -1,0 +1,40 @@
+    Checking repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+error: type does not implement `std::fmt::Debug`; consider adding `#[derive(Debug)]` or a manual implementation
+  --> crates/repositories/src/git/runner.rs:20:1
+   |
+20 | / pub enum ExecutableKind {
+21 | |     Git,
+22 | |     Timeout,
+23 | |     Kill,
+24 | | }
+   | |_^
+   |
+   = note: `-D missing-debug-implementations` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(missing_debug_implementations)]`
+
+error: type does not implement `std::fmt::Debug`; consider adding `#[derive(Debug)]` or a manual implementation
+  --> crates/repositories/src/git/runner.rs:29:1
+   |
+29 | / pub struct TrustedExecutable {
+30 | |     path: PathBuf,
+31 | |     file: std::fs::File,
+32 | |     device: u64,
+33 | |     inode: u64,
+34 | | }
+   | |_^
+
+error: type does not implement `std::fmt::Debug`; consider adding `#[derive(Debug)]` or a manual implementation
+   --> crates/repositories/src/git/runner.rs:111:1
+    |
+111 | / pub struct TrustedNonRepositoryDir {
+112 | |     path: PathBuf,
+113 | |     directory: std::fs::File,
+114 | |     device: u64,
+115 | |     inode: u64,
+116 | |     uid: u32,
+117 | | }
+    | |_^
+
+error: could not compile `repositories` (lib test) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `repositories` (lib) due to 3 previous errors

@@ -60,6 +60,205 @@ const ROOTS: usize = StoreKind::ALL.len();
 /// The embedded engine, shared by every [`SchemaValidator::new`] and compiled at most once per process.
 static EMBEDDED: OnceLock<Engine> = OnceLock::new();
 
+const SCHEMA_15: &str = include_str!("../../../../schemas/workbench-store-v1.5.schema.json");
+const SCHEMA_15_SHA256: &str = "a9d2bec316c61cad1b943450b3a74642b3ad4e139e63e12e007e1b12955188f4";
+static EMBEDDED_15: OnceLock<Engine> = OnceLock::new();
+
+/// Validate a 1.5 operational root whose payload is unchanged from 1.4.
+///
+/// The 1.5 schema is checked first; the existing 1.4 validator then checks an
+/// in-memory version-only projection, including its typed and semantic rules.
+/// Repository and approval roots require their own 1.5 semantics and are refused.
+pub fn validate_unchanged15(kind: StoreKind, doc: &Value) -> Verdict {
+    if !matches!(
+        kind,
+        StoreKind::Config
+            | StoreKind::Workflows
+            | StoreKind::Log
+            | StoreKind::RagIndex
+            | StoreKind::Conversations
+            | StoreKind::ToolManifest
+    ) {
+        return Verdict::Invalid(Problems::one(Problem::new(
+            Layer::Version,
+            ProblemCode::UnsupportedVersion(crate::validate::VersionClass::NewerOrUnknown),
+            "/schema_version",
+            None,
+        )));
+    }
+    let engine = EMBEDDED_15.get_or_init(|| Engine::new(SCHEMA_15, SCHEMA_15_SHA256));
+    let (Some(validator), Some(schema)) = (engine.validator(kind), engine.schema()) else {
+        return Verdict::SchemaUnavailable;
+    };
+    let problems = schema_problems(validator, schema, kind, doc);
+    if !problems.is_empty() {
+        return Verdict::Invalid(problems);
+    }
+    let mut legacy = doc.clone();
+    let Some(object) = legacy.as_object_mut() else {
+        return Verdict::Invalid(Problems::one(Problem::new(
+            Layer::Json,
+            ProblemCode::NotObject,
+            "",
+            None,
+        )));
+    };
+    object.insert("schema_version".to_owned(), Value::String("1.4".to_owned()));
+    SchemaValidator::new().validate(kind, &legacy)
+}
+
+/// Validate a 1.5 repository document with the pinned schema, typed model,
+/// and repository-specific semantics. Does not authorize store writes.
+pub fn validate_repository15(doc: &Value) -> Verdict {
+    let engine = EMBEDDED_15.get_or_init(|| Engine::new(SCHEMA_15, SCHEMA_15_SHA256));
+    let (Some(validator), Some(schema)) =
+        (engine.validator(StoreKind::Repositories), engine.schema())
+    else {
+        return Verdict::SchemaUnavailable;
+    };
+    let problems = schema_problems(validator, schema, StoreKind::Repositories, doc);
+    if !problems.is_empty() {
+        return Verdict::Invalid(problems);
+    }
+    let file: domain::store::repository15::RepositoryFile =
+        match serde_json::from_value(doc.clone()) {
+            Ok(file) => file,
+            Err(_) => {
+                return Verdict::Invalid(Problems::one(Problem::new(
+                    Layer::Typed,
+                    ProblemCode::TypedDecode,
+                    "",
+                    None,
+                )));
+            }
+        };
+    let problems = semantic::repository15::check(&file);
+    if problems.is_empty() {
+        Verdict::Valid
+    } else {
+        Verdict::Invalid(problems)
+    }
+}
+
+/// Validate 1.5 approval shape, legacy generic approval semantics, and the
+/// additional Git-context rules. A null historical context never authorizes Git.
+pub fn validate_approval15(doc: &Value) -> Verdict {
+    let engine = EMBEDDED_15.get_or_init(|| Engine::new(SCHEMA_15, SCHEMA_15_SHA256));
+    let (Some(validator), Some(schema)) = (engine.validator(StoreKind::Approvals), engine.schema())
+    else {
+        return Verdict::SchemaUnavailable;
+    };
+    let problems = schema_problems(validator, schema, StoreKind::Approvals, doc);
+    if !problems.is_empty() {
+        return Verdict::Invalid(problems);
+    }
+    let file: domain::store::approval15::ApprovalFile = match serde_json::from_value(doc.clone()) {
+        Ok(file) => file,
+        Err(_) => {
+            return Verdict::Invalid(Problems::one(Problem::new(
+                Layer::Typed,
+                ProblemCode::TypedDecode,
+                "",
+                None,
+            )));
+        }
+    };
+    let mut legacy = doc.clone();
+    let Some(root) = legacy.as_object_mut() else {
+        return Verdict::Invalid(Problems::one(Problem::new(
+            Layer::Json,
+            ProblemCode::NotObject,
+            "",
+            None,
+        )));
+    };
+    root.insert("schema_version".to_owned(), Value::String("1.4".to_owned()));
+    let Some(approvals) = root.get_mut("approvals").and_then(Value::as_array_mut) else {
+        return Verdict::Invalid(Problems::one(Problem::new(
+            Layer::Typed,
+            ProblemCode::TypedDecode,
+            "",
+            None,
+        )));
+    };
+    for approval in approvals {
+        let Some(fields) = approval.as_object_mut() else {
+            return Verdict::Invalid(Problems::one(Problem::new(
+                Layer::Typed,
+                ProblemCode::TypedDecode,
+                "",
+                None,
+            )));
+        };
+        fields.remove("git_approval_context");
+    }
+    match SchemaValidator::new().validate(StoreKind::Approvals, &legacy) {
+        Verdict::Valid => {}
+        other => return other,
+    }
+    let mut problems = Problems::default();
+    for (i, approval) in file.approvals.iter().enumerate() {
+        if semantic::approval15::validate_git_context(approval).is_err() {
+            problems.push(Problem::new(
+                Layer::Semantic,
+                ProblemCode::Rule,
+                &format!("/approvals/{i}/git_approval_context"),
+                Some(crate::validate::RuleId("P04-GIT-APPROVAL")),
+            ));
+        }
+    }
+    if problems.is_empty() {
+        Verdict::Valid
+    } else {
+        Verdict::Invalid(problems)
+    }
+}
+
+/// Failure of the isolated 1.5 repository reference check. Values are never included.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Repository15ReferenceError {
+    /// The pinned schema could not be loaded or compiled.
+    SchemaUnavailable,
+    /// The document is too large, malformed, or fails the 1.5 repository schema.
+    InvalidDocument,
+    /// The document cannot be decoded into the 1.5 repository model.
+    InvalidModel,
+    /// A resolved reference does not satisfy the kind-specific rule.
+    InvalidReference,
+}
+
+/// Check 1.5 repository reference pairs after pinned, offline schema validation.
+///
+/// This is a narrow building block, not a complete store validator: it does not
+/// check remote identity, path confinement, or the other store semantic rules.
+/// It must not be used to authorize reads or writes on its own.
+pub fn check_repository15_references(bytes: &[u8]) -> Result<(), Repository15ReferenceError> {
+    use domain::store::repository15::{RepositoryFile, valid_target_reference};
+
+    let engine = EMBEDDED_15.get_or_init(|| Engine::new(SCHEMA_15, SCHEMA_15_SHA256));
+    let validator = engine
+        .validator(StoreKind::Repositories)
+        .ok_or(Repository15ReferenceError::SchemaUnavailable)?;
+    if u64::try_from(bytes.len()).map_or(true, |n| n > read::MAX_DOCUMENT_BYTES) {
+        return Err(Repository15ReferenceError::InvalidDocument);
+    }
+    let doc: Value =
+        serde_json::from_slice(bytes).map_err(|_| Repository15ReferenceError::InvalidDocument)?;
+    if !validator.is_valid(&doc) {
+        return Err(Repository15ReferenceError::InvalidDocument);
+    }
+    let file: RepositoryFile =
+        serde_json::from_value(doc).map_err(|_| Repository15ReferenceError::InvalidModel)?;
+    for repo in &file.repositories {
+        match (repo.default_ref_kind, repo.default_ref_value.as_ref()) {
+            (None, None) => {}
+            (Some(kind), Some(value)) if valid_target_reference(kind, value) => {}
+            _ => return Err(Repository15ReferenceError::InvalidReference),
+        }
+    }
+    Ok(())
+}
+
 /// Production validator: [`crate::read::precheck`] → JSON Schema (embedded, pinned, per-root, formats
 /// asserted, no remote or file retrieval) → [`crate::read::typed_decode`] → [`crate::semantic::check`].
 #[derive(Default)]

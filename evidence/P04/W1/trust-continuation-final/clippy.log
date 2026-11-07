@@ -1,0 +1,82 @@
+    Checking repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+    Checking application v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/application)
+    Checking cli v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/cli)
+error: used `unwrap()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:24:9
+   |
+24 |         fs::create_dir(&path).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+   = note: requested on the command line with `-D clippy::unwrap-used`
+
+error: used `unwrap()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:25:9
+   |
+25 |         fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:26:9
+   |
+26 |         fs::create_dir(path.join("checkouts")).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:27:9
+   |
+27 |         fs::set_permissions(path.join("checkouts"), fs::Permissions::from_mode(0o700)).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:28:9
+   |
+28 |         fs::create_dir(path.join("checkouts/.locks")).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:29:9
+   |
+29 | /         fs::set_permissions(
+30 | |             path.join("checkouts/.locks"),
+31 | |             fs::Permissions::from_mode(0o700),
+32 | |         )
+33 | |         .unwrap();
+   | |_________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:38:34
+   |
+38 |         LocalCheckoutAccess::new(DataDir::new(&RealFs, &self.0).unwrap())
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:49:5
+   |
+49 |     RepoId::parse(value).unwrap()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: could not compile `application` (test "p04_checkout_adapter") due to 8 previous errors
+warning: build failed, waiting for other jobs to finish...

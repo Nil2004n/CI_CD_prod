@@ -1,0 +1,132 @@
+    Finished `test` profile [unoptimized] target(s) in 0.09s
+     Running unittests src/lib.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/cli-9ede0027606edf8b)
+
+running 25 tests
+test args::tests::approvals_commands_parse ... ok
+test args::tests::dev_commands_parse ... ok
+test args::tests::flag_values_are_required_and_not_repeatable ... ok
+test args::tests::json_flag_is_global ... ok
+test args::tests::credential_commands_parse ... ok
+test args::tests::new_command_names_match_the_table ... ok
+test args::tests::flags_are_checked_against_the_command ... ok
+test args::tests::approvals_mistakes_are_specific_usage_errors ... ok
+test args::tests::new_flags_are_rejected_by_the_p02_commands ... ok
+test args::tests::non_utf8_argument_is_a_usage_error ... ok
+test args::tests::roots_resolve_for_every_command ... ok
+test args::tests::usage_messages_do_not_echo_arguments ... ok
+test commands::tests::all_commands_are_unique_and_their_usage_names_them ... ok
+test commands::tests::approval_failures_map_to_exit_codes ... ok
+test commands::tests::command_names_are_unique ... ok
+test commands::tests::exit_codes_are_the_frozen_values ... ok
+test commands::tests::failure_classes_map_to_exit_codes ... ok
+test commands::tests::group_topics_select_the_p03_commands ... ok
+test commands::tests::key_refusal_texts_are_fixed_and_distinct ... ok
+test commands::tests::store_topic_selects_the_store_commands ... ok
+test output::tests::a_broken_stdout_is_remembered_and_never_panics ... ok
+test output::tests::json_lines_are_escaped_and_stay_valid_json ... ok
+test output::tests::destination_views_label_the_form ... ok
+test output::tests::restored_record_mentions_quarantine ... ok
+test output::tests::snake_names_enum_values ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/pwt_workbench_cli-49b8d461c69eecc8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p02_failures.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p02_failures-83dba38dbf001ba9)
+
+running 14 tests
+test application_storage_failures_map_to_exit_4 ... ok
+test non_utf8_and_flag_like_data_dir_values_are_usage_errors ... ok
+test lock_file_that_is_a_symlink_or_hard_linked_is_rejected_with_exit_5 ... ok
+test real_storage_failure_exits_4_when_permissions_are_enforced ... ok
+test second_process_lock_holder_helper ... ok
+test leftover_temp_files_are_removed_and_look_alikes_survive ... ok
+test data_directory_paths_near_and_over_path_max ... ok
+test same_second_reports_are_recognised_and_not_orphans ... ok
+test lock_held_by_a_second_process_exits_3_then_succeeds_after_release ... ok
+test stale_lock_file_does_not_block_and_is_not_echoed ... ok
+test symlinked_and_permissive_data_directories_exit_5 ... ok
+test oversized_root_is_reported_too_large_without_reading_it ... ok
+test malformed_json_in_every_root_is_invalid_not_a_failure ... ok
+test hostile_data_directory_names_work_and_are_never_echoed ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.06s
+
+     Running tests/p02_scenarios.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p02_scenarios-018b0c230c96532e)
+
+running 21 tests
+test exit_codes_map_as_specified ... ok
+test a_closed_stdout_does_not_panic_and_is_exit_5 ... ok
+test help_lists_every_command ... ok
+test features_prints_the_index ... ok
+test help_for_one_command_and_unknown_topic ... ok
+test rejected_data_directory_exits_5 ... ok
+test in_process_run_reports_a_held_lock_as_exit_3 ... ok
+test feature_index_rows_name_an_existing_command_and_test ... ok
+test lock_held_by_another_holder_exits_3 ... ok
+test malformed_root_is_invalid_and_exit_is_zero ... ok
+test init_creates_exactly_five_roots_and_is_idempotent ... ok
+test schema_1_3_label_is_rejected_with_the_version_problem ... ok
+test usage_errors_exit_2 ... ok
+test restore_previous_restores_and_quarantines ... ok
+test recover_removes_leftover_temp_files_and_reports_malformed_roots ... ok
+test version_prints_all_contract_versions ... ok
+test restore_without_previous_generation_exits_5_and_keeps_the_reconciliation_record ... ok
+test seeded_marker_never_reaches_output_unescaped ... ok
+test show_of_a_malformed_root_prints_problems_only ... ok
+test json_lines_parse_and_store_records_carry_mode_dev ... ok
+test validate_fresh_store_and_single_root ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.09s
+
+     Running tests/p03_cli.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_cli-f44bea23c75b003e)
+
+running 41 tests
+test approval_and_dev_usage_errors_exit_2 ... ok
+test binary_env_preview_uses_the_process_environment ... ok
+test binary_key_is_held_for_one_process_only ... ok
+test approvals_list_on_an_empty_store_prints_nothing ... ok
+test a_closed_stdout_makes_the_new_commands_exit_5 ... ok
+test credential_lifecycle_in_one_session_and_absent_in_a_fresh_one ... ok
+test credential_json_shapes ... ok
+test approvals_list_shows_canonical_destinations_and_labels_the_ssh_store_form ... ok
+test credential_set_refuses_a_terminal_and_reads_nothing ... ok
+test credential_usage_errors_exit_2 ... ok
+test env_preview_drops_inherited_tz_holding_the_key ... ok
+test env_preview_fails_closed_on_bad_directories ... ok
+test env_preview_json_shape ... ok
+test env_preview_shows_names_and_origins_never_values ... ok
+test fr33_refusal_maps_to_exit_5_with_the_fixed_message ... ok
+test approval_commands_report_store_failures_with_the_store_exit_codes ... ok
+test features_list_every_p03_command_with_its_mode ... ok
+test help_lists_the_p03_commands ... ok
+test malformed_keys_are_refused_with_exit_5_and_never_echoed ... ok
+test approvals_list_shows_the_inference_scope ... ok
+test a_closed_stdout_keeps_permission_check_in_the_safe_direction ... ok
+test invalid_request_documents_exit_5_and_record_nothing ... ok
+test deny_blocks_the_identical_request_and_a_decided_approval_cannot_be_decided_again ... ok
+test permission_check_records_a_well_formed_pending_request ... ok
+test permission_check_human_output ... ok
+test permission_check_json_shapes ... ok
+test planted_control_characters_render_on_one_visible_line ... ok
+test approval_decision_json_records_have_an_exact_shape ... ok
+test permission_check_once_grant_goes_6_approve_0_then_6_again ... ok
+test permission_check_rejects_constraints_that_are_not_plain_one_line_text ... ok
+test refused_requests_exit_5_with_the_reason ... ok
+test model_transmission_grant_is_tied_to_its_inference_scope ... ok
+test valid_key_forms_are_accepted ... ok
+test unknown_approval_ids_exit_5 ... ok
+test request_size_limit_is_exact ... ok
+test seeded_key_appears_in_no_output_or_file ... ok
+test run_lifetime_grant_holds_for_its_run_only ... ok
+test workflow_scope_is_unavailable_without_a_saved_workflow_at_the_revision ... ok
+test revoke_ends_a_grant_and_only_an_approved_grant_can_be_revoked ... ok
+test workflow_scope_grant_holds_until_the_workflow_revision_changes ... ok
+test binary_permission_check_exit_codes ... ok
+
+test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+

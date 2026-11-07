@@ -1,0 +1,6 @@
+    Checking domain v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/domain)
+    Checking persistence v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/persistence)
+    Checking repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+    Checking application v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/application)
+    Checking cli v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/cli)
+    Finished `dev` profile [unoptimized] target(s) in 7.81s

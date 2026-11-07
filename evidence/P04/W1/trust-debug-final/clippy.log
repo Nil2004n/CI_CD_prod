@@ -1,0 +1,82 @@
+    Checking application v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/application)
+    Checking cli v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/cli)
+error: used `expect()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:24:9
+   |
+24 |         fs::create_dir(&path).expect("create fixture");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#expect_used
+   = note: requested on the command line with `-D clippy::expect-used`
+
+error: used `expect()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:25:9
+   |
+25 |         fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).expect("secure fixture");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:26:9
+   |
+26 |         fs::create_dir(path.join("checkouts")).expect("create checkout directory");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:27:9
+   |
+27 | /         fs::set_permissions(path.join("checkouts"), fs::Permissions::from_mode(0o700))
+28 | |             .expect("secure checkout directory");
+   | |________________________________________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:29:9
+   |
+29 |         fs::create_dir(path.join("checkouts/.locks")).expect("create lock directory");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:30:9
+   |
+30 | /         fs::set_permissions(
+31 | |             path.join("checkouts/.locks"),
+32 | |             fs::Permissions::from_mode(0o700),
+33 | |         )
+34 | |         .expect("secure lock directory");
+   | |________________________________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:39:34
+   |
+39 |         LocalCheckoutAccess::new(DataDir::new(&RealFs, &self.0).expect("validate fixture"))
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/application/tests/p04_checkout_adapter.rs:50:5
+   |
+50 |     RepoId::parse(value).expect("valid synthetic repository id")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#expect_used
+
+error: could not compile `application` (test "p04_checkout_adapter") due to 8 previous errors
+warning: build failed, waiting for other jobs to finish...

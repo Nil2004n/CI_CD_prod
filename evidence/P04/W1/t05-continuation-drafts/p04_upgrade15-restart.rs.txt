@@ -1,0 +1,125 @@
+//! Synthetic integration cases for the explicit upgrade and startup gate.
+use std::{error::Error, fs, io, os::unix::fs::PermissionsExt, path::PathBuf, sync::{Arc, atomic::{AtomicU32, Ordering}}};
+use persistence::{error::WriteStep, fault::{FaultFs, FaultPlan}, fs::RealFs, paths::DataDir, read::SchemaValidator, writer::StoreWriter};
+
+type TestResult = Result<(), Box<dyn Error>>;
+static NEXT: AtomicU32 = AtomicU32::new(0);
+fn fixture() -> Result<(PathBuf, DataDir), Box<dyn Error>> {
+    let p = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("upgrade15-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
+    fs::create_dir(&p)?;
+    fs::set_permissions(&p, fs::Permissions::from_mode(0o700))?;
+    fs::write(p.join("repo.json"), include_bytes!("fixtures/store/repositories.min.json"))?;
+    fs::write(p.join("approvals.json"), include_bytes!("fixtures/store/approvals.min.json"))?;
+    Ok((p.clone(), DataDir::new(&RealFs, &p)?))
+}
+fn writer(dir: &DataDir, fault: Option<FaultPlan>) -> Result<StoreWriter, Box<dyn Error>> {
+    let fs: Arc<dyn persistence::fs::FsOps> = match fault {
+        Some(plan) => Arc::new(FaultFs::new(plan)), None => Arc::new(RealFs),
+    };
+    let (writer, _) = StoreWriter::open(dir.clone(), fs, Arc::new(SchemaValidator::new()))?;
+    Ok(writer)
+}
+fn version(path: &PathBuf) -> Result<String, Box<dyn Error>> {
+    let doc: serde_json::Value = serde_json::from_slice(&fs::read(path)?)?;
+    Ok(doc.get("schema_version").and_then(serde_json::Value::as_str).ok_or("missing version")?.to_owned())
+}
+#[test]
+fn explicit_upgrade_keeps_backup_and_optional_absence() -> TestResult {
+    let (p, dir) = fixture()?;
+    let original = fs::read(p.join("repo.json"))?;
+    let mut w = writer(&dir, None)?;
+    w.upgrade15()?;
+    drop(w);
+    assert_eq!(version(&p.join("repo.json"))?, "1.5");
+    assert_eq!(version(&p.join("approvals.json"))?, "1.5");
+    assert_eq!(fs::read(p.join(".migration-15/old-1"))?, original);
+    assert!(!p.join("config.json").exists());
+    assert!(!p.join("rag").exists());
+    let _reopened = writer(&dir, None)?;
+    Ok(())
+}
+#[test]
+fn failed_root_publication_rolls_forward_on_restart() -> TestResult {
+    let (p, dir) = fixture()?;
+    let plan = FaultPlan { step: WriteStep::Replace, nth: 1, error: io::ErrorKind::Other };
+    let mut w = writer(&dir, Some(plan))?;
+    assert!(w.upgrade15().is_err());
+    drop(w);
+    let _reopened = writer(&dir, None)?;
+    assert_eq!(version(&p.join("repo.json"))?, "1.5");
+    assert_eq!(version(&p.join("approvals.json"))?, "1.5");
+    Ok(())
+}
+#[test]
+fn malformed_journal_refuses_startup() -> TestResult {
+    let (p, dir) = fixture()?;
+    let control = p.join(".migration-15");
+    fs::create_dir(&control)?;
+    fs::set_permissions(&control, fs::Permissions::from_mode(0o700))?;
+    fs::write(control.join("begin"), b"corrupt")?;
+    assert!(writer(&dir, None).is_err());
+    Ok(())
+}
+
+#[test]
+fn interrupted_upgrade_never_opens_a_mixed_store() -> TestResult {
+    // Faults before commit may require operator recovery; faults after commit must roll forward.
+    // Each case uses a fresh synthetic store and checks that the selected fault actually fired.
+    for step in [WriteStep::CreateDir, WriteStep::CreateTemp, WriteStep::WriteTemp,
+        WriteStep::SyncTemp, WriteStep::SyncDir, WriteStep::Replace] {
+        for nth in 1..=12 {
+            let (p, dir) = fixture()?;
+            let injected = Arc::new(FaultFs::new(FaultPlan { step, nth, error: io::ErrorKind::Other }));
+            let (mut w, _) = match StoreWriter::open(dir.clone(), injected.clone(), Arc::new(SchemaValidator::new())) {
+                Ok(opened) => opened,
+                Err(_) if injected.fired() => continue,
+                Err(error) => return Err(error.into()),
+            };
+            let result = w.upgrade15();
+            let fired = injected.fired();
+            drop(w);
+            if !fired { continue; }
+            assert!(result.is_err(), "fault at {step:?} #{nth} was ignored");
+            if let Ok(reopened) = writer(&dir, None) {
+                let repo = version(&p.join("repo.json"))?;
+                let approvals = version(&p.join("approvals.json"))?;
+                assert_eq!(repo, approvals, "mixed roots opened after {step:?} #{nth}");
+                assert_eq!(reopened.is_v15(), repo == "1.5");
+            }
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn committed_journal_rejects_tampered_artifacts_or_live_roots() -> TestResult {
+    for name in ["old-1", "new-1", "manifest", "prepare", "commit"] {
+        let (p, dir) = fixture()?;
+        let mut w = writer(&dir, Some(FaultPlan { step: WriteStep::Replace, nth: 1, error: io::ErrorKind::Other }))?;
+        assert!(w.upgrade15().is_err());
+        drop(w);
+        fs::write(p.join(".migration-15").join(name), b"tampered")?;
+        assert!(writer(&dir, None).is_err(), "accepted altered {name}");
+    }
+    let (p, dir) = fixture()?;
+    let mut w = writer(&dir, Some(FaultPlan { step: WriteStep::Replace, nth: 1, error: io::ErrorKind::Other }))?;
+    assert!(w.upgrade15().is_err());
+    drop(w);
+    fs::write(p.join("repo.json"), b"unexpected live root")?;
+    assert!(writer(&dir, None).is_err());
+    Ok(())
+}
+
+#[test]
+fn completed_journal_rejects_unexpected_entries_and_missing_backups() -> TestResult {
+    for name in ["unexpected", "old-1"] {
+        let (p, dir) = fixture()?;
+        let mut w = writer(&dir, None)?;
+        w.upgrade15()?;
+        drop(w);
+        let path = p.join(".migration-15").join(name);
+        if name == "unexpected" { fs::write(path, b"extra")?; } else { fs::remove_file(path)?; }
+        assert!(writer(&dir, None).is_err(), "accepted damaged journal: {name}");
+    }
+    Ok(())
+}

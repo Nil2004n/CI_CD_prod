@@ -192,9 +192,31 @@ pub(crate) fn reconcile(writer: &mut StoreWriter) -> Result<ReconcileReport, Sto
                     );
                 }
             }
+            (StoreKind::Approvals, RootState::Valid15(doc)) => {
+                if let domain::store::OperationalStore15::Approvals(file) = *doc {
+                    approvals_pending = count(
+                        file.approvals
+                            .iter()
+                            .filter(|a| a.status == ApprovalState::Pending)
+                            .count(),
+                    );
+                }
+            }
             (StoreKind::Log, RootState::Valid(doc)) => {
                 if let AnyStore::Log(file) = *doc {
                     log = Some(file);
+                }
+            }
+            (StoreKind::Log, RootState::Valid15(doc)) => {
+                if let domain::store::OperationalStore15::Log(file) = *doc {
+                    log = Some(domain::store::log::LogFile {
+                        schema_version: domain::store::SchemaVersion,
+                        store_type: file.store_type,
+                        updated_at: file.updated_at,
+                        runs: file.runs,
+                        events: file.events,
+                        reports: file.reports,
+                    });
                 }
             }
             _ => {}
@@ -239,7 +261,20 @@ pub(crate) fn reconcile(writer: &mut StoreWriter) -> Result<ReconcileReport, Sto
             .collect();
         if !runs_interrupted.is_empty() {
             file.updated_at = now;
-            writer.replace(&AnyStore::Log(file))?;
+            if writer.is_v15() {
+                writer.replace15(&domain::store::OperationalStore15::Log(
+                    domain::store::roots15::LogFile {
+                        schema_version: domain::store::SchemaVersion15,
+                        store_type: file.store_type,
+                        updated_at: file.updated_at,
+                        runs: file.runs,
+                        events: file.events,
+                        reports: file.reports,
+                    },
+                ))?;
+            } else {
+                writer.replace(&AnyStore::Log(file))?;
+            }
         }
     }
 

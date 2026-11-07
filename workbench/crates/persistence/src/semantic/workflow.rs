@@ -418,7 +418,7 @@ pub(crate) fn d18_06a(doc: &AnyStore, out: &mut Problems) {
 
 /// `D18-07` for one inventory or snapshot file at `at`: an eligible file has a content digest and an
 /// unreadable one has none.
-fn file_record(at: &str, f: &FileRecord, out: &mut Problems) {
+pub(super) fn file_record(at: &str, f: &FileRecord, out: &mut Problems) {
     const R: &str = "D18-07";
     let wrong = match f.discovery_state {
         DiscoveryState::Eligible => f.content_digest.is_none(),

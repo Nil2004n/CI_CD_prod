@@ -66,6 +66,7 @@ macro_rules! closed_enum {
 }
 
 pub mod approval;
+pub mod approval15;
 pub mod classes;
 pub mod config;
 pub mod conversation;
@@ -76,6 +77,8 @@ pub mod provider;
 pub mod rag;
 pub mod report;
 pub mod repository;
+pub mod repository15;
+pub mod roots15;
 pub mod suppression;
 pub mod tools;
 pub mod values;
@@ -163,6 +166,29 @@ fn marker_error<E: serde::de::Error>(what: &'static str) -> E {
 /// `schema_version` of a 1.4 root: serialises as `"1.4"` and accepts nothing else.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct SchemaVersion;
+
+/// Version marker for CA-06 records. Kept distinct from the legacy 1.4 marker
+/// so serializing a historical record cannot silently change its version.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct SchemaVersion15;
+
+impl Serialize for SchemaVersion15 {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str("1.5")
+    }
+}
+
+impl<'de> Deserialize<'de> for SchemaVersion15 {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        values::deserialize_parsed(d, |s| {
+            if s == "1.5" {
+                Ok(Self)
+            } else {
+                Err(String::from("unsupported schema_version"))
+            }
+        })
+    }
+}
 
 impl Serialize for SchemaVersion {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
@@ -329,6 +355,56 @@ pub enum AnyStore {
     Report(Box<report::ReportFile>),
     /// `tools.json`.
     ToolManifest(tools::ToolManifestFile),
+}
+
+/// Typed 1.5 operational roots, distinct from historical 1.4 documents.
+///
+/// Construction does not imply validation or permission to write. Immutable
+/// reports and reserved suppressions remain outside this operational set.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+pub enum OperationalStore15 {
+    Config(roots15::ConfigFile),
+    Repositories(repository15::RepositoryFile),
+    Workflows(roots15::WorkflowFile),
+    Approvals(approval15::ApprovalFile),
+    Log(roots15::LogFile),
+    RagIndex(roots15::RagIndexFile),
+    Conversations(roots15::ConversationFile),
+    ToolManifest(roots15::ToolManifestFile),
+}
+
+impl OperationalStore15 {
+    /// The root kind carried by this value.
+    pub fn kind(&self) -> StoreKind {
+        match self {
+            Self::Config(_) => StoreKind::Config,
+            Self::Repositories(_) => StoreKind::Repositories,
+            Self::Workflows(_) => StoreKind::Workflows,
+            Self::Approvals(_) => StoreKind::Approvals,
+            Self::Log(_) => StoreKind::Log,
+            Self::RagIndex(_) => StoreKind::RagIndex,
+            Self::Conversations(_) => StoreKind::Conversations,
+            Self::ToolManifest(_) => StoreKind::ToolManifest,
+        }
+    }
+}
+
+/// An explicitly versioned store document; 1.4 reports remain historical.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VersionedStore {
+    V14(AnyStore),
+    V15(OperationalStore15),
+}
+
+impl VersionedStore {
+    /// The root kind of the versioned document.
+    pub fn kind(&self) -> StoreKind {
+        match self {
+            Self::V14(doc) => doc.kind(),
+            Self::V15(doc) => doc.kind(),
+        }
+    }
 }
 
 impl AnyStore {

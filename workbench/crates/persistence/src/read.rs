@@ -34,6 +34,253 @@ pub use crate::schema::SchemaValidator;
 /// production limits follow the FR-11 owner decision).
 pub const MAX_DOCUMENT_BYTES: u64 = 64 * 1024 * 1024;
 
+pub(crate) fn migration_manifest(bytes: &[u8]) -> Option<crate::migration15::Manifest> {
+    if bytes.len() > 8192 {
+        return None;
+    }
+    serde_json::from_slice(bytes).ok()
+}
+
+pub(crate) fn claims_version15(bytes: &[u8]) -> bool {
+    if u64::try_from(bytes.len()).map_or(true, |n| n > MAX_DOCUMENT_BYTES) {
+        return false;
+    }
+    serde_json::from_slice::<Value>(bytes)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("schema_version")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        })
+        .as_deref()
+        == Some("1.5")
+}
+
+/// Decode a 1.4 historical or 1.5 operational root using its own validator.
+/// This is a read-only building block; it does not enable versioned store writes.
+pub fn decode_versioned(
+    kind: StoreKind,
+    bytes: &[u8],
+    legacy: &dyn DocumentValidator,
+) -> Result<domain::store::VersionedStore, StoreError> {
+    use domain::store::{OperationalStore15, VersionedStore};
+
+    if u64::try_from(bytes.len()).map_or(true, |n| n > MAX_DOCUMENT_BYTES) {
+        return Err(StoreError::Invalid(
+            kind,
+            Problems::one(Problem::new(Layer::Json, ProblemCode::TooLarge, "", None)),
+        ));
+    }
+    let doc: Value = serde_json::from_slice(bytes).map_err(|_| {
+        StoreError::Invalid(
+            kind,
+            Problems::one(Problem::new(Layer::Json, ProblemCode::Syntax, "", None)),
+        )
+    })?;
+    if doc.get("schema_version").and_then(Value::as_str) != Some("1.5") {
+        return decode(kind, bytes, legacy).map(VersionedStore::V14);
+    }
+    let value = match kind {
+        StoreKind::Repositories => OperationalStore15::Repositories(decode_repository15(bytes)?),
+        StoreKind::Approvals => {
+            match crate::schema::validate_approval15(&doc) {
+                Verdict::Valid => {}
+                Verdict::Invalid(problems) => return Err(StoreError::Invalid(kind, problems)),
+                Verdict::SchemaUnavailable => return Err(StoreError::SchemaUnavailable),
+            }
+            let file = serde_json::from_value(doc).map_err(|_| {
+                StoreError::Invalid(
+                    kind,
+                    Problems::one(Problem::new(
+                        Layer::Typed,
+                        ProblemCode::TypedDecode,
+                        "",
+                        None,
+                    )),
+                )
+            })?;
+            OperationalStore15::Approvals(file)
+        }
+        StoreKind::Report | StoreKind::Suppressions => {
+            return Err(StoreError::Invalid(
+                kind,
+                Problems::one(Problem::new(
+                    Layer::Version,
+                    ProblemCode::UnsupportedVersion(VersionClass::NewerOrUnknown),
+                    "/schema_version",
+                    None,
+                )),
+            ));
+        }
+        _ => decode_unchanged15(kind, bytes)?,
+    };
+    Ok(VersionedStore::V15(value))
+}
+
+/// Prepare and fully validate one 1.4 operational root as a 1.5 candidate.
+///
+/// This function performs no I/O and is not a migration: the caller must
+/// preflight the complete store and use crash-safe recovery before publishing.
+/// Existing fields are preserved; incompatible legacy values are rejected.
+pub fn prepare_operational15(
+    kind: StoreKind,
+    bytes: &[u8],
+    legacy: &dyn DocumentValidator,
+) -> Result<Vec<u8>, StoreError> {
+    if !kind.writable() || matches!(kind, StoreKind::Report | StoreKind::Suppressions) {
+        return Err(StoreError::PathRejected);
+    }
+    // Do not use the caller-supplied validator as a bypass for the canonical
+    // legacy semantic and schema checks.
+    let _ = decode(kind, bytes, legacy)?;
+    let _ = decode(kind, bytes, &SchemaValidator::new())?;
+    let invalid = || {
+        StoreError::Invalid(
+            kind,
+            Problems::one(Problem::new(
+                Layer::Typed,
+                ProblemCode::TypedDecode,
+                "",
+                None,
+            )),
+        )
+    };
+    let mut doc: Value = serde_json::from_slice(bytes).map_err(|_| invalid())?;
+    let root = doc.as_object_mut().ok_or_else(invalid)?;
+    root.insert("schema_version".to_owned(), Value::String("1.5".to_owned()));
+    let (collection, property) = match kind {
+        StoreKind::Repositories => (Some("repositories"), Some("last_git_version")),
+        StoreKind::Approvals => (Some("approvals"), Some("git_approval_context")),
+        _ => (None, None),
+    };
+    if let (Some(collection), Some(property)) = (collection, property) {
+        let entries = root
+            .get_mut(collection)
+            .and_then(Value::as_array_mut)
+            .ok_or_else(invalid)?;
+        for entry in entries {
+            entry
+                .as_object_mut()
+                .ok_or_else(invalid)?
+                .insert(property.to_owned(), Value::Null);
+        }
+    }
+    let candidate = serde_json::to_vec(&doc).map_err(|_| invalid())?;
+    if !matches!(
+        decode_versioned(kind, &candidate, legacy)?,
+        domain::store::VersionedStore::V15(_)
+    ) {
+        return Err(invalid());
+    }
+    Ok(candidate)
+}
+
+/// Decode a schema- and semantics-validated 1.5 repository document.
+/// This standalone reader does not enable migration or store writes.
+pub fn decode_repository15(
+    bytes: &[u8],
+) -> Result<domain::store::repository15::RepositoryFile, StoreError> {
+    let kind = StoreKind::Repositories;
+    let invalid = |p: Problems| StoreError::Invalid(kind, p);
+    if u64::try_from(bytes.len()).map_or(true, |n| n > MAX_DOCUMENT_BYTES) {
+        return Err(invalid(Problems::one(Problem::new(
+            Layer::Json,
+            ProblemCode::TooLarge,
+            "",
+            None,
+        ))));
+    }
+    let doc: Value = serde_json::from_slice(bytes).map_err(|_| {
+        invalid(Problems::one(Problem::new(
+            Layer::Json,
+            ProblemCode::Syntax,
+            "",
+            None,
+        )))
+    })?;
+    match crate::schema::validate_repository15(&doc) {
+        Verdict::Valid => {}
+        Verdict::Invalid(problems) => return Err(invalid(problems)),
+        Verdict::SchemaUnavailable => return Err(StoreError::SchemaUnavailable),
+    }
+    serde_json::from_value(doc).map_err(|_| {
+        invalid(Problems::one(Problem::new(
+            Layer::Typed,
+            ProblemCode::TypedDecode,
+            "",
+            None,
+        )))
+    })
+}
+
+/// Decode an unchanged operational root using the 1.5 schema and 1.4 semantics.
+///
+/// This does not replace [`decode`] or enable store writes. Repository and
+/// approval roots need their own version-specific semantic checks.
+pub fn decode_unchanged15(
+    kind: StoreKind,
+    bytes: &[u8],
+) -> Result<domain::store::OperationalStore15, StoreError> {
+    use domain::store::{OperationalStore15, roots15};
+    let invalid = |p: Problems| StoreError::Invalid(kind, p);
+    if u64::try_from(bytes.len()).map_or(true, |n| n > MAX_DOCUMENT_BYTES) {
+        return Err(invalid(Problems::one(Problem::new(
+            Layer::Json,
+            ProblemCode::TooLarge,
+            "",
+            None,
+        ))));
+    }
+    let doc: Value = serde_json::from_slice(bytes).map_err(|_| {
+        invalid(Problems::one(Problem::new(
+            Layer::Json,
+            ProblemCode::Syntax,
+            "",
+            None,
+        )))
+    })?;
+    match crate::schema::validate_unchanged15(kind, &doc) {
+        Verdict::Valid => {}
+        Verdict::Invalid(problems) => return Err(invalid(problems)),
+        Verdict::SchemaUnavailable => return Err(StoreError::SchemaUnavailable),
+    }
+    fn parse<T: DeserializeOwned>(doc: Value, kind: StoreKind) -> Result<T, StoreError> {
+        serde_json::from_value(doc).map_err(|_| {
+            StoreError::Invalid(
+                kind,
+                Problems::one(Problem::new(
+                    Layer::Typed,
+                    ProblemCode::TypedDecode,
+                    "",
+                    None,
+                )),
+            )
+        })
+    }
+    match kind {
+        StoreKind::Config => Ok(OperationalStore15::Config(parse::<roots15::ConfigFile>(
+            doc, kind,
+        )?)),
+        StoreKind::Workflows => Ok(OperationalStore15::Workflows(
+            parse::<roots15::WorkflowFile>(doc, kind)?,
+        )),
+        StoreKind::Log => Ok(OperationalStore15::Log(parse::<roots15::LogFile>(
+            doc, kind,
+        )?)),
+        StoreKind::RagIndex => Ok(OperationalStore15::RagIndex(
+            parse::<roots15::RagIndexFile>(doc, kind)?,
+        )),
+        StoreKind::Conversations => Ok(OperationalStore15::Conversations(parse::<
+            roots15::ConversationFile,
+        >(doc, kind)?)),
+        StoreKind::ToolManifest => Ok(OperationalStore15::ToolManifest(parse::<
+            roots15::ToolManifestFile,
+        >(doc, kind)?)),
+        _ => Err(StoreError::PathRejected),
+    }
+}
+
 /// `schema_version` values of earlier store contracts (Data Schema §19). They are recognised only to
 /// classify the rejection; no reader for them exists.
 const OLDER_VERSIONS: [&str; 4] = ["1.0", "1.1", "1.2", "1.3"];

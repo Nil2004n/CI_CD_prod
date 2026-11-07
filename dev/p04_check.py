@@ -18,6 +18,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import tomllib
 from pathlib import Path
@@ -33,9 +34,16 @@ SLOTS = ("lead", "w1", "w2", "w3")
 # The set is unchanged in P03 (planning/P03-T01-request.md §4), so the P02 registry file is read as is.
 REGISTRY_FILE = Path(__file__).resolve().parent / "p02_registry.json"
 EXPECTED_REGISTRY = {k: tuple(v) for k, v in json.loads(REGISTRY_FILE.read_text())["registry"].items()}
+# Owner approved rustix 1.1.5 on 2026-11-04; pin every new registry identity.
+EXPECTED_REGISTRY.update({
+    "errno 0.3.14": ("0.3.14", "registry+https://github.com/rust-lang/crates.io-index", "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"),
+    "linux-raw-sys 0.12.1": ("0.12.1", "registry+https://github.com/rust-lang/crates.io-index", "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"),
+    "rustix 1.1.5": ("1.1.5", "registry+https://github.com/rust-lang/crates.io-index", "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d"),
+    "windows-sys 0.61.2": ("0.61.2", "registry+https://github.com/rust-lang/crates.io-index", "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"),
+})
 MEMBERS = {"domain", "application", "repositories", "scanning", "retrieval", "persistence", "terminal-ui", "cli"}
 # libc: P02-D03 O3 (owner 2026-10-27), constants only, already in the accepted graph.
-ALLOWED_DIRECT_DEPS = {"serde", "serde_json", "jsonschema", "sha2", "libc", "domain", "persistence", "application", "repositories"}
+ALLOWED_DIRECT_DEPS = {"serde", "serde_json", "jsonschema", "sha2", "libc", "rustix", "domain", "persistence", "application", "repositories"}
 TEST_RESULT = re.compile(r"test result: (\w+)\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out")
 
 
@@ -81,6 +89,42 @@ def run_cargo(name, args, slot, out):
         res["changed"] = [k for k in before if before[k] != after.get(k)]
     res["ok"] = rc == 0 and before == after
     return res
+
+
+TRUSTED_SSH_TESTS = (
+    "trusted_policy_constructs_and_rejects_replacement",
+    "trusted_policy_rejects_known_hosts_and_agent_replacement",
+)
+
+
+def run_trusted_ssh_tests(slot, out):
+    """Mandatory host-identity checks; selected tests use local files/sockets only.
+
+    These tests cannot run in the user namespace because it masks root ownership.
+    Cargo is frozen, but this host-only step is not network-namespace isolated.
+    """
+    results = []
+    for name in TRUSTED_SSH_TESTS:
+        log = out / f"host-{name}.log"
+        before = protected_hashes()
+        env = dict(item.split("=", 1) for item in cargo_env(slot))
+        try:
+            with tempfile.TemporaryDirectory(prefix="p04-ssh-check-", dir="/home/debjoyy") as fixture:
+                env["P04_SSH_TRUST_FIXTURE"] = fixture
+                cmd = [str(TC / "cargo"), "test", "--frozen", "-p", "repositories", "--test", "p04_ssh", name, "--", "--ignored", "--exact", "--test-threads=1"]
+                with open(log, "wb") as fh:
+                    rc = subprocess.run(cmd, cwd=WS, env=env, stdout=fh, stderr=subprocess.STDOUT, timeout=30, check=False).returncode
+            output = log.read_text(errors="replace")
+            counts = test_counts(log)
+            ok = (rc == 0 and counts["suites"] == 1 and counts["passed"] == 1
+                  and counts["failed"] == 0 and counts["ignored"] == 0
+                  and f"test {name} ... ok" in output and before == protected_hashes())
+            results.append({"test": name, "exit": rc, "counts": counts, "log": log.name, "ok": ok})
+        except (OSError, subprocess.TimeoutExpired) as error:
+            results.append({"test": name, "error": str(error), "log": log.name, "ok": False})
+    return {"step": "host_ssh", "network_namespace_isolated": False,
+            "note": "Frozen Cargo; exact synthetic tests use local files and Unix sockets only.",
+            "tests": results, "ok": all(item["ok"] for item in results)}
 
 
 def step_env(slot, out):
@@ -322,7 +366,7 @@ def static_selftest():
 
 
 # P04-T02 edges, except the owner-approved removal of the release-reachable fixture self-edge.
-EXPECTED_LOCK_SHA256 = "04dde42d2cee66672982e11f0df3125ee436f0f3da7713f57b0bbb58ce33f87f"
+EXPECTED_LOCK_SHA256 = "e6c7d954bf19c912a2a47da260330d530791cde4748460beabc5f90808c3aa30"
 # The only `#[allow(...)]` attributes permitted in production code (file, lint) — planning/P01-T01-request.md §6.1.
 SRC_ALLOWS = {("crates/domain/src/contract.rs", "clippy::result_large_err"),
               # P02-D04: `store_read::redacted_vec` has no store field yet (reserved for list-valued class R fields).
@@ -438,7 +482,34 @@ SERDE_FROM_OK = {"crates/persistence/src/read.rs", "crates/persistence/src/schem
                  "crates/application/src/dev_permission.rs"}
 # T14 review L-6: also brace imports (`use std::{fs, ..}`) and any bare `fs::<item>` path (not `x::fs::`).
 FS_RE = r"\bstd\s*::\s*\{[^}]*\bfs\b|(?<![\w:])fs\s*::\s*\w+|\bstd\s*::\s*fs\b|\bfs\s*::\s*(File|OpenOptions|read|write|rename|remove_file|create_dir|hard_link|metadata|symlink_metadata|read_dir|copy)\b|\bFile\s*::|\bOpenOptions\b"
-FS_OK = {"crates/persistence/src/fs.rs", "crates/application/src/emit.rs"}
+FS_OK = {"crates/persistence/src/fs.rs", "crates/application/src/emit.rs", "crates/repositories/src/lock.rs"}
+FS_RUNNER = "crates/repositories/src/git/runner.rs"
+FS_SSH = "crates/repositories/src/git/ssh.rs"
+# Lexical guard, not Rust name resolution or a security boundary. Only the
+# spelled-out std paths used by the trust checks are exempt; imports and type
+# aliases are rejected so those paths cannot trivially acquire another name.
+# Mutation methods are also rejected, including on already-open handles. This
+# cannot detect arbitrary wrappers, macro expansion, FFI, or renamed traits.
+RUNNER_FS_ALLOWED = (r"\bstd\s*::\s*fs\s*::\s*(?:"
+                     r"File\s*::\s*open\s*(?=\()|"
+                     r"symlink_metadata\s*(?=\()|"
+                     r"(?:File|Metadata)\b(?!\s*::))")
+RUNNER_FS_BINDING = (r"\b(?:use|type)\b[^;]*\bstd\s*::\s*(?:\{[^;]*\bfs\b|fs\b)[^;]*;"
+                     r"|\buse\s+fs\b[^;]*;")
+RUNNER_FS_MUTATION = (r"\.\s*(?:write(?:_all|_fmt|_vectored)?|set_len|set_permissions|"
+                      r"create(?:_new)?|remove_file|remove_dir(?:_all)?|rename|copy|hard_link|"
+                      r"sync_all|sync_data)\s*(?:::<[^>]*>\s*)?\(")
+# SSH additionally needs exactly this read-only no-follow OpenOptions chain.
+# This is a spelling guard, not data-flow analysis: wrappers, macros, FFI,
+# trait aliases and changed constant semantics can evade lexical checks.
+SSH_OPEN = (r"\bstd\s*::\s*fs\s*::\s*OpenOptions\s*::\s*new\s*\(\s*\)"
+            r"\s*\.\s*read\s*\(\s*true\s*\)\s*\.\s*custom_flags\s*\(\s*O_NOFOLLOW\s*\)"
+            r"\s*\.\s*open\s*\(\s*path\s*\)")
+SSH_FLAG = r"\bconst\s+O_NOFOLLOW\s*:\s*i32\s*=\s*0x20000\s*;"
+SSH_MUTATION = (r"\.\s*(?:write(?:_all|_fmt|_vectored|_at|_all_at)?|append|truncate|create(?:_new)?|"
+                r"set_len|set_permissions|set_times|remove_file|remove_dir(?:_all)?|rename|copy|hard_link|"
+                r"sync_all|sync_data)\s*(?:::<[^>]*>\s*)?\("
+                r"|\b(?:Write\s*::|use\s+std\s*::\s*io\s*::\s*(?:Write\b|\{[^}]*\bWrite\b))")
 # P03: every `src` file of every crate is in scope for environment reads; only cli/src/main.rs may read them
 # (ENV_OK, below). Brace imports (`use std::env::{var, vars}`) and the glob import are caught as well;
 # `env::args` / `env::args_os` stay allowed.
@@ -453,7 +524,7 @@ LAYER_RE = r"\bpersistence\s*::|\buse\s+persistence\b|\bextern\s+crate\s+persist
 EXIT_RE = (r"\bprocess\s*::\s*(exit|abort)\b|\bstd\s*::\s*process\s*::\s*exit\b"
            r"|\buse\s+std\s*::\s*process\s*::\s*\{[^}]*\b(exit|abort)\b")
 URANDOM_RE = r"/dev/u?random"
-URANDOM_OK = FS_OK
+URANDOM_OK = {"crates/persistence/src/fs.rs", "crates/application/src/emit.rs"}
 STORE_EVENT_RE = r"(?<!struct )(?<!enum )\bEvent\s*\{"
 STORE_EVENT_OK = {"crates/application/src/emit.rs"}
 # Fault-injection seams of application::dev_store (made pub in T14): no production caller outside dev_store.rs.
@@ -479,6 +550,30 @@ def store_field_hits(code):
     return [f"{s}.{f}: {ty}" for s, f, ty in struct_fields(code) if re.search(BARE_TEXT_RE, ty)]
 
 
+def fs_hits(prod, rel, line_of):
+    hits = []
+    for p, c in prod.items():
+        if rel(p) in FS_OK:
+            continue
+        code = c
+        if rel(p) == FS_RUNNER:
+            for pattern in (RUNNER_FS_BINDING, RUNNER_FS_MUTATION):
+                hits.extend(f"{rel(p)}:{line_of(c, m.start())}" for m in re.finditer(pattern, c))
+            # Preserve offsets and newlines for accurate diagnostics.
+            code = re.sub(RUNNER_FS_ALLOWED, lambda m: re.sub(r"[^\n]", " ", m.group()), c)
+        elif rel(p) == FS_SSH:
+            for pattern in (RUNNER_FS_BINDING, SSH_MUTATION):
+                hits.extend(f"{rel(p)}:{line_of(c, m.start())}" for m in re.finditer(pattern, c))
+            # Only mask the exact chain when the expected flag definition is
+            # present once, and no second constant of that name is declared.
+            if (len(re.findall(SSH_FLAG, c)) == 1
+                    and len(re.findall(r"\bconst\s+O_NOFOLLOW\b", c)) == 1):
+                code = re.sub(SSH_OPEN, lambda m: re.sub(r"[^\n]", " ", m.group()), code)
+            code = re.sub(RUNNER_FS_ALLOWED, lambda m: re.sub(r"[^\n]", " ", m.group()), code)
+        hits.extend(f"{rel(p)}:{line_of(c, m.start())}" for m in re.finditer(FS_RE, code))
+    return hits
+
+
 def check_p02(prod, rel, line_of):
     checks = []
     masked = {p: strip_comments(p.read_text(), mask_strings=True) for p in prod}
@@ -492,9 +587,8 @@ def check_p02(prod, rel, line_of):
             for m in re.finditer(r"\bstore_read\b", c)]
     checks.append({"check": "text::store_read used only in domain/src/text.rs and domain/src/store/", "hits": hits, "ok": not hits})
     # serde_json::from_* (SERDE_FROM_OK) and the environment rule (ENV_RE) are file-map rules in check_p03.
-    hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() if rel(p) not in FS_OK
-            for m in re.finditer(FS_RE, c)]
-    checks.append({"check": "std::fs / File / OpenOptions only in persistence/src/fs.rs and application/src/emit.rs", "hits": hits, "ok": not hits})
+    hits = fs_hits(prod, rel, line_of)
+    checks.append({"check": "std::fs / File / OpenOptions restricted to approved files and runner read-only trust paths", "hits": hits, "ok": not hits})
     # --- P02-T14 (wave 3) ---
     hits = [f"{rel(p)}:{line_of(c, m.start())}" for p, c in prod.items() if rel(p).startswith(CLI_SRC)
             for m in re.finditer(LAYER_RE, c)]
@@ -566,6 +660,49 @@ def p02_selftest():
     res.append({"case": "fs regex ignores FsOps trait use", "ok": not re.search(FS_RE, "fs.rename(&a, &b)?; let f: &dyn FsOps = x;")})
     res.append({"case": "fs regex ignores the persistence::fs module path",
                 "ok": not re.search(FS_RE, "use persistence::fs::{FsOps, RealFs}; crate::fs::FileInfo")})
+    fs_code = "std::fs::read(p)"
+    res.append({"case": "fs rule allows repositories/src/lock.rs", "ok": not fs_hits(
+        {"crates/repositories/src/lock.rs": fs_code}, lambda p: p, line_of)})
+    for s in ("use std::os::unix::fs::MetadataExt;",
+              "let f: std::fs::File = std::fs::File::open(p)?;",
+              "let m: std::fs::Metadata = std::fs::symlink_metadata(p)?;"):
+        res.append({"case": f"fs runner trust path allowed: {s}", "ok": not fs_hits(
+            {FS_RUNNER: s}, lambda p: p, line_of)})
+    for s in ("std::fs::write(p, b)", "std::fs::File::create(p)",
+              "std::fs::remove_file(p)", "std::fs::rename(a, b)",
+              "f.write_all(b)", "f.set_len(0)", "std::fs::OpenOptions::new()",
+              "use std::fs as f; f::write(p, b)", "use fs as f; f::write(p, b)",
+              "use std::{fs as f, io}; f::rename(a, b)",
+              "use std::fs::File as F; F::create(p)", "type F = std::fs::File; F::create(p)"):
+        res.append({"case": f"fs runner mutation or alias caught: {s}", "ok": bool(fs_hits(
+            {FS_RUNNER: s}, lambda p: p, line_of))})
+    ssh_flag = "const O_NOFOLLOW: i32 = 0x20000;\n"
+    ssh_open = "std::fs::OpenOptions::new().read(true).custom_flags(O_NOFOLLOW).open(path)"
+    for s in ("use std::os::unix::fs::{MetadataExt, OpenOptionsExt};",
+              "std::fs::File::open(p); std::fs::symlink_metadata(p);", ssh_flag + ssh_open):
+        res.append({"case": f"fs ssh read path allowed: {s}", "ok": not fs_hits(
+            {FS_SSH: s}, lambda p: p, line_of)})
+    for s in (ssh_open, ssh_flag + ssh_open.replace("O_NOFOLLOW", "0"),
+              ssh_flag + ssh_open.replace(".read(true)", ".read(true).write(true)"),
+              ssh_flag + ssh_open.replace(".read(true)", ".read(true).append(true)"),
+              ssh_flag + ssh_open.replace(".read(true)", ".read(true).create(true)"),
+              ssh_flag + ssh_open.replace(".read(true)", ".read(true).truncate(true)"),
+              "std::fs::write(p, b)", "std::fs::File::create(p)", "std::fs::rename(a, b)",
+              "std::fs::remove_file(p)", "f.write_all(b)", "f.write_at(b, 0)", "f.set_len(0)",
+              "use std::io::Write as W; W::write_all(&mut f, b)",
+              "use std::fs as f; f::write(p, b)", "use std::fs::OpenOptions as O; O::new()"):
+        res.append({"case": f"fs ssh unsafe operation caught: {s}", "ok": bool(fs_hits(
+            {FS_SSH: s}, lambda p: p, line_of))})
+    res.append({"case": "fs rule catches runner sibling", "ok": bool(fs_hits(
+        {"crates/repositories/src/git/other.rs": fs_code}, lambda p: p, line_of))})
+    res.append({"case": "urandom remains forbidden in runner", "ok":
+                "crates/repositories/src/git/runner.rs" not in URANDOM_OK})
+    res.append({"case": "fs rule catches repositories/src sibling", "ok": bool(fs_hits(
+        {"crates/repositories/src/other.rs": fs_code}, lambda p: p, line_of))})
+    res.append({"case": "fs rule catches similarly named lock file", "ok": bool(fs_hits(
+        {"crates/repositories/src/nested/lock.rs": fs_code}, lambda p: p, line_of))})
+    res.append({"case": "urandom remains forbidden in repositories/src/lock.rs",
+                "ok": "crates/repositories/src/lock.rs" not in URANDOM_OK})
     for s in ("std::env::var(\"HOME\")", "env::var_os(k)", "std::env::temp_dir()", "env::home_dir()", "std::env::current_dir()"):
         res.append({"case": f"env lookup caught: {s}", "ok": bool(re.search(ENV_RE, s))})
     res.append({"case": "env regex allows args_os", "ok": not re.search(ENV_RE, "std::env::args_os()")})
@@ -1004,7 +1141,7 @@ def main():
     out = a.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     scope = ["-p", a.package] if a.package else ["--workspace"]
-    modes = ["env", "fmt", "clippy", "test", "build", "cli", "static"] if a.mode == "all" else [a.mode]
+    modes = ["env", "fmt", "clippy", "test", "host_ssh", "build", "cli", "static"] if a.mode == "all" else [a.mode]
     if a.mode not in ("env", "all", "static"):
         modes = ["env", *modes]  # T01 §2: version gate and netns probe before any Cargo command
     # T14 security review L-4: repository-local git config (fsmonitor, hooks) is not trusted for --repo trees.
@@ -1032,9 +1169,15 @@ def main():
             log_text = (out / "test.log").read_text(errors="replace")
             r["counts"]["compile_fail_ok"] = len(re.findall(r" - compile fail \.\.\. ok$", log_text, re.M))
             r["floors"] = {"min_passed": a.min_passed, "min_compile_fail": a.min_compile_fail}
-            if (r["counts"]["ignored"] or r["counts"]["failed"] or not r["counts"]["suites"]
+            ignored_names = re.findall(r"^test (\S+) \.\.\. ignored(?:,.*)?$", log_text, re.M)
+            expected_ignored = set(TRUSTED_SSH_TESTS) if a.mode == "all" and not a.package else set()
+            if (set(ignored_names) != expected_ignored or len(ignored_names) != len(expected_ignored)
+                    or r["counts"]["ignored"] != len(expected_ignored)
+                    or r["counts"]["failed"] or not r["counts"]["suites"]
                     or r["counts"]["passed"] < a.min_passed or r["counts"]["compile_fail_ok"] < a.min_compile_fail):
                 r["ok"] = False
+        elif m == "host_ssh":
+            r = run_trusted_ssh_tests(a.slot, out)
         elif m == "cli":
             r = run_cargo("cli", ["test", "-p", "cli", "--frozen", "--tests", "--no-fail-fast"], a.slot, out)
             r["counts"] = test_counts(out / "cli.log")

@@ -1,0 +1,83 @@
+   Compiling repositories v0.1.0 (/tmp/p04-w1-resume-runner/workbench/crates/repositories)
+    Finished `test` profile [unoptimized] target(s) in 9.81s
+     Running unittests src/lib.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-4d47f56d2e5f/debug/deps/repositories-8ab9a389649b1f15)
+
+running 12 tests
+test git::runner::operation_tests::classification_rejects_bad_status_framing_and_limits ... ok
+test git::runner::operation_tests::complete_directory_capability_checks_and_revalidates_identity ... ok
+test git::runner::operation_tests::operations_fix_arguments_and_timeouts ... ok
+test git::runner::operation_tests::executables_reject_unpinned_paths_and_swapped_roles ... ok
+test git::runner::operation_tests::directory_components_and_open_identity_fail_closed ... ok
+test git::runner::operation_tests::pinned_executable_capabilities_check_host_metadata ... ok
+test git::runner::operation_tests::trusted_directory_refuses_relative_and_parent_paths ... ok
+test git::runner::operation_tests::production_supervisor_collects_exact_dual_streams ... FAILED
+test git::runner::operation_tests::timeout_leader_exit_does_not_leave_closed_stream_grandchild ... FAILED
+test git::runner::operation_tests::signal_helper_failure_is_reported_and_does_not_signal_target ... FAILED
+test git::runner::operation_tests::production_supervisor_bounds_output_and_kills_group_without_collateral ... FAILED
+test git::runner::operation_tests::version_child_environment_is_exactly_the_approved_set ... FAILED
+
+failures:
+
+---- git::runner::operation_tests::production_supervisor_collects_exact_dual_streams stdout ----
+
+thread 'git::runner::operation_tests::production_supervisor_collects_exact_dual_streams' (108383) panicked at crates/repositories/src/git/runner.rs:822:97:
+called `Result::unwrap()` on an `Err` value: InvalidInvocation
+
+---- git::runner::operation_tests::timeout_leader_exit_does_not_leave_closed_stream_grandchild stdout ----
+
+thread 'git::runner::operation_tests::timeout_leader_exit_does_not_leave_closed_stream_grandchild' (108385) panicked at crates/repositories/src/git/runner.rs:773:97:
+called `Result::unwrap()` on an `Err` value: InvalidInvocation
+
+---- git::runner::operation_tests::signal_helper_failure_is_reported_and_does_not_signal_target stdout ----
+
+thread 'git::runner::operation_tests::signal_helper_failure_is_reported_and_does_not_signal_target' (108384) panicked at crates/repositories/src/git/runner.rs:747:97:
+called `Result::unwrap()` on an `Err` value: InvalidInvocation
+
+---- git::runner::operation_tests::production_supervisor_bounds_output_and_kills_group_without_collateral stdout ----
+
+thread 'git::runner::operation_tests::production_supervisor_bounds_output_and_kills_group_without_collateral' (108382) panicked at crates/repositories/src/git/runner.rs:721:97:
+called `Result::unwrap()` on an `Err` value: InvalidInvocation
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- git::runner::operation_tests::version_child_environment_is_exactly_the_approved_set stdout ----
+
+thread 'git::runner::operation_tests::version_child_environment_is_exactly_the_approved_set' (108387) panicked at crates/repositories/src/git/runner.rs:802:97:
+called `Result::unwrap()` on an `Err` value: InvalidInvocation
+
+
+failures:
+    git::runner::operation_tests::production_supervisor_bounds_output_and_kills_group_without_collateral
+    git::runner::operation_tests::production_supervisor_collects_exact_dual_streams
+    git::runner::operation_tests::signal_helper_failure_is_reported_and_does_not_signal_target
+    git::runner::operation_tests::timeout_leader_exit_does_not_leave_closed_stream_grandchild
+    git::runner::operation_tests::version_child_environment_is_exactly_the_approved_set
+
+test result: FAILED. 7 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p repositories --lib`
+     Running tests/p04_runner.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-4d47f56d2e5f/debug/deps/p04_runner-69981d16f939ff15)
+
+running 5 tests
+test runner_and_ssh_remain_closed_without_trust_and_policy_proofs ... ok
+test environment_accepts_only_the_exact_optional_agent_name_and_safe_path ... ok
+test environment_rejects_unapproved_duplicate_and_unsafe_values ... ok
+test trust_capabilities_refuse_unpinned_roles_and_nonabsolute_directories ... ok
+test stdin_enforces_the_byte_cap_and_masks_debug ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/p04_scaffold.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-4d47f56d2e5f/debug/deps/p04_scaffold-5d5a8c07ceae62f1)
+
+running 1 test
+test scaffold_refuses_git_environment_and_ssh_policy ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests repositories
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: 1 target failed:
+    `-p repositories --lib`

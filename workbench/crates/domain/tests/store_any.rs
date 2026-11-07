@@ -230,9 +230,10 @@ fn serialises_as_the_root_document_untagged() {
 }
 
 /// Every `domain::store` module source (E-1, request §5.11).
-const STORE_SOURCES: [(&str, &str); 16] = [
+const STORE_SOURCES: [(&str, &str); 19] = [
     ("mod.rs", include_str!("../src/store/mod.rs")),
     ("approval.rs", include_str!("../src/store/approval.rs")),
+    ("approval15.rs", include_str!("../src/store/approval15.rs")),
     ("classes.rs", include_str!("../src/store/classes.rs")),
     ("config.rs", include_str!("../src/store/config.rs")),
     (
@@ -246,6 +247,11 @@ const STORE_SOURCES: [(&str, &str); 16] = [
     ("rag.rs", include_str!("../src/store/rag.rs")),
     ("report.rs", include_str!("../src/store/report.rs")),
     ("repository.rs", include_str!("../src/store/repository.rs")),
+    (
+        "repository15.rs",
+        include_str!("../src/store/repository15.rs"),
+    ),
+    ("roots15.rs", include_str!("../src/store/roots15.rs")),
     (
         "suppression.rs",
         include_str!("../src/store/suppression.rs"),

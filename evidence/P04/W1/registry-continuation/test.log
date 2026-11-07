@@ -1,0 +1,360 @@
+   Compiling application v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/application)
+    Finished `test` profile [unoptimized] target(s) in 19.41s
+     Running unittests src/lib.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/application-39a35040137e322b)
+
+running 21 tests
+test child_env::tests::control_profile_is_accepted ... ok
+test child_env::tests::denied_names_are_denied_in_any_case ... ok
+test child_env::tests::denied_fixed_name_fails_closed ... ok
+test child_env::tests::deny_beats_allow_for_inherited_names ... ok
+test child_env::tests::secret_in_fixed_value_fails_closed ... ok
+test credential::tests::buffer_is_zero_after_io_error_with_partial_data ... ok
+test credential::tests::buffer_is_zero_after_empty_input ... ok
+test child_env::tests::every_real_profile_declares_only_allowed_unique_names ... ok
+test child_env::tests::duplicate_declared_names_fail_closed ... ok
+test child_env::tests::denied_name_beats_secret_value ... ok
+test child_env::tests::inherited_name_without_a_value_rule_is_never_inherited ... ok
+test credential::tests::terminal_input_creates_no_buffer ... ok
+test dev_store::tests::root_names_round_trip_and_exclude_reports ... ok
+test child_env::tests::near_miss_names_are_allowed ... ok
+test credential::tests::buffer_is_zero_after_success ... ok
+test dev_store::tests::records_serialise_with_mode_and_event_first ... ok
+test dev_store::tests::store_errors_map_to_failure_classes ... ok
+test dev_store::tests::injected_lock_failure_is_a_storage_failure ... ok
+test credential::tests::buffer_is_zero_after_each_rejection ... ok
+test dev_store::tests::injected_write_failure_during_init_is_a_storage_failure ... ok
+test dev_store::tests::validate_is_read_only_and_reports_missing_roots ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/dev_store_faults.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/dev_store_faults-b7c8500d46c92c42)
+
+running 10 tests
+test lock_fault_is_a_storage_failure_for_every_command ... ok
+test show_read_fault_is_a_storage_failure_and_writes_nothing ... ok
+test f1_a_rewrite_after_a_failed_replace_leaves_no_stray_prev_temp ... ok
+test same_second_reports_from_the_real_writer_are_both_recognised ... ok
+test validate_read_fault_is_a_storage_failure_that_keeps_earlier_records_and_writes_nothing ... ok
+test init_that_dies_mid_write_leaves_temps_that_recover_removes ... ok
+test recover_that_dies_mid_rewrite_leaves_temps_that_the_next_recover_removes ... ok
+test init_on_an_empty_directory_survives_every_fault ... ok
+test init_over_a_partial_store_never_touches_existing_roots ... ok
+test recover_rewriting_the_log_survives_every_fault ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+
+     Running tests/emit.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/emit-52a7bb59f56a6766)
+
+running 30 tests
+test check_completed_with_a_non_terminal_outcome_is_rejected ... ok
+test an_emitter_over_urandom_produces_distinct_v4_event_ids ... ok
+test at_is_the_clock_reading ... ok
+test emit_error_source_chain_reaches_the_id_source_error ... ok
+test envelope_json_is_exact_for_a_warning_event ... ok
+test envelope_json_is_exact_for_an_error_event ... ok
+test envelope_json_is_flat_and_exact_for_an_info_event ... ok
+test event_id_is_version_4_with_rfc_9562_variant_and_never_nil ... ok
+test every_emitted_envelope_serialises_with_the_envelope_fields_first ... ok
+test envelope_json_places_optional_and_list_payloads_flat ... ok
+test id_source_failure_gives_id_source_error_and_no_envelope ... ok
+test event_ids_are_version_4_and_distinct_for_a_run_of_distinct_sources ... ok
+test illegal_run_state_changes_are_rejected_and_legal_ones_accepted ... ok
+test persisted_set_is_exactly_the_documented_set ... ok
+test non_persisted_events_are_those_that_are_chat_not_must_deliver_or_reserved ... ok
+test level_table_holds_for_every_pilot_event ... ok
+test reserved_events_are_rejected_without_consuming_an_id ... ok
+test run_finished_level_depends_on_the_terminal_state ... ok
+test run_finished_with_a_non_terminal_state_is_rejected_without_consuming_an_id ... ok
+test samples_cover_every_event_name_exactly_once_in_schema_order ... ok
+test seeded_payload_text_never_reaches_an_error_message ... ok
+test store_event_codes_follow_the_failure_code ... ok
+test system_clock_reports_a_recent_instant ... ok
+test store_event_carries_envelope_fields_event_type_and_identifier_slots ... ok
+test store_message_is_the_detail_for_failures_and_a_fixed_summary_otherwise ... ok
+test urandom_ids_produce_sixteen_bytes_that_differ_between_calls ... ok
+test the_validator_rejects_what_the_mapping_never_produces ... ok
+test emitted_failure_events_satisfy_the_failure_level_rule ... ok
+test every_persisted_event_validates_through_the_real_schema_validator ... ok
+test each_persisted_event_validates_on_its_own ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/p03_approvals.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_approvals-c1abfec0ee6241a8)
+
+running 34 tests
+test a_malformed_ledger_fails_closed ... ok
+test a_log_write_failure_halts_the_writer_and_keeps_the_approval_state ... ok
+test a_denial_carries_no_expiry ... ok
+test a_workflow_scope_grant_serves_every_run_at_its_revision_only ... ok
+test approval_rule_rows_name_what_is_left_after_p03 ... ok
+test a_run_grant_serves_its_run_repeatedly_and_no_other_run ... ok
+test an_identifier_failure_writes_nothing ... ok
+test a_grant_past_its_time_does_not_authorise_even_before_expire_due ... ok
+test an_event_failure_keeps_the_approval_state_already_written ... ok
+test cli_list_returns_store_order_and_writes_nothing ... ok
+test display_is_fixed_english_without_record_contents ... ok
+test a_failed_approvals_write_changes_nothing ... ok
+test actor_text_follows_the_actor ... ok
+test deferred_capabilities_are_refused_before_any_write ... ok
+test a_once_grant_is_consumed_exactly_once ... ok
+test every_refusal_reason_writes_nothing ... ok
+test cli_errors_are_typed_and_classified ... ok
+test model_transmission_needs_a_category_and_keeps_its_scope ... ok
+test identical_pending_request_is_reused ... ok
+test cli_resolve_reads_the_saved_workflow_revision ... ok
+test grant_expiry_is_decision_time_plus_validity ... ok
+test pending_and_denied_requests_never_authorise ... ok
+test lifecycle_events_validate_against_the_real_schema ... ok
+test request_covered_by_a_grant_is_permitted_and_writes_nothing ... ok
+test request_records_one_pending_approval_and_one_event ... ok
+test revoke_ends_the_grant_and_emits ... ok
+test expire_due_ends_only_approved_grants_past_their_time ... ok
+test written_roots_carry_the_clock_time ... ok
+test workflow_scope_stores_a_null_run_and_once_keeps_the_run ... ok
+test without_a_fault_the_consumption_is_durable_and_final ... ok
+test expire_run_ends_only_that_runs_grants ... ok
+test decision_table_rows ... ok
+test resolve_and_revoke_errors_write_nothing ... ok
+test once_grant_consumption_survives_a_fault_at_every_write_step ... ok
+
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+
+     Running tests/p03_child_env.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_child_env-55857366dadb8e7b)
+
+running 29 tests
+test debug_text_is_names_and_origins_only ... ok
+test app_dirs_come_from_tool_dirs_under_root ... ok
+test env_error_debug_has_no_payload ... ok
+test host_debug_shows_only_the_entry_count ... ok
+test each_profile_has_the_exact_variable_set ... ok
+test byte_search_control_can_fail ... ok
+test key_in_a_fixed_value_is_a_secret_value_error ... ok
+test key_in_a_non_utf8_directory_is_still_found ... ok
+test clean_tz_is_inherited_by_internal_only ... ok
+test non_utf8_tz_name_does_not_stop_a_later_clean_tz ... ok
+test key_in_the_root_reaches_every_profile_through_under ... ok
+test key_in_a_used_directory_is_a_secret_value_error ... ok
+test non_utf8_directory_is_passed_through_byte_for_byte ... ok
+test no_seeded_value_or_key_appears_in_any_output ... ok
+test only_a_tz_that_passes_is_inherited_and_the_first_occurrence_decides ... ok
+test output_order_does_not_depend_on_host_order ... ok
+test profile_names_round_trip ... ok
+test tool_dirs_accept_and_reject_by_rule ... ok
+test preview_and_debug_contain_no_value ... ok
+test seeded_host_changes_nothing_for_any_profile ... ok
+test tool_dirs_equal_the_explicit_form ... ok
+test preview_has_names_and_origins_in_output_order ... ok
+test seeded_host_is_large_and_awkward ... ok
+test tool_dirs_reject_nul_bytes ... ok
+test tz_is_never_inherited_by_a_scanner_profile_whatever_its_value ... ok
+test under_rejects_a_relative_or_parent_root ... ok
+test tz_with_nul_or_near_miss_names_is_not_inherited ... ok
+test tz_holding_the_key_is_dropped_everywhere ... ok
+test tz_value_must_be_valid_utf8_and_an_iana_timezone ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p03_credential.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_credential-1f707431f61b7e33)
+
+running 25 tests
+test appears_in_is_false_for_a_partial_key ... ok
+test credential_status_event_has_no_key_material ... ok
+test appears_in_finds_the_key_anywhere_in_a_value ... ok
+test delete_returns_to_absent_and_forgets_the_key ... ok
+test delete_on_an_empty_store_is_absent ... ok
+test appears_in_is_false_when_absent ... ok
+test interrupted_reads_are_retried ... ok
+test io_errors_are_reported_as_read ... ok
+test key_format_errors_carry_no_input ... ok
+test new_store_is_absent_and_set_makes_it_session_only ... ok
+test read_key_length_and_line_break_table ... ok
+test a_short_input_is_read_to_its_end ... ok
+test io_error_after_partial_data_is_read_error ... ok
+test read_key_result_goes_into_the_store ... ok
+test read_key_returns_the_exact_key_text ... ok
+test read_key_rejects_inner_whitespace_controls_and_non_ascii ... ok
+test debug_shows_neither_key_nor_length ... ok
+test set_replaces_the_current_key ... ok
+test store_works_through_the_trait ... ok
+test terminal_input_is_refused_even_when_the_data_is_valid ... ok
+test input_much_larger_than_the_cap_is_not_consumed ... ok
+test terminal_input_is_refused_without_reading ... ok
+test the_read_stops_at_the_bound ... ok
+test short_chunks_are_assembled ... ok
+test read_key_accepts_exactly_the_ascii_graphic_range ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p03_d02.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_d02-55ede41435ce84cb)
+
+running 5 tests
+test tool_dirs_debug_prints_no_path ... ok
+test a_directory_in_place_of_the_approvals_file_is_malformed_from_list_as_from_resolve ... ok
+test a_symlinked_approvals_file_is_malformed_from_list_as_from_resolve ... ok
+test an_oversized_approvals_file_is_malformed_from_list_as_from_resolve ... ok
+test missing_and_invalid_files_keep_their_classes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/p03_destination.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_destination-708805e607d9ceaf)
+
+running 13 tests
+test equality_follows_the_normalised_form ... ok
+test accessors_expose_the_normalised_parts ... ok
+test exactly_one_trailing_dot_is_removed ... ok
+test host_length_bound_is_253_bytes ... ok
+test every_error_variant_is_produced_by_some_input ... ok
+test accepted_inputs_normalise_to_the_pinned_forms ... ok
+test label_length_bound_is_63_bytes ... ok
+test rejected_inputs_give_the_most_specific_error ... ok
+test rejection_precedence_is_pinned ... ok
+test odd_inputs_are_rejected_without_panicking ... ok
+test store_form_is_accepted_by_the_p02_destination_parser ... ok
+test over_length_input_is_too_long_and_first ... ok
+test canonical_round_trips_for_https_and_ssh ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p03_evaluate.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_evaluate-c34a0d79e9b24ffb)
+
+running 35 tests
+test a_fully_matching_grant_is_permitted ... ok
+test g12_lifetime_completeness ... ok
+test g13_expiry ... ok
+test g11_inference_scope ... ok
+test every_dimension_is_checked_beyond_the_fingerprint ... ok
+test g14_consumption ... ok
+test g2_capability_must_be_equal ... ok
+test g4_workflow_must_be_equal ... ok
+test g3_fingerprint_must_be_equal ... ok
+test g6_run_rules ... ok
+test g1_only_approved_records_authorise ... ok
+test g5_revision_must_equal_the_saved_revision ... ok
+test a_matching_grant_beats_mismatching_records ... ok
+test g7_to_g10_compare_as_sets ... ok
+test mismatch_ignores_records_that_are_not_approved ... ok
+test mismatch_ties_go_to_store_order ... ok
+test mismatch_reports_the_closest_record ... ok
+test no_record_means_no_grant ... ok
+test g8_destinations_use_the_store_form ... ok
+test non_approved_statuses_never_authorise_in_any_lifetime ... ok
+test r1_raw_secret_values_are_always_refused ... ok
+test r2_destination_rules_per_capability ... ok
+test r3_lifetime_needs_its_binding ... ok
+test r4_workflow_must_be_saved_at_the_bound_revision ... ok
+test r5_inference_scope_only_for_model_transmission ... ok
+test r1_to_r6_are_checked_in_order ... ok
+test r6_invalid_arguments_are_refused ... ok
+test r7_denial_wins_over_a_matching_grant ... ok
+test r7_previously_denied ... ok
+test r8_already_pending ... ok
+test r7_r8_order_before_the_grant_search ... ok
+test scope_dimension_order_is_the_table_order ... ok
+test tie_break_earliest_requested_then_approval_id ... ok
+test workflow_revision_grant_without_run_serves_every_run ... ok
+test tie_break_prefers_wider_non_consuming_lifetimes ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/p03_fingerprint.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_fingerprint-7047fe7ec7e974d6)
+
+running 16 tests
+test digests_are_lowercase_hex_and_distinct ... ok
+test error_precedence_is_pinned ... ok
+test data_category_names_equal_the_serde_names ... ok
+test capability_names_equal_the_serde_names ... ok
+test excluded_fields_do_not_change_the_digest ... ok
+test each_hashed_field_changes_the_digest ... ok
+test argument_value_bound ... ok
+test name_parsers_reject_bad_names ... ok
+test boundaries_are_unambiguous ... ok
+test duplicates_in_lists_give_the_same_digest ... ok
+test duplicate_argument_names_are_an_error ... ok
+test prefix_constant_is_pinned ... ok
+test permuted_lists_give_the_same_digest ... ok
+test lengths_are_bytes_and_empty_values_count ... ok
+test golden_vectors_match_the_independent_implementation ... ok
+test sort_order_is_by_encoded_bytes_not_by_text ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p03_fr33.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_fr33-9849399227430518)
+
+running 3 tests
+test root_foreign_data_dir_message_is_fixed_and_carries_no_path_or_uid ... ok
+test root_foreign_data_dir_maps_to_its_own_dev_error ... ok
+test root_foreign_data_dir_is_an_operation_failure ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p03_hostile.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_hostile-28d730d5a38d9a26)
+
+running 27 tests
+test a_pending_request_never_authorises_however_often_it_is_presented ... ok
+test a_consumed_once_grant_cannot_be_reused_on_the_same_store_or_after_reopen ... ok
+test a_pending_request_edited_to_approved_without_a_decision_fails_closed ... ok
+test a_run_grant_serves_its_run_only_and_ends_with_it ... ok
+test a_valid_looking_hand_edit_is_trusted_because_the_store_has_no_integrity_binding ... ok
+test a_zero_second_validity_is_an_already_expired_grant ... ok
+test a_denied_request_stays_refused_and_cannot_be_redecided ... ok
+test deferred_capabilities_are_refused_for_every_lifetime_and_even_with_a_planted_grant ... ok
+test argument_names_cannot_carry_injection_and_lists_cannot_collide ... ok
+test an_expired_grant_never_authorises_even_after_a_clock_rollback ... ok
+test a_seeded_key_reaches_no_file_no_debug_text_and_no_child_environment ... ok
+test an_edited_scope_is_caught_by_the_explicit_set_checks_not_only_the_fingerprint ... ok
+test expire_run_ends_the_run_grant_and_leaves_workflow_scope_and_once_grants ... ok
+test equivalent_spellings_of_the_granted_operation_are_authorised ... ok
+test a_workflow_scope_grant_never_serves_another_revision_or_workflow ... ok
+test a_revoked_grant_stays_dead_in_every_lifetime ... ok
+test internal_addresses_parse_but_are_never_covered_by_a_public_host_grant ... ok
+test r7_and_r8_do_not_distinguish_inference_scopes_recorded_observation ... ok
+test hand_edits_that_break_a_store_rule_are_never_a_grant ... ok
+test the_sweep_finds_a_planted_key_and_a_truncated_leak ... ok
+test no_status_other_than_approved_authorises ... ok
+test wildcard_and_empty_destinations_cannot_form_a_request ... ok
+test model_transmission_is_bound_to_its_inference_scope ... ok
+test racing_writers_authorise_a_once_grant_exactly_once ... ok
+test raw_secret_values_are_refused_under_every_lifetime_and_capability ... ok
+test lookalike_hosts_are_not_covered_and_c6_equal_spellings_are ... ok
+test a_once_grant_does_not_cover_any_single_change_of_the_operation ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+
+     Running tests/p03_request_debug.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p03_request_debug-55f4bdcf13c3156c)
+
+running 2 tests
+test request_debug_never_contains_an_argument_value ... ok
+test argument_debug_shows_name_and_length_only ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_child_env.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_child_env-d1e222028aae61ed)
+
+running 1 test
+test agent_socket_is_inherited_only_for_git_and_only_when_valid ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_registry.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_registry-2f57ec38324aff43)
+
+running 1 test
+test registry_state_events_duplicates_and_failure_order ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+   Doc-tests application
+
+running 2 tests
+test crates/application/src/credential.rs - credential::SessionCredentialStore (line 54) ... ok
+test crates/application/src/credential.rs - credential::SessionCredentialStore (line 70) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 2 tests
+test crates/application/src/credential.rs - credential::SessionCredentialStore (line 62) - compile fail ... ok
+test crates/application/src/credential.rs - credential::SessionCredentialStore (line 78) - compile fail ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+all doctests ran in 1.42s; merged doctests compilation took 1.25s

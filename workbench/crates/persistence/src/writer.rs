@@ -123,6 +123,7 @@ pub(crate) enum RootState {
     Absent,
     /// The file exists and passed `read::decode` (boxed: documents are large next to the other variants).
     Valid(Box<AnyStore>),
+    Valid15(Box<domain::store::OperationalStore15>),
     /// The file exists but is malformed, foreign (wrong `store_type`, unsupported version, not a regular
     /// file) or larger than the size bound.
     Malformed,
@@ -329,6 +330,7 @@ pub struct StoreWriter {
     _lock: StoreLock,
     halted: bool,
     blocked: Vec<StoreKind>,
+    v15: bool,
 }
 
 impl StoreWriter {
@@ -349,6 +351,7 @@ impl StoreWriter {
             _lock: lock,
             halted: false,
             blocked: Vec::new(),
+            v15: false,
         })
     }
 
@@ -371,6 +374,14 @@ impl StoreWriter {
         v: Arc<dyn DocumentValidator>,
     ) -> Result<(Self, ReconcileReport), StoreError> {
         let mut writer = Self::lock_dir(dir, fs, v)?;
+        writer.v15 = crate::migration15_io::recover(
+            &*writer.env.fs,
+            &writer.env.dir,
+            writer.env.owner_uid,
+            &|roots| {
+                crate::migration15_io::verify_crossroot(&*writer.env.fs, &writer.env.dir, roots)
+            },
+        )?;
         let report = recovery::reconcile(&mut writer)?;
         Ok((writer, report))
     }
@@ -393,6 +404,14 @@ impl StoreWriter {
         v: Arc<dyn DocumentValidator>,
     ) -> Result<(Self, InitReport), StoreError> {
         let mut writer = Self::lock_dir(dir, fs, v)?;
+        writer.v15 = crate::migration15_io::recover(
+            &*writer.env.fs,
+            &writer.env.dir,
+            writer.env.owner_uid,
+            &|roots| {
+                crate::migration15_io::verify_crossroot(&*writer.env.fs, &writer.env.dir, roots)
+            },
+        )?;
         let states = writer.scan_roots()?;
         let now = UtcTimestamp::now();
         let mut report = InitReport::default();
@@ -405,7 +424,17 @@ impl StoreWriter {
                 continue;
             }
             let bytes = writer.env.render(kind, &empty_root(kind, now)?)?;
-            writer.env.publish_root(kind, &bytes, false)?;
+            if writer.v15 {
+                let candidate = read::prepare_operational15(kind, &bytes, &*writer.env.validator)?;
+                let domain::store::VersionedStore::V15(doc) =
+                    read::decode_versioned(kind, &candidate, &*writer.env.validator)?
+                else {
+                    return Err(StoreError::PathRejected);
+                };
+                writer.replace15(&doc)?;
+            } else {
+                writer.env.publish_root(kind, &bytes, false)?;
+            }
             report.created.push(kind);
         }
         Ok((writer, report))
@@ -415,7 +444,16 @@ impl StoreWriter {
     pub(crate) fn scan_roots(&mut self) -> Result<Vec<(StoreKind, RootState)>, StoreError> {
         let mut states = Vec::with_capacity(MANAGED_ROOTS.len());
         for kind in MANAGED_ROOTS {
-            let state = self.env.classify(kind)?;
+            let state = if self.v15 {
+                match self.read15(kind) {
+                    Ok(doc) => RootState::Valid15(Box::new(doc)),
+                    Err(StoreError::NotInitialised(_)) => RootState::Absent,
+                    Err(StoreError::Invalid(..) | StoreError::Malformed(_)) => RootState::Malformed,
+                    Err(e) => return Err(e),
+                }
+            } else {
+                self.env.classify(kind)?
+            };
             if matches!(state, RootState::Malformed) && !self.blocked.contains(&kind) {
                 self.blocked.push(kind);
             }
@@ -458,7 +496,75 @@ impl StoreWriter {
     /// Works while the writer is halted, and also on a blocked root, where it returns the validation
     /// problems that caused the block. A missing file is [`StoreError::NotInitialised`].
     pub fn read(&self, kind: StoreKind) -> Result<AnyStore, StoreError> {
+        if self.v15 && kind.writable() {
+            return Err(StoreError::PathRejected);
+        }
         self.env.load_root(kind)
+    }
+
+    /// Whether the locked store has completed its durable 1.5 upgrade.
+    pub fn is_v15(&self) -> bool {
+        self.v15
+    }
+
+    /// Explicit upgrade. A failure halts this writer, including ambiguous journal failures.
+    pub fn upgrade15(&mut self) -> Result<(), StoreError> {
+        self.ensure_running()?;
+        if self.v15 {
+            return Ok(());
+        }
+        if !self.blocked.is_empty() {
+            return Err(StoreError::PathRejected);
+        }
+        match crate::migration15_io::upgrade(
+            &*self.env.fs,
+            &self.env.dir,
+            self.env.owner_uid,
+            &|roots| crate::migration15_io::verify_crossroot(&*self.env.fs, &self.env.dir, roots),
+        ) {
+            Ok(()) => {
+                self.v15 = true;
+                self.blocked.clear();
+                Ok(())
+            }
+            Err(e) => {
+                self.halted = true;
+                Err(e)
+            }
+        }
+    }
+
+    pub fn read15(&self, kind: StoreKind) -> Result<domain::store::OperationalStore15, StoreError> {
+        if !self.v15 || !kind.writable() {
+            return Err(StoreError::PathRejected);
+        }
+        let path = StorePath::root(kind).ok_or(StoreError::PathRejected)?;
+        let bytes = self.env.read_file(kind, &self.env.dir.join(&path))?;
+        match read::decode_versioned(kind, &bytes, &*self.env.validator)? {
+            domain::store::VersionedStore::V15(doc) => Ok(doc),
+            _ => Err(StoreError::Malformed(kind)),
+        }
+    }
+
+    pub fn replace15(&mut self, doc: &domain::store::OperationalStore15) -> Result<(), StoreError> {
+        self.ensure_running()?;
+        if !self.v15 {
+            return Err(StoreError::PathRejected);
+        }
+        let kind = doc.kind();
+        Self::writable_root(kind)?;
+        if self.blocked.contains(&kind) {
+            return Err(StoreError::Malformed(kind));
+        }
+        let bytes = serde_json::to_vec_pretty(doc).map_err(|_| unrepresentable(kind))?;
+        if !matches!(
+            read::decode_versioned(kind, &bytes, &*self.env.validator)?,
+            domain::store::VersionedStore::V15(_)
+        ) {
+            return Err(StoreError::Malformed(kind));
+        }
+        let result = self.env.publish_root(kind, &bytes, true);
+        self.track(result)
     }
 
     /// Validates `doc` and replaces its root through the replace protocol (request §6.3): temp file,
@@ -476,6 +582,9 @@ impl StoreWriter {
     /// content is already in place).
     pub fn replace(&mut self, doc: &AnyStore) -> Result<(), StoreError> {
         self.ensure_running()?;
+        if self.v15 {
+            return Err(StoreError::PathRejected);
+        }
         let kind = doc.kind();
         Self::writable_root(kind)?;
         if self.blocked.contains(&kind) {
@@ -516,6 +625,9 @@ impl StoreWriter {
         slug: &Slug,
     ) -> Result<ReportManifest, StoreError> {
         self.ensure_running()?;
+        if self.v15 {
+            return Err(StoreError::PathRejected);
+        }
         if self.blocked.contains(&StoreKind::Log) {
             return Err(StoreError::Malformed(StoreKind::Log));
         }
@@ -601,6 +713,9 @@ impl StoreWriter {
     /// collision or a directory in the way; the validation errors above; [`StoreError::Io`] (halts).
     pub fn restore_previous(&mut self, kind: StoreKind) -> Result<RestoreReport, StoreError> {
         self.ensure_running()?;
+        if self.v15 {
+            return Err(StoreError::PathRejected);
+        }
         let result = self.restore_steps(kind);
         if result.is_ok() {
             self.blocked.retain(|blocked| *blocked != kind);

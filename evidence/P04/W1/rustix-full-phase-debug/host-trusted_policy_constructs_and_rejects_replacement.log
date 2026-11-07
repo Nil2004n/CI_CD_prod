@@ -1,0 +1,16 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling syn v3.0.9
+   Compiling serde_derive v1.0.229
+   Compiling domain v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/domain)
+   Compiling repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+    Finished `test` profile [unoptimized] target(s) in 25.51s
+     Running tests/p04_ssh.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_ssh-fcb81a8e54aec3bd)
+
+running 1 test
+test trusted_policy_constructs_and_rejects_replacement ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+

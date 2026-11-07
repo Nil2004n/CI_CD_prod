@@ -1,0 +1,4 @@
+    Checking repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+    Checking application v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/application)
+    Checking cli v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/cli)
+    Finished `dev` profile [unoptimized] target(s) in 12.22s

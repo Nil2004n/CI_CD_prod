@@ -801,8 +801,8 @@ fn replace_halts_on_a_storage_error_at_every_step() {
     }
 }
 
-/// Reads that `open` makes before the first write: the five roots written by `init`.
-const READS_AT_OPEN: u32 = 5;
+/// The five initialized roots are read once by the version gate and once by reconciliation.
+const READS_AT_OPEN: u32 = 10;
 
 #[test]
 fn write_report_halts_on_a_storage_error_at_every_step() {
@@ -836,6 +836,13 @@ fn write_report_halts_on_a_storage_error_at_every_step() {
             }));
             let (mut w, _) = StoreWriter::open(tmp.data_dir(), fault.clone(), v.clone()).unwrap();
             assert!(!fault.fired(), "fired during open");
+            if step == WriteStep::Read {
+                assert_eq!(
+                    fault.calls_at_step(),
+                    READS_AT_OPEN,
+                    "startup read count changed"
+                );
+            }
             let log_before = std::fs::read(tmp.path("log.json")).unwrap();
             let context = format!("{step:?}#{nth} {kind:?}");
 

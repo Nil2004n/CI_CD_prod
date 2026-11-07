@@ -12,8 +12,10 @@ use crate::validate::{Problems, RuleId};
 
 mod ai;
 mod approval;
+pub mod approval15;
 mod evidence;
 mod ids;
+pub mod repository15;
 mod rules;
 mod workflow;
 

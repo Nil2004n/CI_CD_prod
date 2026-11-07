@@ -1,0 +1,19 @@
+# P04 wave 1 — execution, SSH and deletion follow-up
+
+2026-11-04. Owner approved the bounded runner debug and read-only safe-wrapper research and requested GPT-6.1 Terra workers. Requested worker identities and self-reports were not independently verified. Integrated HEAD remained `f71749c53704afbd87150ac6d31b65f69377000b`; worktree dirty; no commit or push.
+
+## Runner
+
+The runner candidate remains unintegrated in `/tmp/p04-w1-resume-runner`. The primary ran its isolated frozen package check outside the socket-restricting filesystem sandbox: first 19 passed/1 failed (`version-runner-debug/`), then 20 passed/0 failed after the approved debug (`version-runner-debug-retest/`). The failure was caused by the parent retaining a `Command` holding its output endpoints; the candidate now drops it after spawn. These are candidate tests, not integrated production proof. A separate read-only review identified remaining signalling/reaping failure paths, unbounded detached reaper risk, assumptions about other process-wide child reapers and PID reuse, and lack of binding HOME/XDG/agent values to approved trusted resources. The candidate's general Git operation still refuses. No candidate process execution was integrated; the integrated runner remains fail-closed.
+
+## SSH
+
+Integrated a non-executing `TrustedSshPolicy` candidate and focused lexical filesystem controls. A network-isolated local `ssh -G` test includes an explicit hostile-config potency control and checks effective settings under the fixed synthetic config; the package test passed 18/0/0 outside the socket-restricting sandbox (`ssh-behavior-potency/`). The first integrated full check failed clippy on test fixture helper unwraps and static on test-module recognition (`ssh-policy-integration/`); the owner had approved the continuation/debug and the primary integrated bounded fixes without changing production controls. The final full check, `python3 -I -B dev/p04_check.py all --final --slot lead --out evidence/P04/W1/ssh-policy-debug-final` outside the filesystem sandbox but still using `unshare -rn`, cleared environment and frozen Cargo, exited 0: env, fmt, clippy, build and static passed; 1172/0/0 tests across 62 suites, 41 compile-fail, CLI 101/0/0. `git diff --check` passed.
+
+This does not establish successful `TrustedSshPolicy` construction on a trusted host, passwd-home configuration isolation, SSH authentication, or integration with the Git runner and validated repository config. The existing runner `FixedSshPolicy` still refuses and real SSH remains unavailable. Paths can be replaced or files changed by same-user actors; the static rule is lexical, not a security boundary.
+
+## Checkout deletion
+
+Read-only research identified `rustix` 1.1.5's safe [`openat2`](https://docs.rs/rustix/1.1.5/rustix/fs/fn.openat2.html) and descriptor-relative APIs as candidates. The [package source](https://docs.rs/crate/rustix/1.1.5/source/Cargo.toml.orig) contains a build script and additional dependencies; rustix and linux-raw-sys are not in the current local registry/lock. Exact full resolution and checksums were not established, and no dependency was installed or lock changed. The [Linux openat2 manual](https://man7.org/linux/man-pages/man2/openat2.2.html) describes path-resolution restrictions, but a wrapper alone does not prevent a same-user actor from moving an already-open directory or replacing a name before deletion. A private quarantine helps against cooperating actors but does not prove the annex's outside-modification boundary against those races. Deletion remains refused. A dependency choice and threat-boundary/design review are needed before any implementation or install.
+
+No real network acquisition, credential use, real-data migration, checkout deletion, commit or push occurred. No B1, P04 acceptance or security acceptance is claimed.

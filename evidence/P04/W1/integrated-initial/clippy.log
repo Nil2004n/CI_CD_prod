@@ -1,0 +1,63 @@
+    Checking repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+error: this `if` statement can be collapsed
+   --> crates/repositories/src/lock.rs:97:5
+    |
+ 97 | /     if let Ok(m) = fs::symlink_metadata(&path) {
+ 98 | |         if !m.is_file() || m.file_type().is_symlink() {
+ 99 | |             return Err(LockError::UnsafePath);
+100 | |         }
+101 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#collapsible_if
+    = note: `-D clippy::collapsible-if` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+ 97 ~     if let Ok(m) = fs::symlink_metadata(&path)
+ 98 ~         && (!m.is_file() || m.file_type().is_symlink()) {
+ 99 |             return Err(LockError::UnsafePath);
+100 ~         }
+    |
+
+error: file opened with `create`, but `truncate` behavior not defined
+   --> crates/repositories/src/lock.rs:106:10
+    |
+106 |         .create(true)
+    |          ^^^^^^^^^^^^- help: add: `.truncate(true)`
+    |
+    = help: if you intend to overwrite an existing file entirely, call `.truncate(true)`
+    = help: if you instead know that you may want to keep some parts of the old file, call `.truncate(false)`
+    = help: alternatively, use `.append(true)` to append to the file instead of overwriting it
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#suspicious_open_options
+    = note: `-D clippy::suspicious-open-options` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::suspicious_open_options)]`
+
+error: this `if` statement can be collapsed
+  --> crates/repositories/src/remote.rs:79:9
+   |
+79 | /         if let Some(u) = user {
+80 | |             if u.is_empty()
+81 | |                 || u.len() > 32
+82 | |                 || u.starts_with('-')
+...  |
+89 | |         }
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#collapsible_if
+help: collapse nested if block
+   |
+79 ~         if let Some(u) = user
+80 ~             && (u.is_empty()
+81 |                 || u.len() > 32
+...
+84 |                     .bytes()
+85 ~                     .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-')))
+86 |             {
+87 |                 return Err(RemoteError::Credentials);
+88 ~             }
+   |
+
+error: could not compile `repositories` (lib) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `repositories` (lib test) due to 3 previous errors

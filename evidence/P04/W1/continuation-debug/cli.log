@@ -1,0 +1,5 @@
+error: no matching package named `serde` found
+location searched: crates.io index
+required by package `domain v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/domain)`
+note: offline mode (via `--frozen`) can sometimes cause surprising resolution failures
+help: if this error is too confusing you may wish to retry without `--frozen`

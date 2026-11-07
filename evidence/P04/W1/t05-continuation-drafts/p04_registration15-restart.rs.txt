@@ -1,0 +1,199 @@
+use application::dev_store;
+use application::emit::{Clock, Emitter, IdSource, IdSourceError};
+use application::repository_service::{CheckoutAccess, RepositoryError, RepositoryService};
+use domain::contract::RawInput;
+use domain::ids::RepoId;
+use domain::store::repository15::CheckoutState;
+use domain::store::values::GitOid;
+use domain::store::{OperationalStore15, StoreKind};
+use domain::time::UtcTimestamp;
+use persistence::fs::RealFs;
+use persistence::paths::DataDir;
+use persistence::read::SchemaValidator;
+use persistence::writer::StoreWriter;
+use repositories::git::ops::{GitOutcome, HardenedGit, TargetRef};
+use repositories::git::runner::GitError;
+use repositories::lock::LockError;
+use repositories::remote::RemoteSpec;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+#[derive(Debug, Clone, Copy)]
+struct FixedClock(UtcTimestamp);
+impl Clock for FixedClock {
+    fn now(&self) -> UtcTimestamp {
+        self.0
+    }
+}
+#[derive(Debug)]
+struct Ids(usize);
+impl IdSource for Ids {
+    fn next_bytes(&mut self) -> Result<[u8; 16], IdSourceError> {
+        self.0 += 1;
+        let mut bytes = [0; 16];
+        bytes[0] = self.0 as u8;
+        Ok(bytes)
+    }
+}
+struct NoGit(usize);
+impl HardenedGit for NoGit {
+    fn clone_verified(
+        &mut self,
+        _: &RemoteSpec,
+        _: &TargetRef,
+        _: &Path,
+    ) -> Result<GitOutcome, GitError> {
+        self.0 += 1;
+        Err(GitError::InvalidInvocation)
+    }
+    fn update_verified(
+        &mut self,
+        _: &RemoteSpec,
+        _: &TargetRef,
+        _: &GitOid,
+        _: &Path,
+    ) -> Result<GitOutcome, GitError> {
+        self.0 += 1;
+        Err(GitError::InvalidInvocation)
+    }
+}
+struct NoCheckout;
+impl CheckoutAccess for NoCheckout {
+    type Guard = ();
+    fn lock(&mut self, _: RepoId) -> Result<(), LockError> {
+        Err(LockError::UnsafePath)
+    }
+    fn checkout_path(&self, _: RepoId, _: &()) -> Result<PathBuf, RepositoryError> {
+        Err(RepositoryError::Unsafe)
+    }
+    fn delete(&mut self, _: RepoId, _: &()) -> Result<(), RepositoryError> {
+        Err(RepositoryError::Unsafe)
+    }
+}
+
+#[test]
+fn upgraded_registration_is_durable_and_rejects_before_mutation()
+-> Result<(), Box<dyn std::error::Error>> {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join(format!("p04-registration15-{}", std::process::id()));
+    std::fs::create_dir(&dir)?;
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))?;
+    assert_eq!(dev_store::init(&dir).failure, None);
+    let fs = Arc::new(RealFs);
+    let data = DataDir::new(&*fs, &dir)?;
+    let (mut writer, _) = StoreWriter::open(data, fs, Arc::new(SchemaValidator::new()))?;
+    writer.upgrade15()?;
+    let clock = FixedClock(UtcTimestamp::from_unix(1_800_000_000, 0)?);
+    let mut emitter = Emitter::new(clock, Ids(10));
+    let mut ids = Ids(0);
+    let mut git = NoGit(0);
+    let mut checkout = NoCheckout;
+    let id = {
+        let mut service = RepositoryService::new(
+            &mut writer,
+            &mut emitter,
+            &clock,
+            &mut ids,
+            &mut git,
+            &mut checkout,
+        );
+        service
+            .add(RawInput::new("https://Example.com/Team/Repo".into()))
+            .map_err(|_| "add failed")?
+    };
+    let repo_bytes = std::fs::read(dir.join("repo.json"))?;
+    let log_bytes = std::fs::read(dir.join("log.json"))?;
+    {
+        let mut service = RepositoryService::new(
+            &mut writer,
+            &mut emitter,
+            &clock,
+            &mut ids,
+            &mut git,
+            &mut checkout,
+        );
+        assert_eq!(
+            service.add(RawInput::new("git@example.com:Team/Repo".into())),
+            Err(RepositoryError::Duplicate)
+        );
+        assert_eq!(
+            service.add(RawInput::new("file:///tmp/no".into())),
+            Err(RepositoryError::Invalid)
+        );
+        let record = service.status15(id).map_err(|_| "status failed")?;
+        assert_eq!(record.checkout_state, CheckoutState::NotCloned);
+        assert_eq!(record.default_ref_kind, None);
+        assert_eq!(record.default_ref_value, None);
+        assert_eq!(service.list15().map_err(|_| "list failed")?.len(), 1);
+    }
+    assert_eq!(ids.0, 1);
+    assert_eq!(git.0, 0);
+    assert_eq!(std::fs::read(dir.join("repo.json"))?, repo_bytes);
+    assert_eq!(std::fs::read(dir.join("log.json"))?, log_bytes);
+    let OperationalStore15::Log(log) = writer.read15(StoreKind::Log)? else {
+        return Err("log type".into());
+    };
+    assert_eq!(log.events.len(), 1);
+    drop(writer);
+    let fs = Arc::new(RealFs);
+    let data = DataDir::new(&*fs, &dir)?;
+    let (writer, _) = StoreWriter::open(data, fs, Arc::new(SchemaValidator::new()))?;
+    let OperationalStore15::Repositories(repos) = writer.read15(StoreKind::Repositories)? else {
+        return Err("repository type".into());
+    };
+    assert_eq!(repos.repositories.len(), 1);
+    assert_eq!(repos.repositories[0].repo_id, id);
+    Ok(())
+}
+
+#[derive(Debug)]
+struct FailedIds;
+impl IdSource for FailedIds {
+    fn next_bytes(&mut self) -> Result<[u8; 16], IdSourceError> {
+        Err(IdSourceError::ShortRead)
+    }
+}
+
+#[test]
+fn event_id_failure_reports_published_repository() -> Result<(), Box<dyn std::error::Error>> {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!(
+        "p04-registration15-event-failure-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&dir)?;
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))?;
+    assert_eq!(dev_store::init(&dir).failure, None);
+    let fs = Arc::new(RealFs);
+    let data = DataDir::new(&*fs, &dir)?;
+    let (mut writer, _) = StoreWriter::open(data, fs, Arc::new(SchemaValidator::new()))?;
+    writer.upgrade15()?;
+    let clock = FixedClock(UtcTimestamp::from_unix(1_800_000_000, 0)?);
+    let mut emitter = Emitter::new(clock, FailedIds);
+    let mut ids = Ids(0);
+    let mut git = NoGit(0);
+    let mut checkout = NoCheckout;
+    {
+        let mut service = RepositoryService::new(
+            &mut writer,
+            &mut emitter,
+            &clock,
+            &mut ids,
+            &mut git,
+            &mut checkout,
+        );
+        assert_eq!(
+            service.add(RawInput::new("https://example.com/team/repo".into())),
+            Err(RepositoryError::PublishedEventUnavailable)
+        );
+        assert_eq!(service.list15().map_err(|_| "list failed")?.len(), 1);
+    }
+    let OperationalStore15::Log(log) = writer.read15(StoreKind::Log)? else {
+        return Err("log type".into());
+    };
+    assert!(log.events.is_empty());
+    assert_eq!(ids.0, 1);
+    assert_eq!(git.0, 0);
+    Ok(())
+}

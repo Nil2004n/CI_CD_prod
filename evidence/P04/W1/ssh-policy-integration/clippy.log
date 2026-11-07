@@ -1,0 +1,35 @@
+    Checking repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+    Checking application v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/application)
+error: used `unwrap()` on a `Result` value
+  --> crates/repositories/tests/p04_ssh.rs:13:21
+   |
+13 |           let nonce = SystemTime::now()
+   |  _____________________^
+14 | |             .duration_since(UNIX_EPOCH)
+15 | |             .unwrap()
+   | |_____________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+   = note: requested on the command line with `-D clippy::unwrap-used`
+
+error: used `unwrap()` on a `Result` value
+  --> crates/repositories/tests/p04_ssh.rs:19:9
+   |
+19 |         std::fs::create_dir(&path).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> crates/repositories/tests/p04_ssh.rs:20:9
+   |
+20 |         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: could not compile `repositories` (test "p04_ssh") due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...

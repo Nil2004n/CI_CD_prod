@@ -1,0 +1,71 @@
+   Compiling repositories v0.1.0 (/tmp/p04-w1-resume-remote/workbench/crates/repositories)
+    Finished `test` profile [unoptimized] target(s) in 0.46s
+     Running unittests src/lib.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-91fd46be706f/debug/deps/repositories-8ab9a389649b1f15)
+
+running 8 tests
+test git::runner::operation_tests::executables_reject_unpinned_paths_and_swapped_roles ... ok
+test git::runner::operation_tests::complete_directory_capability_checks_and_revalidates_identity ... ok
+test git::runner::operation_tests::directory_components_and_open_identity_fail_closed ... ok
+test git::runner::operation_tests::classification_rejects_bad_status_framing_and_limits ... ok
+test git::runner::operation_tests::operations_fix_arguments_and_timeouts ... ok
+test git::runner::operation_tests::pinned_executable_capabilities_check_host_metadata ... ok
+test git::runner::operation_tests::trusted_directory_refuses_relative_and_parent_paths ... ok
+test git::ssh::tests::config_open_rejects_symlink_replacement_and_unsafe_mode ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_remote.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-91fd46be706f/debug/deps/p04_remote-56fd9071c26c489b)
+
+running 5 tests
+test canonical_identity_normalization_and_masking ... ok
+test lexical_checks_do_not_claim_dns_or_path_secret_detection ... ok
+test accepted_and_rejected_synthetic_remotes ... ok
+test private_address_boundaries_and_malformed_numeric_hosts ... ok
+test length_and_normalization_boundaries ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_scaffold.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-91fd46be706f/debug/deps/p04_scaffold-5d5a8c07ceae62f1)
+
+running 1 test
+test scaffold_refuses_git_environment_and_ssh_policy ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_ssh.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-91fd46be706f/debug/deps/p04_ssh-1dfab1dbdaecd5a1)
+
+running 4 tests
+test unsafe_paths_and_missing_trust_fail_closed ... ok
+test app_authored_config_has_fixed_isolation_options ... ok
+test policy_rejects_writable_ancestor_and_symlinked_inputs ... FAILED
+test openssh_effective_config_suppresses_hostile_user_config_and_default_identities ... FAILED
+
+failures:
+
+---- policy_rejects_writable_ancestor_and_symlinked_inputs stdout ----
+
+thread 'policy_rejects_writable_ancestor_and_symlinked_inputs' (122) panicked at crates/repositories/tests/p04_ssh.rs:49:48:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- openssh_effective_config_suppresses_hostile_user_config_and_default_identities stdout ----
+
+thread 'openssh_effective_config_suppresses_hostile_user_config_and_default_identities' (121) panicked at crates/repositories/tests/p04_ssh.rs:69:48:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+
+failures:
+    openssh_effective_config_suppresses_hostile_user_config_and_default_identities
+    policy_rejects_writable_ancestor_and_symlinked_inputs
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p repositories --test p04_ssh`
+   Doc-tests repositories
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 1 target failed:
+    `-p repositories --test p04_ssh`

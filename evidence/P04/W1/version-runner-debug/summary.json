@@ -1,0 +1,81 @@
+{
+  "tool": "dev/p04_check.py",
+  "repo": "/tmp/p04-w1-resume-runner",
+  "target_dir": "/tmp/p04-t04-devtools/_cargo-target/p04-lead-4d47f56d2e5f",
+  "mode": "test",
+  "slot": "lead",
+  "package": "repositories",
+  "final": false,
+  "repo_head": "f71749c53704afbd87150ac6d31b65f69377000b",
+  "dirty": [
+    " M workbench/crates/repositories/src/git/runner.rs",
+    "?? planning/P04-W1-runner-amendment.md",
+    "?? workbench/crates/repositories/tests/p04_runner.rs"
+  ],
+  "results": [
+    {
+      "step": "env",
+      "checks": [
+        {
+          "check": "rustc --version",
+          "value": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "ok": true
+        },
+        {
+          "check": "cargo --version",
+          "value": "cargo 1.99.1 (5f94df478 2026-08-27)",
+          "ok": true
+        },
+        {
+          "check": "rustdoc --version",
+          "value": "rustdoc 1.99.1 (58cf8f9c3 2026-10-13)",
+          "ok": true
+        },
+        {
+          "check": "rustfmt --version",
+          "value": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+          "ok": true
+        },
+        {
+          "check": "cargo-clippy --version",
+          "value": "clippy 0.1.99 (58cf8f9c35 2026-10-13)",
+          "ok": true
+        },
+        {
+          "check": "unshare creates distinct network namespace",
+          "value": "net:[4026532960]",
+          "ok": true
+        },
+        {
+          "check": "slot lead target dir",
+          "value": "CARGO_TARGET_DIR=/tmp/p04-t04-devtools/_cargo-target/p04-lead-4d47f56d2e5f",
+          "ok": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "step": "test",
+      "command": "cargo test -p repositories --frozen --no-fail-fast",
+      "exit": 101,
+      "log": "test.log",
+      "seconds": 6.36,
+      "protected_files_unchanged": true,
+      "ok": false,
+      "counts": {
+        "suites": 4,
+        "passed": 19,
+        "failed": 1,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "compile_fail_ok": 0
+      },
+      "floors": {
+        "min_passed": 0,
+        "min_compile_fail": 0
+      }
+    }
+  ],
+  "ok": false
+}

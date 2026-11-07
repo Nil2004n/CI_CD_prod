@@ -362,7 +362,8 @@ fn init_on_an_empty_directory_survives_every_fault() {
 
 /// Fails if `init` over a partly initialised store (repo, workflows, approvals present; log, tools
 /// missing) changes a byte of an existing root under any fault, or reaches other calls than the literal
-/// table (it must also read the three existing roots). The three existing roots stay byte-identical.
+/// table (the three existing roots are read during the 1.5 check and again during initialization).
+/// The three existing roots stay byte-identical.
 #[test]
 fn init_over_a_partial_store_never_touches_existing_roots() {
     let reached = matrix(
@@ -385,7 +386,7 @@ fn init_over_a_partial_store_never_touches_existing_roots() {
     );
     let expected: HashMap<WriteStep, u32> = [
         (WriteStep::Lock, 1),
-        (WriteStep::Read, 3),
+        (WriteStep::Read, 6),
         (WriteStep::CreateTemp, 2),
         (WriteStep::WriteTemp, 2),
         (WriteStep::SyncTemp, 2),
@@ -398,7 +399,8 @@ fn init_over_a_partial_store_never_touches_existing_roots() {
 }
 
 /// Fails if `recover` with an interrupted run (reconciliation rewrites `log.json` through the replace
-/// protocol with a `.prev` generation) (a) reaches other calls than the literal table (five root reads and
+/// protocol with a `.prev` generation) (a) reaches other calls than the literal table (five roots read
+/// during the 1.5 check and again during reconciliation, and
 /// each of the seven write steps once), (b) changes any file other than `log.json`, (c) changes `log.json`
 /// under any fault except after the publishing rename (`SyncDir`, where the new content is in place and is a
 /// valid log with the run interrupted), (d) leaves a `.prev` that is not a byte copy of the old log, or (e)
@@ -447,7 +449,7 @@ fn recover_rewriting_the_log_survives_every_fault() {
     );
     let expected: HashMap<WriteStep, u32> = [
         (WriteStep::Lock, 1),
-        (WriteStep::Read, 5),
+        (WriteStep::Read, 10),
         (WriteStep::CreateTemp, 1),
         (WriteStep::WriteTemp, 1),
         (WriteStep::SyncTemp, 1),

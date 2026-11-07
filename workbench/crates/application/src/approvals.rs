@@ -46,6 +46,7 @@ pub enum Actor {
 pub struct Authorisation {
     approval_id: ApprovalId,
     lifetime: domain::contract::ApprovalLifetime,
+    operation_fingerprint: domain::store::values::Digest,
 }
 
 impl Authorisation {
@@ -57,6 +58,15 @@ impl Authorisation {
     /// Its lifetime (a `once` grant is already consumed).
     pub fn lifetime(&self) -> domain::contract::ApprovalLifetime {
         self.lifetime
+    }
+
+    /// Fingerprint of the evaluated operation content (F1–F7).
+    ///
+    /// This digest excludes other authorization dimensions, including lifetime,
+    /// workflow and run bindings, validity, purpose and inference scope. It is
+    /// not proof of authorization or a complete request binding on its own.
+    pub fn operation_fingerprint(&self) -> &domain::store::values::Digest {
+        &self.operation_fingerprint
     }
 }
 
@@ -322,6 +332,7 @@ impl<'a, C: Clock, I: IdSource> ApprovalService<'a, C, I> {
             Evaluation::Permitted(grant) => {
                 let approval_id = grant.approval_id();
                 let lifetime = grant.lifetime();
+                let operation_fingerprint = fingerprint(req).map_err(ApprovalError::Fingerprint)?;
                 if lifetime == ApprovalLifetime::Once {
                     let record = file
                         .approvals
@@ -334,6 +345,7 @@ impl<'a, C: Clock, I: IdSource> ApprovalService<'a, C, I> {
                 Ok(AuthOutcome::Authorised(Authorisation {
                     approval_id,
                     lifetime,
+                    operation_fingerprint,
                 }))
             }
             Evaluation::Refused(reason) => Ok(AuthOutcome::Refused(reason)),

@@ -1,59 +1,227 @@
-//! Repository registry seam. Operations fail closed until P04-T07 implements persistence.
+//! Repository registry operations under the application store lock.
 
+use domain::contract::{AppEvent, RepoOperation, RepoOperationStatus};
 use domain::ids::RepoId;
-use domain::store::repository::Repository;
+use domain::store::repository::{Repository, RepositoryFile};
+use domain::store::{AnyStore, StoreKind};
+use domain::text::RedactedText;
 use persistence::writer::StoreWriter;
 
-use crate::emit::{Clock, Emitter, IdSource};
+use crate::emit::{Clock, Emitter, IdSource, to_store_event};
 
 /// Safe, input-free registry failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RegistryError {
-    /// Registry support is not implemented.
-    Unavailable,
-    /// Persistence failed.
+    /// Reading the registry failed before attempting a mutation.
     Storage,
+    /// Registry replacement failed; the new state may already be published.
+    RegistryWriteUncertain,
     /// The requested repository does not exist.
     Missing,
-    /// A repository with the same identity already exists.
+    /// A repository with the same ID or canonical remote already exists.
     Duplicate,
-    /// Event emission failed.
+    /// Event creation failed after the registry was persisted.
     Emit,
+    /// The registry was published, but the event log could not be read.
+    PublishedLogUnavailable,
+    /// The registry was published; the event log replacement may also have been published.
+    PublishedLogWriteUncertain,
+}
+
+impl std::fmt::Display for RegistryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "registry error: {self:?}")
+    }
+}
+impl std::error::Error for RegistryError {}
+
+/// Typed context for a repository operation status event.
+#[derive(Debug)]
+pub struct StatusContext {
+    /// The operation being reported.
+    pub operation: RepoOperation,
+    /// Its current status.
+    pub status: RepoOperationStatus,
+    /// Optional redacted explanation.
+    pub reason: Option<RedactedText>,
+}
+
+fn file(writer: &StoreWriter) -> Result<RepositoryFile, RegistryError> {
+    match writer.read(StoreKind::Repositories) {
+        Ok(AnyStore::Repositories(file)) => Ok(file),
+        _ => Err(RegistryError::Storage),
+    }
 }
 
 /// Read one repository under the existing application store lock.
-pub fn read(_writer: &mut StoreWriter, _id: RepoId) -> Result<Repository, RegistryError> {
-    Err(RegistryError::Unavailable)
+pub fn read(writer: &mut StoreWriter, id: RepoId) -> Result<Repository, RegistryError> {
+    list(writer)?
+        .into_iter()
+        .find(|r| r.repo_id == id)
+        .ok_or(RegistryError::Missing)
 }
 
 /// List registered repositories.
-pub fn list(_writer: &mut StoreWriter) -> Result<Vec<Repository>, RegistryError> {
-    Err(RegistryError::Unavailable)
+pub fn list(writer: &mut StoreWriter) -> Result<Vec<Repository>, RegistryError> {
+    Ok(file(writer)?.repositories)
 }
 
-/// Persist a new repository before emitting its event.
+fn persist_and_emit<C: Clock, I: IdSource>(
+    writer: &mut StoreWriter,
+    emitter: &mut Emitter<C, I>,
+    clock: &impl Clock,
+    mut file: RepositoryFile,
+    event: AppEvent,
+) -> Result<(), RegistryError> {
+    file.updated_at = clock.now();
+    writer
+        .replace(&AnyStore::Repositories(file))
+        .map_err(|_| RegistryError::RegistryWriteUncertain)?;
+    let envelope = emitter.emit(event).map_err(|_| RegistryError::Emit)?;
+    let stored = to_store_event(&envelope).ok_or(RegistryError::Emit)?;
+    let mut log = match writer.read(StoreKind::Log) {
+        Ok(AnyStore::Log(log)) => log,
+        _ => return Err(RegistryError::PublishedLogUnavailable),
+    };
+    log.updated_at = clock.now().max(envelope.at);
+    log.events.push(stored);
+    writer
+        .replace(&AnyStore::Log(log))
+        .map_err(|_| RegistryError::PublishedLogWriteUncertain)
+}
+
+/// Insert a fully resolved record; schema 1.4 cannot represent an unresolved reference.
 pub fn insert<C: Clock, I: IdSource>(
-    _writer: &mut StoreWriter,
-    _emitter: &mut Emitter<C, I>,
-    _repository: Repository,
+    writer: &mut StoreWriter,
+    emitter: &mut Emitter<C, I>,
+    clock: &impl Clock,
+    repository: Repository,
 ) -> Result<(), RegistryError> {
-    Err(RegistryError::Unavailable)
+    let mut file = file(writer)?;
+    if file.repositories.iter().any(|r| {
+        r.repo_id == repository.repo_id || r.canonical_remote == repository.canonical_remote
+    }) {
+        return Err(RegistryError::Duplicate);
+    }
+    let event = AppEvent::RepositoryRegistered {
+        repo_id: repository.repo_id,
+        display_name: repository.display_name.clone(),
+    };
+    file.repositories.push(repository);
+    persist_and_emit(writer, emitter, clock, file, event)
 }
 
-/// Persist a changed repository before emitting its event.
+/// Replace a registered record and append its operation status event.
 pub fn replace<C: Clock, I: IdSource>(
-    _writer: &mut StoreWriter,
-    _emitter: &mut Emitter<C, I>,
-    _repository: Repository,
+    writer: &mut StoreWriter,
+    emitter: &mut Emitter<C, I>,
+    clock: &impl Clock,
+    repository: Repository,
+    context: StatusContext,
 ) -> Result<(), RegistryError> {
-    Err(RegistryError::Unavailable)
+    let mut file = file(writer)?;
+    let index = file
+        .repositories
+        .iter()
+        .position(|r| r.repo_id == repository.repo_id)
+        .ok_or(RegistryError::Missing)?;
+    if file
+        .repositories
+        .iter()
+        .enumerate()
+        .any(|(i, r)| i != index && r.canonical_remote == repository.canonical_remote)
+    {
+        return Err(RegistryError::Duplicate);
+    }
+    let event = AppEvent::RepositoryStatusChanged {
+        repo_id: repository.repo_id,
+        operation: context.operation,
+        status: context.status,
+        reason: context.reason,
+    };
+    file.repositories[index] = repository;
+    persist_and_emit(writer, emitter, clock, file, event)
 }
 
-/// Remove a repository from the store before emitting its event.
+/// Remove an existing record and append its removal event.
 pub fn remove<C: Clock, I: IdSource>(
-    _writer: &mut StoreWriter,
-    _emitter: &mut Emitter<C, I>,
-    _id: RepoId,
+    writer: &mut StoreWriter,
+    emitter: &mut Emitter<C, I>,
+    clock: &impl Clock,
+    id: RepoId,
 ) -> Result<(), RegistryError> {
-    Err(RegistryError::Unavailable)
+    let mut file = file(writer)?;
+    let index = file
+        .repositories
+        .iter()
+        .position(|r| r.repo_id == id)
+        .ok_or(RegistryError::Missing)?;
+    file.repositories.remove(index);
+    persist_and_emit(
+        writer,
+        emitter,
+        clock,
+        file,
+        AppEvent::RepositoryRemoved { repo_id: id },
+    )
+}
+
+/// List repositories from a validated 1.5 root.
+pub fn list15(
+    writer: &StoreWriter,
+) -> Result<Vec<domain::store::repository15::Repository>, RegistryError> {
+    match writer.read15(StoreKind::Repositories) {
+        Ok(domain::store::OperationalStore15::Repositories(file)) => Ok(file.repositories),
+        _ => Err(RegistryError::Storage),
+    }
+}
+
+/// Read a repository from a validated 1.5 root.
+pub fn read15(
+    writer: &StoreWriter,
+    id: RepoId,
+) -> Result<domain::store::repository15::Repository, RegistryError> {
+    list15(writer)?
+        .into_iter()
+        .find(|repo| repo.repo_id == id)
+        .ok_or(RegistryError::Missing)
+}
+
+/// Publish a 1.5 record, then append its registration event.
+pub fn insert15<C: Clock, I: IdSource>(
+    writer: &mut StoreWriter,
+    emitter: &mut Emitter<C, I>,
+    clock: &impl Clock,
+    repository: domain::store::repository15::Repository,
+) -> Result<(), RegistryError> {
+    use domain::store::OperationalStore15;
+    let mut file = match writer.read15(StoreKind::Repositories) {
+        Ok(OperationalStore15::Repositories(file)) => file,
+        _ => return Err(RegistryError::Storage),
+    };
+    if file.repositories.iter().any(|repo| {
+        repo.repo_id == repository.repo_id || repo.canonical_remote == repository.canonical_remote
+    }) {
+        return Err(RegistryError::Duplicate);
+    }
+    let event = AppEvent::RepositoryRegistered {
+        repo_id: repository.repo_id,
+        display_name: repository.display_name.clone(),
+    };
+    file.repositories.push(repository);
+    file.updated_at = clock.now();
+    writer
+        .replace15(&OperationalStore15::Repositories(file))
+        .map_err(|_| RegistryError::RegistryWriteUncertain)?;
+    let envelope = emitter.emit(event).map_err(|_| RegistryError::Emit)?;
+    let stored = to_store_event(&envelope).ok_or(RegistryError::Emit)?;
+    let mut log = match writer.read15(StoreKind::Log) {
+        Ok(OperationalStore15::Log(log)) => log,
+        _ => return Err(RegistryError::PublishedLogUnavailable),
+    };
+    log.updated_at = clock.now().max(envelope.at);
+    log.events.push(stored);
+    writer
+        .replace15(&OperationalStore15::Log(log))
+        .map_err(|_| RegistryError::PublishedLogWriteUncertain)
 }

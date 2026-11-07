@@ -1,0 +1,23 @@
+    Checking repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+    Checking application v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/application)
+error: use of `eprintln!`
+   --> crates/repositories/src/git/runner.rs:651:13
+    |
+651 | /             eprintln!(
+652 | |                 "positive directory capability check skipped: fixture ancestors are not trusted"
+653 | |             );
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#print_stderr
+    = note: requested on the command line with `-D clippy::print-stderr`
+
+error: use of `eprintln!`
+   --> crates/repositories/src/git/runner.rs:691:17
+    |
+691 |                 eprintln!("positive pinned executable check skipped: host metadata is not trusted");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#print_stderr
+
+error: could not compile `repositories` (lib test) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...

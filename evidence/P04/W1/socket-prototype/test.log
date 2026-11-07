@@ -1,0 +1,69 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling syn v3.0.9
+   Compiling serde_derive v1.0.229
+   Compiling domain v0.1.0 (/tmp/p04-w1-resume-runner/workbench/crates/domain)
+   Compiling repositories v0.1.0 (/tmp/p04-w1-resume-runner/workbench/crates/repositories)
+    Finished `test` profile [unoptimized] target(s) in 24.41s
+     Running unittests src/lib.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-4d47f56d2e5f/debug/deps/repositories-8ab9a389649b1f15)
+
+running 9 tests
+test git::runner::operation_tests::bounded_reader_accepts_boundary_and_rejects_overflow_and_io_errors ... ok
+test git::runner::operation_tests::executables_reject_unpinned_paths_and_swapped_roles ... ok
+test git::runner::operation_tests::classification_rejects_bad_status_framing_and_limits ... ok
+test git::runner::operation_tests::operations_fix_arguments_and_timeouts ... ok
+test git::runner::operation_tests::trusted_directory_refuses_relative_and_parent_paths ... ok
+test git::runner::operation_tests::socket_pair_can_close_a_nonblocking_reader_while_writer_is_open ... FAILED
+test git::runner::operation_tests::socket_polling_drains_both_streams_and_fails_closed ... FAILED
+test git::runner::operation_tests::signal_targets_only_the_unreaped_child_process_group ... ok
+test git::runner::operation_tests::socket_reader_can_stop_without_eof_from_a_new_session ... ok
+
+failures:
+
+---- git::runner::operation_tests::socket_pair_can_close_a_nonblocking_reader_while_writer_is_open stdout ----
+
+thread 'git::runner::operation_tests::socket_pair_can_close_a_nonblocking_reader_while_writer_is_open' (584) panicked at crates/repositories/src/git/runner.rs:562:35:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- git::runner::operation_tests::socket_polling_drains_both_streams_and_fails_closed stdout ----
+
+thread 'git::runner::operation_tests::socket_polling_drains_both_streams_and_fails_closed' (585) panicked at crates/repositories/src/git/runner.rs:583:38:
+called `Result::unwrap()` on an `Err` value: Os { code: 1, kind: PermissionDenied, message: "Operation not permitted" }
+
+
+failures:
+    git::runner::operation_tests::socket_pair_can_close_a_nonblocking_reader_while_writer_is_open
+    git::runner::operation_tests::socket_polling_drains_both_streams_and_fails_closed
+
+test result: FAILED. 7 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+error: test failed, to rerun pass `-p repositories --lib`
+     Running tests/p04_runner.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-4d47f56d2e5f/debug/deps/p04_runner-69981d16f939ff15)
+
+running 4 tests
+test environment_rejects_unapproved_duplicate_and_unsafe_values ... ok
+test environment_accepts_only_the_exact_optional_agent_name_and_safe_path ... ok
+test runner_and_ssh_remain_closed_without_trust_and_policy_proofs ... ok
+test stdin_enforces_the_byte_cap_and_masks_debug ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p04_scaffold.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-4d47f56d2e5f/debug/deps/p04_scaffold-5d5a8c07ceae62f1)
+
+running 1 test
+test scaffold_refuses_git_environment_and_ssh_policy ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests repositories
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 1 target failed:
+    `-p repositories --lib`

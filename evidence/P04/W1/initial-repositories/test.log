@@ -1,0 +1,44 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling syn v3.0.9
+   Compiling serde_derive v1.0.229
+   Compiling domain v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/domain)
+   Compiling repositories v0.1.0 (/home/debjoyy/Projects/CI_CD_prod/workbench/crates/repositories)
+    Finished `test` profile [unoptimized] target(s) in 10.43s
+     Running unittests src/lib.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/repositories-8ab9a389649b1f15)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_remote.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_remote-56fd9071c26c489b)
+
+running 2 tests
+test accepted_and_rejected_synthetic_remotes ... ok
+test canonical_identity_normalization_and_masking ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_runner.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_runner-69981d16f939ff15)
+
+running 2 tests
+test environment_rejects_unapproved_duplicate_and_unsafe_values ... ok
+test stdin_enforces_the_byte_cap_and_masks_debug ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p04_scaffold.rs (/tmp/p04-t04-devtools/_cargo-target/p04-lead-28298bde50aa/debug/deps/p04_scaffold-5d5a8c07ceae62f1)
+
+running 1 test
+test scaffold_refuses_git_environment_and_ssh_policy ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests repositories
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
