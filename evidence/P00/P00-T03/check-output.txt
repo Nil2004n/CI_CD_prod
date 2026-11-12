@@ -1,7 +1,0 @@
-PASS Tier S rows present (15)
-PASS every Tier S 'Proposed version' cell is unresolved/not proposed
-PASS no version numbers in 'Proposed version' cells
-PASS every stated licence marked 'to confirm'
-PASS toolchain version matches local check (1.97.1)
-PASS states no lookup performed
-SUMMARY pass=6 fail=0 skip=0

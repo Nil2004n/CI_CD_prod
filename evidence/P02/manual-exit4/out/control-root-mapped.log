@@ -1,8 +1,0 @@
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
-     Running tests/p02_failures.rs (/home/kali/.local/share/pwt-dev-tools/_cargo-target/p02-lead-47835b267e4c/debug/deps/p02_failures-e8dbcb1f7c5d3c13)
-
-running 1 test
-test real_storage_failure_exits_4_when_permissions_are_enforced ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.15s
-

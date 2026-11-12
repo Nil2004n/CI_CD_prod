@@ -1,2 +1,0 @@
-t05-process v0.0.0 (/home/kali/Desktop/CI_CD_prod/spikes/rust/t05-process) []
-libc v0.2.191 [default,std]

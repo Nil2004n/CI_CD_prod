@@ -1,13 +1,0 @@
-Remote
-
-[image omitted: remote image]
-
-remote link <https://example.invalid/page>
-
-[raw HTML not rendered] <img src="https://example.invalid/y.png">
-
-[raw HTML not rendered] <link rel="stylesheet" href="https://example.invalid/s.css">
-
-Page 1
-
-

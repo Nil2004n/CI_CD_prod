@@ -1,8 +1,0 @@
-    Checking domain v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a7f244c466ab9eb38/workbench/crates/domain)
-    Checking application v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a7f244c466ab9eb38/workbench/crates/application)
-    Checking cli v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a7f244c466ab9eb38/workbench/crates/cli)
-    Checking scanning v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a7f244c466ab9eb38/workbench/crates/scanning)
-    Checking terminal-ui v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a7f244c466ab9eb38/workbench/crates/terminal-ui)
-    Checking retrieval v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a7f244c466ab9eb38/workbench/crates/retrieval)
-    Checking repositories v0.1.0 (/home/kali/Desktop/CI_CD_prod/.claude/worktrees/agent-a7f244c466ab9eb38/workbench/crates/repositories)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.05s

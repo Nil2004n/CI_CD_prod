@@ -1,5 +1,0 @@
-PASS host jsonschema == 4.26.0
-PASS schema sha256 == pinned (persistence::schema::SCHEMA_SHA256)
-PASS every fixture: host verdict agrees with the Rust-asserted expectation
-PASS comparator negative controls
-OVERALL PASS

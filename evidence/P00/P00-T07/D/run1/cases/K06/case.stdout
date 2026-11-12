@@ -1,1 +1,0 @@
-{"case":"K06","env_exact":true,"bus_address_bound_as_expected":true,"host_fallback_paths_absent":true,"ops":[],"app_deadline_fired":true,"timed_out_op_index":0,"worker_still_blocked_at_exit":true,"cancellation":"leaked worker - not cancelled; ended only by case-process exit"}

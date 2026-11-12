@@ -1,7 +1,0 @@
-PASS env exit=-
-PASS fmt exit=0
-PASS clippy exit=0
-PASS test exit=0 counts={'suites': 4, 'passed': 281, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered_out': 0}
-PASS build exit=0
-PASS static exit=-
-OVERALL PASS

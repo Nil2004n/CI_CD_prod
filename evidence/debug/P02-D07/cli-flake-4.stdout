@@ -1,3 +1,0 @@
-PASS env exit=-
-PASS cli exit=0 counts={'suites': 4, 'passed': 48, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered_out': 0}
-OVERALL PASS

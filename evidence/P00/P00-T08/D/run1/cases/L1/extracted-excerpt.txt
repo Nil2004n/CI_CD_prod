@@ -1,13 +1,0 @@
-Local files
-
-[image omitted: abs]
-
-[image omitted: file]
-
-rel <../../secret.txt>
-
-[raw HTML not rendered] <img src="file:///etc/shadow">
-
-Page 1
-
-
