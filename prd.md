@@ -9,7 +9,7 @@ The desktop GUI has a terminal-inspired aesthetic; it does not run inside a term
 
 ## 2. Decision status
 Confirmed direction from the owner: rebuild from a fresh repository; replace the TUI with a terminal-like GUI; retain the scanner-wrapper philosophy and external coding-agent integration.
-Working assumption: Java replaces Rust for the application implementation, following the owner's language-change discussion. Confirm before substantial implementation.
+Owner-confirmed direction for this rebuild: Java is the implementation language (JavaFX desktop GUI, Java MCP SDK, Maven build). The desktop GUI has a terminal-inspired appearance; it is not a TUI and not an embedded terminal emulator. PWT orchestrates installed open-source scanners through Java adapters; an external coding agent handles conversation and approved YAML edits; MCP exposes PWT operations to that agent. No embedded chatbot, cloud backend, or Rust application core.
 Proposed technical decisions: JavaFX desktop UI, SQLite local state, Java MCP SDK, Maven build. These are implementation recommendations, not historical owner approvals.
 Existing Rust code is reference material. Reuse verified rules, fixtures, and contracts where useful; do not mechanically translate an entire old architecture.
 
@@ -49,7 +49,9 @@ Value: one honest assessment workspace rather than manually assembling scanner c
 | F16 | Offline operation | Installed local scanners operate without a cloud account; no telemetry or model API is required |
 
 ## 6. MVP scanner scope
-Do not promise every YAML security category from day one. Start with one real structured-output adapter plus YAML syntax validation. Evaluate Gitleaks for secret scanning and actionlint for GitHub Actions; these are candidates until command, license, version, output, and fixture validation is recorded. Add configuration/security scanners only after the first end-to-end slice works.
+The intended complete scanner/validation scope for the rebuild is exactly these six integrations:
+1. yamllint, 2. Gitleaks, 3. Checkov, 4. actionlint, 5. kubeconform, 6. local user-supplied schema validation.
+These are the planned integrations, not optional candidates. Implement them incrementally: the first real scanner adapter is a Phase 2 milestone, not the final scope; full scanner integration belongs to Phase 5, with hardening in Phase 6.
 Syntax validation is not schema validation. Schema coverage must name the supported document family and schema version. Arbitrary YAML does not automatically receive Kubernetes, CI, or cloud validation.
 
 ## 7. GUI contract
