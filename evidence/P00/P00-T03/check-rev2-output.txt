@@ -1,7 +1,0 @@
-PASS 19 crate/version pairs in request all match research table
-PASS libc checksum prefix in request matches research
-PASS no claim that transitive graphs were reviewed
-PASS states nothing downloaded/resolved/compiled
-PASS does not claim --offline sandboxes
-PASS all declared MSRVs <= 1.97
-SUMMARY pass=6 fail=0 skip=0

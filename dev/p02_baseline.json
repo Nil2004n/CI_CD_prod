@@ -1,5 +1,0 @@
-{
-  "comment": "Committed regression floors for dev/p02_check.py (raised at P02-T14 + D07/D08 2026-10-28: 866 passed, 39 compile_fail; T13/B3b was 840/39, T12/B3 805/32, T11 765/32, wave 2 + D06 735/32, D05 + wave-2 prep 627, wave 1b + D04 603, D03 523, B1a 497). Never lower without owner approval.",
-  "min_passed": 866,
-  "min_compile_fail": 39
-}

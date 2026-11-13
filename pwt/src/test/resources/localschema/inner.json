@@ -1,0 +1,5 @@
+{
+  "$defs": {
+    "nonEmpty": {"type": "string", "minLength": 1}
+  }
+}

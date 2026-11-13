@@ -1,1 +1,0 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$defs":{"pos":{"type":"integer","minimum":0},"pair":{"type":"array","items":{"$ref":"#/$defs/pos"}}},"$ref":"#/$defs/pair"}

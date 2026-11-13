@@ -1,6 +1,0 @@
-M1 G13 expiry ignored -> CAUGHT ["FAIL test exit=101 counts={'suites': 10, 'passed': 174, 'failed': 4, 'ignored': 0, 'measured': 0, 'filtered_out': 0, 'compile_fail_ok': 2}"]
-M2 inherit any host name -> CAUGHT ["FAIL test exit=101 counts={'suites': 10, 'passed': 173, 'failed': 5, 'ignored': 0, 'measured': 0, 'filtered_out': 0, 'compile_fail_ok': 2}"]
-M3 probe not applied to inherited -> CAUGHT ["FAIL test exit=101 counts={'suites': 10, 'passed': 176, 'failed': 2, 'ignored': 0, 'measured': 0, 'filtered_out': 0, 'compile_fail_ok': 2}"]
-M4 appears_in always false -> CAUGHT ["FAIL test exit=101 counts={'suites': 10, 'passed': 174, 'failed': 4, 'ignored': 0, 'measured': 0, 'filtered_out': 0, 'compile_fail_ok': 2}"]
-restored copy: ["PASS test exit=0 counts={'suites': 10, 'passed': 178, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered_out': 0, 'compile_fail_ok': 2}"]
-NEGATIVE CONTROLS PASS

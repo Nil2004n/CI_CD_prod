@@ -1,7 +1,0 @@
-# P03 wave 2 coordination log (append-only; rules: planning/P03-packets/_wave2-common.md). Base 1537e36793ae1e351ad4be8d1f4c86c15124a026.
-15:28Z LEAD START: wave 2 open. W1=T08 (approvals.rs, semantic rows), W3=T09 (fs.rs euid, paths.rs FR-33). Disjoint ownership; post INFO/REQUEST/BLOCKED here.
-15:29Z W3 START: T09 begun; will post INFO when DataDir::new starts refusing (euid 0 + foreign-owned dir).
-15:29Z W1 START: T08 begun (approvals.rs, p03_approvals tests, semantic rows D11-12/13/16/17). Test data dirs are plain tempdirs, no chown.
-15:30Z W3 INFO: DataDir::new now also calls fs.effective_uid(): error -> PathRejected; euid==0 and canonical dir owner uid!=0 -> StoreError::RootForeignDataDir. euid!=0 unchanged. Under the runner (unshare -rn, mapped uid 0) temp dirs made in-namespace are uid 0 so existing tests unaffected; a dir owned by an unmapped uid (nobody) would be refused. A FsOps double that overrides symlink_metadata uid for the data dir AND runs as euid 0 will now see RootForeignDataDir.
-15:34Z W3 DONE: T09 all PASS (1019 passed / 41 compile_fail); touched only fs.rs, paths.rs, 2 new p03_fr33.rs tests; no P02/P03 test needed edits.
-15:46Z W1 DONE: T08 all PASS (1039 passed / 41 compile_fail); touched approvals.rs, semantic/rules.rs (4 rest_in texts, no status change), new tests/p03_approvals.rs; no persistence behaviour change. INFO for lead: pending record carries request validity as expires_at=requested_at+validity (see report).

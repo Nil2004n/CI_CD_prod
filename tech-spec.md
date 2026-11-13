@@ -1,0 +1,92 @@
+Version: 0.1 draft | Date: 2026-11-12 | Status: proposed implementation baseline
+
+# PWT Technical Specification
+
+## 1. Proposed stack
+- Language/runtime: Java; JDK 21 baseline proposed for the initial compatibility spike, not a claim that it is the latest JDK.
+- Desktop: compatible OpenJFX release selected and pinned after the spike; JavaFX CSS for terminal-inspired styling.
+- Build: Maven Wrapper; pinned dependencies and plugins; no floating latest versions.
+- Storage: SQLite JDBC with numbered migrations.
+- Serialization: Jackson version compatible with the selected MCP SDK, validated before pinning.
+- MCP: official Java SDK, stdio transport.
+- Tests: JUnit plus temporary-directory, subprocess-fixture, database, GUI-smoke and real-tool integration tests.
+- Distribution: runtime-inclusive package using jpackage after platform validation.
+No Spring Boot, Electron, embedded browser, cloud inference, or Rust runtime dependency is required.
+
+## 2. Launch contract
+```text
+pwt gui [--data-dir <directory>]
+pwt mcp --data-dir <directory> [--allow-scans]
+pwt scan --repo <id> --file <relative-path>... --data-dir <directory>
+pwt doctor [--data-dir <directory>]
+```
+These are target interfaces, not commands claimed to work today. CLI scan is a headless validation path using the same services; no independent scanner implementation.
+Use an explicit application data directory resolved consistently by all modes. No implicit repository .env or working-directory config execution. CLI emits sanitized human output or an explicit machine-readable mode; MCP stdout is reserved for protocol messages.
+
+## 3. Adapter interface
+```java
+interface ScannerAdapter {
+    AdapterDescriptor descriptor();
+    PreflightResult preflight(ExecutionContext context);
+    ScanPlan plan(TargetManifest targets, AdapterConfig config);
+    AdapterResult execute(ScanPlan plan, ProcessRunner runner,
+                          CancellationToken cancellation);
+}
+```
+These are illustrative contracts; exact Java types are settled in Phase 1. Descriptor includes adapter ID, tool name, supported version ranges, capability tags, accepted file families, scope mode, and network requirement.
+Preflight never installs tools. Distinguish missing executable, unsupported version, invalid configuration, no applicable target, and probe failure.
+Each adapter documents scanner exit codes; nonzero does not universally mean execution failure. Fixture tests must cover clean, findings, malformed output, unknown exit code, timeout, cancellation, and unavailable tool.
+
+## 4. Process runner
+Use ProcessBuilder with a validated executable and argument list. Working directory is the private run snapshot. Construct a minimal environment; do not inherit credentials unnecessarily. Preserve OS variables only where required and documented.
+Initial configurable limits: 2 workers/process, 120 seconds/tool, 10 MiB stdout, 2 MiB stderr, 5 MiB/file, 50 MiB selected snapshot, 1,000 selected files. These are proposed defensive defaults, not measured performance targets.
+Read both output streams concurrently with hard byte limits. Limit breach produces FAILED/OUTPUT_LIMIT and terminates the process; never silently truncate parsable JSON and call it valid. Terminate process descendants on timeout/cancel; test cleanup per OS and disclose residual limitations.
+No automatic scanner downloads, scripts from the assessed repo, package hooks, or network-required scans. Network-disabled configuration is not an OS sandbox; do not promise enforced egress isolation.
+
+## 5. YAML handling
+Use a maintained safe parser with explicit alias, nesting, input-size and document-count limits; select and pin after testing. Reject unsafe object construction. Support multi-document YAML deliberately.
+Syntax checks identify parse errors; schema checks require an explicit schema and dialect. Do not infer full CI/CD security validity from syntax success.
+Generated target manifests record repository-relative paths, SHA-256 of exact copied bytes, sizes, and selection. Snapshot layout preserves relative paths; adapters declare whether extra context is required. Missing context means skipped or partial coverage, not an invented clean result.
+
+## 6. Findings and redaction
+Normalize severities to CRITICAL/HIGH/MEDIUM/LOW/INFO/UNKNOWN while retaining tool severity. Severity is not a probability or aggregate vulnerability score.
+Redact known sensitive fields and secret matches before persistence, logging, UI events, and MCP responses. For sensitive findings prefer metadata/location without code excerpts. Disable raw evidence storage in MVP.
+Redaction is defense in depth, not a mathematical guarantee. Test seeded secrets across every output sink, including exception paths and parser failures. Never embed secret values in fingerprints; use adapter/rule/path and non-sensitive occurrence identity.
+Fingerprint version 1: SHA-256 of normalized adapter ID, rule ID, relative path, and non-sensitive logical key or location fallback. Document location-shift limitations.
+
+## 7. Run semantics
+Execution state: CREATED -> RUNNING -> COMPLETED | PARTIAL | FAILED | CANCELLED | INTERRUPTED.
+COMPLETED means every required applicable scanner finished successfully; findings may exist. PARTIAL means at least one successful assessment and at least one required applicable check unavailable, failed, or skipped. FAILED means no required applicable check completed successfully. CANCELLED/INTERRUPTED override completion while preserving completed evidence.
+Assessment verdict is a separate field: FINDINGS, NO_FINDINGS, or INDETERMINATE. Findings can coexist with partial coverage. NO_FINDINGS requires complete declared coverage; otherwise absence of findings is INDETERMINATE. Coverage is relative to configured adapters and selected files, never a guarantee of repository security.
+If no selected target or no applicable required scanner exists, reject before execution or return an explicit indeterminate terminal record; never report a clean scan.
+
+## 8. Persistence and export
+See data-schema.md for normative entity fields and invariants. Commit findings per scanner transaction. Finalize run state before exporting. Export failures are recorded independently and do not erase scan results.
+Write temp files inside the destination data directory, flush, then atomic rename where supported. Export names include UTC date, sanitized repo name, and run UUID to avoid collisions. Reports contain relative paths by default, provenance, tool versions, target hashes, findings, and coverage gaps.
+Regeneration uses retained sanitized data only. Report schema and database migration versions are independent.
+
+## 9. MCP contract
+| Tool | Input | Result / constraint |
+|---|---|---|
+| list_repositories | cursor?, limit? | Registered IDs, names, availability; no arbitrary registration |
+| list_runs | repository_id, cursor?, limit? | Paginated summaries |
+| get_run | run_id | Status, coverage, snapshot hashes, scanner outcomes |
+| list_findings | run_id, severity?, cursor?, limit? | Sanitized structured evidence |
+| get_report | run_id, format | JSON or Markdown content; bounded/paginated response |
+| start_scan | repository_id, relative_paths[], adapter_ids[] | Requires --allow-scans; validated IDs/scope; returns run ID |
+| cancel_scan | run_id | Requires scan permission and ownership/scope validation |
+| compare_runs | base_run_id, target_run_id | Same repository; fingerprint version and coverage caveats |
+Default page size 100, maximum 500; bounded strings and response bytes. Reject unknown adapter IDs, absolute paths, traversal, and paths not inside the registered root. No shell, edit, Git push, arbitrary file read, or export-path tool.
+Expose tool-side error codes: NOT_FOUND, INVALID_INPUT, OUT_OF_SCOPE, PERMISSION_DENIED, REPOSITORY_BUSY, SCANNER_UNAVAILABLE, STORAGE_BUSY, INTERNAL_ERROR. Return sanitized errors with correlation IDs, not raw stack traces.
+
+## 10. Desktop behavior
+Open repo registration dialog; discover file tree; select targets; inspect available checks; start/cancel; filter findings; view evidence; open history/reports; compare selected runs.
+Use background executors and JavaFX-safe dispatch. Poll externally changed runs every second while active, with incremental bounded queries; stop polling on shutdown. Debounce file discovery; cancel stale discovery tasks.
+Empty, loading, unavailable, partial, failed, and permission-denied states need explicit views. Log panel consumes sanitized structured events, not a fake shell.
+
+## 11. Comparison semantics
+Only compare the same registered repository and compatible fingerprint versions. Results: added, persisting, not_observed, and not_comparable. Not-observed is not automatically fixed: target scope and successful adapter coverage must match before presenting it as absent in equivalent coverage. Changed files or unsupported versions produce visible caveats.
+
+## 12. Validation and release
+Pin the complete dependency/tool matrix in the first build spike. Package and test on each claimed OS. Keep scanner license notices and redistribution decisions separate from the application license. Shipping an app runtime does not automatically ship or license external scanners.
+All proposed defaults remain configurable through validated local settings, not executable repository configuration.

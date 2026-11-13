@@ -1,2 +1,0 @@
-eeca61f5f8b505efd2985bebb0466f5d7f6c98ca8fd7ea8624287b3877bf099c  spikes/rust/Cargo.lock
-4e9cfe3be17fd9297a2b3d9601b77df2ac849b5a8ed52db6ca9c07441846e16d  spikes/rust/Cargo.toml

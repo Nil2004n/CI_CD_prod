@@ -1,9 +1,0 @@
-/home/kali/Desktop/CI_CD_prod/dev/p02_differential.py:50: DeprecationWarning: Accessing jsonschema.__version__ is deprecated and will be removed in a future release. Use importlib.metadata directly to query for jsonschema's version.
-  checks.append({"check": f"host jsonschema == {EXPECTED_JSONSCHEMA}", "value": jsonschema.__version__,
-/home/kali/Desktop/CI_CD_prod/dev/p02_differential.py:51: DeprecationWarning: Accessing jsonschema.__version__ is deprecated and will be removed in a future release. Use importlib.metadata directly to query for jsonschema's version.
-  "ok": jsonschema.__version__ == EXPECTED_JSONSCHEMA})
-PASS host jsonschema == 4.26.0
-PASS schema sha256 == pinned (persistence::schema::SCHEMA_SHA256)
-FAIL every fixture: host verdict agrees with the Rust-asserted expectation
-PASS comparator negative controls
-OVERALL FAIL

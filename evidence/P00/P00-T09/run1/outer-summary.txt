@@ -1,4 +1,0 @@
-start=2026-10-24T13:03:47Z end=2026-10-24T13:06:58Z
-tools=yamllint,gitleaks,checkov,actionlint,kubeconform
-exit=0
-cleanup: root removed

@@ -1,6 +1,0 @@
-base: &b
-  image: app
-  tag: v1
-first: *b
-second: *b
-third: *b

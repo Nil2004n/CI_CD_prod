@@ -1,5 +1,0 @@
-start=2026-10-24T06:52:59Z end=2026-10-24T06:52:59Z
-artifact_sha256=2905abc9c70e689bb781fc804648348dde4d3ac145223ddeb0d86a828ed564f3
-exit=0
-fonts_unchanged=yes
-cleanup: root removed

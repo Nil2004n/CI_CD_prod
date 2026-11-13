@@ -1,3 +1,0 @@
-PASS env exit=-
-FAIL test exit=101 counts={'suites': 17, 'passed': 562, 'failed': 1, 'ignored': 0, 'measured': 0, 'filtered_out': 0, 'compile_fail_ok': 0}
-OVERALL FAIL

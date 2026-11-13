@@ -1,7 +1,0 @@
-before=179 after=235 added=56 removed=0
-CHANGED ('getrandom', '0.4.3') dependencies + ['js-sys', 'rand_core', 'wasm-bindgen'] - []
-CHANGED ('smallvec', '1.16.4') dependencies + ['serde'] - []
-CHANGED ('strum_macros', '0.28.0') dependencies + ['heck 0.5.0'] - ['heck']
-CHANGED ('tempfile', '3.27.0') dependencies + ['getrandom 0.4.3'] - ['getrandom 0.3.4']
-SECOND VERSION: heck 0.4.1 existing ['0.5.0']
-sources: {'local', 'registry+https://github.com/rust-lang/crates.io-index'}

@@ -1,12 +1,0 @@
-Unicode supported
-
-Latin: Ærøskøbing café façade naïve Ünïcödé Ångström Łódź Šibenik.
-
-CJK: 漢字テストひらがなカタカナ中文测试 <U+D55C><U+AD6D><U+C5B4> 
-<U+C2DC><U+D5D8>.
-
-Mixed: report-ID 報告書-0042 done.
-
-Page 1
-
-

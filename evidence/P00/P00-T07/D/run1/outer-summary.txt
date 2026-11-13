@@ -1,5 +1,0 @@
-start=2026-10-24T06:01:17Z end=2026-10-24T06:01:30Z
-artifact_sha256=4ee636eef2a3a3c274b101aa295a53e1318c4d59fd7b5a8661bb018d03f5def0
-exit=0
-real_path_snapshot=unchanged
-cleanup: root removed
