@@ -1,9 +1,91 @@
-# PWT — Phase 3 rebuild (Java)
+# PWT — Phase 4 rebuild (Java)
 
-All six planned integrations are implemented: yamllint, Gitleaks, Checkov
-(Kubernetes manifests), actionlint (GitHub workflows), kubeconform (local
-schemas only), and local user-supplied schema validation. Availability is
-probed per run; nothing claims "installed" without a probe.
+MCP operations over the shared SQLite store, coding-agent command workflow
+for OpenCode and Claude Code, and basic dashboard launch. All six scanner
+integrations from Phase 3 are preserved and reused unchanged.
+
+## Prerequisites
+
+- JDK 21 (`/usr/lib/jvm/java-21-openjdk-amd64` on this host)
+- Installed tools: `yamllint` 1.38.0, `gitleaks` 8.30.1, `checkov` 3.4.4,
+  `actionlint` 1.7.12, `kubeconform` (dev build)
+- Network access to Maven Central on first build (cached under `~/.m2`)
+- A display for `gui` / dashboard (or `xvfb-run`)
+
+Export before every Maven invocation:
+
+```sh
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+## Build and test
+
+```sh
+cd pwt
+./mvnw -B clean test        # 131 tests, all must pass, 0 skipped
+./mvnw -B -q package -DskipTests   # produces target/pwt-0.4.0.jar
+```
+
+Root-level shortcuts: `make start|build|test|discover|scan|mcp`
+(`make mcp` runs read-only; add `--allow-scans` only deliberately).
+
+## MCP server
+
+```sh
+# Read-only (default): list_repositories, list_runs, get_run,
+# list_findings, get_report, pwt_info
+java -jar target/pwt-0.4.0.jar mcp --data-dir /abs/pwt-data
+
+# Scan-enabled: additionally start_scan, cancel_scan
+java -jar target/pwt-0.4.0.jar mcp --data-dir /abs/pwt-data --allow-scans
+```
+
+stdout is MCP-protocol-only; diagnostics on stderr. Errors are structured
+(`code`, `message`, `correlation_id`): INVALID_INPUT, NOT_FOUND,
+OUT_OF_SCOPE, PERMISSION_DENIED, REPOSITORY_BUSY, CONFIGURATION_REQUIRED,
+INTERNAL_ERROR. Pagination: `cursor` (offset string) + `limit` (1–500,
+default 100). Reports are chunked (`offset`/`length`, `next_offset`).
+`start_scan` returns the run ID promptly and scans in a bounded background
+pool; `cancel_scan` sets the durable flag observed by any owning process.
+
+## Coding-agent setup
+
+See `integrations/`: `pwt-dashboard.sh`, `pwt-conversation.md`,
+`opencode/` (config template + `/pwt` command), `claude-code/`
+(setup commands + `/pwt` slash command). Copy the project-local files into
+your own project; replace `/abs/...` placeholders. `/pwt help|status|
+scan|report|cancel|dashboard|ask` are agent-interpreted; assessment work
+always goes through MCP, never shell scans.
+
+## Dashboard
+
+```sh
+integrations/pwt-dashboard.sh --jar /abs/pwt-0.4.0.jar --data-dir /abs/pwt-data
+```
+
+Opens the existing JavaFX window on a local graphical machine (refuses
+without a display, never opens a second window). The GUI refreshes its run
+history from the shared store every second and loads MCP/CLI-created runs
+on click. GUI accepts `--data-dir` to share one directory with MCP/CLI.
+
+## Headless scan / discovery / setup
+
+```sh
+java -jar target/pwt-0.4.0.jar scan --root <dir> --file <rel>... [adapters/bindings/...]
+java -jar target/pwt-0.4.0.jar discover --root <dir> [...]
+java -jar target/pwt-0.4.0.jar kubeconform-setup --k8s-version 1.29.0 --kinds Pod,Service [...]
+```
+
+## Pinned stack
+
+JDK 21.0.11-ea · Maven 3.9.11 (wrapper 3.3.2) · OpenJFX 21.0.8 (linux) ·
+`io.modelcontextprotocol.sdk:mcp` 0.8.1 · Jackson 2.17.0 · SnakeYAML 2.7 ·
+`com.networknt:json-schema-validator` 1.5.9 · slf4j 2.0.16 ·
+`org.xerial:sqlite-jdbc` 3.49.1.0 · JUnit 5.13.4 ·
+yamllint 1.38.0 · Gitleaks 8.30.1 · Checkov 3.4.4 · actionlint 1.7.12 ·
+kubeconform (unversioned dev build).
+
 
 ## Prerequisites
 

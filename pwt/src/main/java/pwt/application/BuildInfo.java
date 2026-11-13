@@ -4,12 +4,12 @@ package pwt.application;
 public final class BuildInfo {
 
     public static final String APP_NAME = "pwt";
-    public static final String VERSION = "0.3.0";
-    public static final String PHASE = "Phase 3";
+    public static final String VERSION = "0.4.0";
+    public static final String PHASE = "Phase 4";
     public static final String PHASE_SUMMARY =
-            "Complete scanner integrations: yamllint, Gitleaks, Checkov (Kubernetes), actionlint "
-            + "(workflows), kubeconform (local schemas), and local user-supplied schema validation. "
-            + "All six planned integrations are implemented; availability is probed per run.";
+            "MCP operations over the shared store (read-only queries plus opt-in scans), "
+            + "coding-agent command workflow with setup artifacts for OpenCode and Claude Code, "
+            + "and basic dashboard launch. No embedded chatbot, no MCP source edits.";
 
     private BuildInfo() {
     }

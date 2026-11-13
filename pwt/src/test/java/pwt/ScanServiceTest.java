@@ -178,6 +178,7 @@ class ScanServiceTest {
         assertEquals("NO_FINDINGS", root.get("run").get("verdict").asText());
         assertEquals(summary.runId(), root.get("run").get("id").asText());
         assertTrue(root.get("scope_note").asText().contains("not a repository-wide verdict"));
+        assertTrue(root.get("scope_note").asText().contains("only the checks selected for"));
     }
 
     private static void validateAgainstSchema(String jsonReport) throws Exception {

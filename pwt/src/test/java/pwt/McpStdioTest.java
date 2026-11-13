@@ -141,6 +141,7 @@ class McpStdioTest {
         assertEquals(1, initResponse.get("id").asInt());
         assertNotNull(initResponse.get("result"), "initialize must succeed: " + initResponse);
         assertEquals("pwt", initResponse.get("result").get("serverInfo").get("name").asText());
+        assertEquals("0.4.0", initResponse.get("result").get("serverInfo").get("version").asText());
 
         // 2. initialized notification (no response expected)
         var notification = MAPPER.createObjectNode();
@@ -148,7 +149,7 @@ class McpStdioTest {
         notification.put("method", "notifications/initialized");
         send(notification);
 
-        // 3. tools/list must expose exactly pwt_info
+        // 3. tools/list must expose pwt_info plus the seven Phase 4 tools
         send(request(2, "tools/list", MAPPER.createObjectNode()));
         JsonNode listResponse = nextResponse(30);
         assertEquals(2, listResponse.get("id").asInt());
@@ -156,7 +157,10 @@ class McpStdioTest {
         for (JsonNode tool : listResponse.get("result").get("tools")) {
             toolNames.add(tool.get("name").asText());
         }
-        assertEquals(List.of("pwt_info"), toolNames);
+        assertEquals(
+                List.of("pwt_info", "list_repositories", "list_runs", "get_run",
+                        "list_findings", "get_report", "start_scan", "cancel_scan"),
+                toolNames);
 
         // 4. tools/call pwt_info returns the six-entry catalog, all INTEGRATED.
         // MCP never executes and never implies tool availability.

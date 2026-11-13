@@ -25,7 +25,7 @@ import pwt.domain.ScannerStatus;
  */
 public final class SqliteStore implements AutoCloseable {
 
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
 
     private final Connection connection;
 
@@ -81,6 +81,16 @@ public final class SqliteStore implements AutoCloseable {
                 ps.setString(1, now());
                 ps.executeUpdate();
             }
+            current = 1;
+        }
+        if (current < 2) {
+            applyV2();
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES(2, ?)")) {
+                ps.setString(1, now());
+                ps.executeUpdate();
+            }
+            current = 2;
         }
         if (current > SCHEMA_VERSION) {
             throw new SQLException("Database schema version " + current + " is newer than supported "
@@ -132,6 +142,32 @@ public final class SqliteStore implements AutoCloseable {
     public record RepositoryRow(String id, String displayName, String canonicalRoot, String identityHash) {
     }
 
+    public record McpSessionRow(String sessionId, String serverInstanceId, String clientName,
+            String clientVersion, String protocolVersion, String permissionMode, String lifecycleState,
+            String connectedAt, String serverHeartbeatAt, String lastClientActivityAt,
+            String disconnectedAt, String closeReason) {
+    }
+
+    /**
+     * Additive migration V2: MCP session presence. One row per server
+     * process session; the GUI derives live/stale/disconnected from
+     * lifecycle_state plus heartbeat age. No existing table is altered.
+     */
+    private synchronized void applyV2() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE IF NOT EXISTS mcp_sessions("
+                    + "session_id TEXT PRIMARY KEY, server_instance_id TEXT NOT NULL, "
+                    + "client_name TEXT, client_version TEXT, protocol_version TEXT, "
+                    + "permission_mode TEXT NOT NULL CHECK(permission_mode IN ('READ_ONLY','SCANS_ENABLED')), "
+                    + "lifecycle_state TEXT NOT NULL "
+                    + "CHECK(lifecycle_state IN ('STARTING','CONNECTED','DISCONNECTED')), "
+                    + "connected_at TEXT NOT NULL, server_heartbeat_at TEXT NOT NULL, "
+                    + "last_client_activity_at TEXT, disconnected_at TEXT, close_reason TEXT)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_mcp_sessions_state "
+                    + "ON mcp_sessions(lifecycle_state, server_heartbeat_at)");
+        }
+    }
+
     public record ScannerRunRow(String id, String adapterId, String toolName, String toolVersion,
             ScannerStatus status, Integer exitCode, String message) {
     }
@@ -141,7 +177,117 @@ public final class SqliteStore implements AutoCloseable {
 
     public record RunView(String id, String repositoryId, ScanState state, ScanVerdict verdict,
             String createdAt, String startedAt, String finishedAt, String appVersion,
-            String configJson, String summaryJson, String errorCode, String errorMessage) {
+            String configJson, String summaryJson, String errorCode, String errorMessage,
+            boolean cancelRequested) {
+    }
+
+    public record ArtifactRow(String kind, String status, String relativePath, String sha256,
+            Long sizeBytes, String generatedAt, String errorCode) {
+    }
+
+    public synchronized void insertMcpSession(String sessionId, String serverInstanceId,
+            String permissionMode) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "INSERT INTO mcp_sessions(session_id, server_instance_id, permission_mode,"
+                        + " lifecycle_state, connected_at, server_heartbeat_at)"
+                        + " VALUES(?,?,?,'STARTING',?,?)")) {
+            String timestamp = now();
+            ps.setString(1, sessionId);
+            ps.setString(2, serverInstanceId);
+            ps.setString(3, permissionMode);
+            ps.setString(4, timestamp);
+            ps.setString(5, timestamp);
+            ps.executeUpdate();
+        }
+    }
+
+    /** Marks first interaction: CONNECTED plus self-reported client metadata. Never resurrects closed rows. */
+    public synchronized void markMcpSessionConnected(String sessionId, String clientName,
+            String clientVersion, String protocolVersion) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "UPDATE mcp_sessions SET lifecycle_state='CONNECTED', client_name=?, client_version=?,"
+                        + " protocol_version=?, last_client_activity_at=?"
+                        + " WHERE session_id=? AND lifecycle_state='STARTING'")) {
+            ps.setString(1, clientName);
+            ps.setString(2, clientVersion);
+            ps.setString(3, protocolVersion);
+            ps.setString(4, now());
+            ps.setString(5, sessionId);
+            ps.executeUpdate();
+        }
+    }
+
+    /** Records client activity; never flips state, never resurrects closed rows. */
+    public synchronized void touchMcpSessionActivity(String sessionId) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "UPDATE mcp_sessions SET last_client_activity_at=?"
+                        + " WHERE session_id=? AND lifecycle_state!='DISCONNECTED'")) {
+            ps.setString(1, now());
+            ps.setString(2, sessionId);
+            ps.executeUpdate();
+        }
+    }
+
+    /** Heartbeat proves server liveness only; the WHERE clause prevents resurrecting closed sessions. */
+    public synchronized void heartbeatMcpSession(String sessionId) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "UPDATE mcp_sessions SET server_heartbeat_at=?"
+                        + " WHERE session_id=? AND lifecycle_state!='DISCONNECTED'")) {
+            ps.setString(1, now());
+            ps.setString(2, sessionId);
+            ps.executeUpdate();
+        }
+    }
+
+    public synchronized void closeMcpSession(String sessionId, String closeReason) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "UPDATE mcp_sessions SET lifecycle_state='DISCONNECTED', disconnected_at=?, close_reason=?"
+                        + " WHERE session_id=? AND lifecycle_state!='DISCONNECTED'")) {
+            ps.setString(1, now());
+            ps.setString(2, closeReason);
+            ps.setString(3, sessionId);
+            ps.executeUpdate();
+        }
+    }
+
+    public synchronized McpSessionRow findMcpSession(String sessionId) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT session_id, server_instance_id, client_name, client_version, protocol_version,"
+                        + " permission_mode, lifecycle_state, connected_at, server_heartbeat_at,"
+                        + " last_client_activity_at, disconnected_at, close_reason"
+                        + " FROM mcp_sessions WHERE session_id=?")) {
+            ps.setString(1, sessionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return readMcpSession(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Non-disconnected sessions, newest heartbeat first. */
+    public synchronized List<McpSessionRow> listLiveMcpSessions() throws SQLException {
+        List<McpSessionRow> rows = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT session_id, server_instance_id, client_name, client_version, protocol_version,"
+                        + " permission_mode, lifecycle_state, connected_at, server_heartbeat_at,"
+                        + " last_client_activity_at, disconnected_at, close_reason"
+                        + " FROM mcp_sessions WHERE lifecycle_state!='DISCONNECTED'"
+                        + " ORDER BY server_heartbeat_at DESC")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(readMcpSession(rs));
+                }
+            }
+        }
+        return rows;
+    }
+
+    private static McpSessionRow readMcpSession(ResultSet rs) throws SQLException {
+        return new McpSessionRow(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                rs.getString(10), rs.getString(11), rs.getString(12));
     }
 
     public synchronized RepositoryRow registerRepository(String canonicalRoot, String displayName,
@@ -366,18 +512,23 @@ public final class SqliteStore implements AutoCloseable {
         List<RunView> runs = new ArrayList<>();
         try (PreparedStatement ps = connection.prepareStatement(
                 "SELECT id, repository_id, state, verdict, created_at, started_at, finished_at, app_version,"
-                        + " config_json, summary_json, error_code, error_message FROM runs"
+                        + " config_json, summary_json, error_code, error_message, cancel_requested FROM runs"
                         + " WHERE state IN ('CREATED','RUNNING') ORDER BY created_at")) {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    runs.add(new RunView(rs.getString(1), rs.getString(2),
-                            ScanState.valueOf(rs.getString(3)), ScanVerdict.valueOf(rs.getString(4)),
-                            rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8),
-                            rs.getString(9), rs.getString(10), rs.getString(11), rs.getString(12)));
+                    runs.add(readRunView(rs));
                 }
             }
         }
         return runs;
+    }
+
+    private static RunView readRunView(ResultSet rs) throws SQLException {
+        return new RunView(rs.getString(1), rs.getString(2),
+                ScanState.valueOf(rs.getString(3)), ScanVerdict.valueOf(rs.getString(4)),
+                rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8),
+                rs.getString(9), rs.getString(10), rs.getString(11), rs.getString(12),
+                rs.getInt(13) != 0);
     }
 
     public synchronized RepositoryRow findRepositoryById(String id) throws SQLException {
@@ -454,18 +605,97 @@ public final class SqliteStore implements AutoCloseable {
     public synchronized RunView getRun(String runId) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
                 "SELECT id, repository_id, state, verdict, created_at, started_at, finished_at, app_version,"
-                        + " config_json, summary_json, error_code, error_message FROM runs WHERE id=?")) {
+                        + " config_json, summary_json, error_code, error_message, cancel_requested"
+                        + " FROM runs WHERE id=?")) {
             ps.setString(1, runId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new RunView(rs.getString(1), rs.getString(2),
-                            ScanState.valueOf(rs.getString(3)), ScanVerdict.valueOf(rs.getString(4)),
-                            rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8),
-                            rs.getString(9), rs.getString(10), rs.getString(11), rs.getString(12));
+                    return readRunView(rs);
                 }
             }
         }
         return null;
+    }
+
+    /** Paginated run history for one repository, newest first. */
+    public synchronized List<RunView> listRuns(String repositoryId, String stateFilter, int limit, int offset)
+            throws SQLException {
+        boolean filtered = stateFilter != null && !stateFilter.isBlank();
+        String sql = "SELECT id, repository_id, state, verdict, created_at, started_at, finished_at, app_version,"
+                + " config_json, summary_json, error_code, error_message, cancel_requested FROM runs"
+                + " WHERE repository_id=?" + (filtered ? " AND state=?" : "")
+                + " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        List<RunView> runs = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, repositoryId);
+            int index = 2;
+            if (filtered) {
+                ps.setString(index++, stateFilter);
+            }
+            ps.setInt(index++, Math.max(1, limit));
+            ps.setInt(index, Math.max(0, offset));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    runs.add(readRunView(rs));
+                }
+            }
+        }
+        return runs;
+    }
+
+    public synchronized int countRuns(String repositoryId, String stateFilter) throws SQLException {
+        boolean filtered = stateFilter != null && !stateFilter.isBlank();
+        String sql = "SELECT COUNT(*) FROM runs WHERE repository_id=?" + (filtered ? " AND state=?" : "");
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, repositoryId);
+            if (filtered) {
+                ps.setString(2, stateFilter);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    public synchronized int countFindings(String runId) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT COUNT(*) FROM findings WHERE run_id=?")) {
+            ps.setString(1, runId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    public synchronized List<RepositoryRow> listRepositories() throws SQLException {
+        List<RepositoryRow> rows = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT id, display_name, canonical_root, identity_hash FROM repositories ORDER BY display_name")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new RepositoryRow(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+                }
+            }
+        }
+        return rows;
+    }
+
+    public synchronized List<ArtifactRow> listArtifacts(String runId) throws SQLException {
+        List<ArtifactRow> rows = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT kind, status, relative_path, content_sha256, size_bytes, generated_at, error_code"
+                        + " FROM artifacts WHERE run_id=? ORDER BY kind")) {
+            ps.setString(1, runId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Object size = rs.getObject(5);
+                    rows.add(new ArtifactRow(rs.getString(1), rs.getString(2), rs.getString(3),
+                            rs.getString(4), size == null ? null : rs.getLong(5),
+                            rs.getString(6), rs.getString(7)));
+                }
+            }
+        }
+        return rows;
     }
 
     @Override

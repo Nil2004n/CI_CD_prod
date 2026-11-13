@@ -71,7 +71,16 @@ public final class ScanService {
         this.config = config == null ? ScanConfig.defaults() : config;
     }
 
+    /**
+     * Application data directory shared by GUI, CLI, and MCP. Defaults to
+     * {@code ~/.pwt-data}; the GUI honors {@code --data-dir} by setting the
+     * {@code pwt.data.dir} system property at startup.
+     */
     public static Path defaultDataDir() {
+        String override = System.getProperty("pwt.data.dir");
+        if (override != null && !override.isBlank()) {
+            return Path.of(override);
+        }
         return Path.of(System.getProperty("user.home"), ".pwt-data");
     }
 
@@ -90,19 +99,16 @@ public final class ScanService {
     public record ValidatedTarget(String relativePath, String sha256, long sizeBytes) {
     }
 
+    /** Validated selection: canonical root plus hash-verified targets and skip notes. */
+    public record ValidatedSelection(
+            RepositoryRoot root, List<ValidatedTarget> targets, List<String> gaps) {
+    }
+
     /**
-     * Runs a scan and returns its terminal summary. Throws only for
-     * invalid input, repository-busy, storage failures, or interruption;
-     * scanner-level problems become persisted outcomes, never exceptions.
+     * Validates adapter IDs against the integrated set. Empty/null selects all
+     * integrated adapters. Order is always {@link #ADAPTER_ORDER}.
      */
-    public ScanSummary runScan(
-            Path rootSupplied,
-            List<String> relativePaths,
-            Set<String> adapterIds,
-            String source,
-            Path dataDir,
-            CancellationToken cancellation,
-            ScanListener listener) throws ScanException {
+    public static List<String> resolveAdapters(Set<String> adapterIds) throws ScanException {
         Set<String> adapters = adapterIds == null || adapterIds.isEmpty()
                 ? new LinkedHashSet<>(INTEGRATED_ADAPTERS)
                 : new LinkedHashSet<>(adapterIds);
@@ -114,6 +120,16 @@ public final class ScanService {
                                 + " kubeconform, local-schema)");
             }
         }
+        return ADAPTER_ORDER.stream().filter(adapters::contains).toList();
+    }
+
+    /**
+     * Validates the supplied root and relative paths: canonical root
+     * resolution, containment, existence, regular files, no symlinks, content
+     * hashes. Throws only when nothing selectable remains.
+     */
+    public ValidatedSelection validateSelection(Path rootSupplied, List<String> relativePaths)
+            throws ScanException {
         if (relativePaths == null || relativePaths.isEmpty()) {
             throw new ScanException(ScanException.Code.INVALID_INPUT,
                     "No files selected: pass at least one repository-relative YAML path");
@@ -125,8 +141,6 @@ public final class ScanService {
             throw new ScanException(ScanException.Code.INVALID_INPUT,
                     "Invalid repository root: " + e.getMessage(), e);
         }
-
-        emit(listener, STAGE_VALIDATE);
         List<ValidatedTarget> targets = new ArrayList<>();
         List<String> gaps = new ArrayList<>();
         for (String input : new LinkedHashSet<>(relativePaths)) {
@@ -158,6 +172,27 @@ public final class ScanService {
             throw new ScanException(ScanException.Code.INVALID_INPUT,
                     "No selectable targets: " + String.join("; ", gaps));
         }
+        return new ValidatedSelection(root, targets, gaps);
+    }
+
+    /**
+     * Runs a scan and returns its terminal summary. Throws only for
+     * invalid input, repository-busy, storage failures, or interruption;
+     * scanner-level problems become persisted outcomes, never exceptions.
+     */
+    public ScanSummary runScan(
+            Path rootSupplied,
+            List<String> relativePaths,
+            Set<String> adapterIds,
+            String source,
+            Path dataDir,
+            CancellationToken cancellation,
+            ScanListener listener) throws ScanException {
+        List<String> adapters = resolveAdapters(adapterIds);
+        emit(listener, STAGE_VALIDATE);
+        ValidatedSelection selection = validateSelection(rootSupplied, relativePaths);
+        RepositoryRoot root = selection.root();
+        List<ValidatedTarget> targets = selection.targets();
 
         SqliteStore store;
         try {
@@ -191,7 +226,8 @@ public final class ScanService {
                         "Cannot acquire repository lock: " + e.getMessage(), e);
             }
             try {
-                return executeLocked(store, dataDir, repo, root, targets, new ArrayList<>(gaps),
+                return executeLocked(store, dataDir, repo, root, targets,
+                        new ArrayList<>(selection.gaps()),
                         new ArrayList<>(adapters), source, cancellation, listener);
             } finally {
                 lock.close();
@@ -205,7 +241,31 @@ public final class ScanService {
         }
     }
 
+    /** Result of run setup: either a live run (id + snapshot) or an already-terminal summary. */
+    public record BeginResult(String runId, Path snapshot, ScanSummary terminal) {
+    }
+
     private ScanSummary executeLocked(
+            SqliteStore store, Path dataDir, SqliteStore.RepositoryRow repo, RepositoryRoot root,
+            List<ValidatedTarget> targets, List<String> gaps, List<String> adapters, String source,
+            CancellationToken cancellation, ScanListener listener) throws ScanException {
+        BeginResult begun = beginRun(store, dataDir, repo, root, targets, gaps, adapters, source,
+                cancellation, listener);
+        if (begun.terminal() != null) {
+            return begun.terminal();
+        }
+        return finishRun(store, dataDir, begun.runId(), repo, root, targets, gaps, adapters, source,
+                begun.snapshot(), cancellation, listener);
+    }
+
+    /**
+     * Creates the run row, marks it RUNNING, and stages the private snapshot.
+     * Fast and non-blocking (no scanner execution). On pre-cancellation or
+     * staging failure the run is finalized immediately and returned as
+     * {@code terminal}. The caller retains the repository lock until the run
+     * (or {@link #finishRun}) completes.
+     */
+    public BeginResult beginRun(
             SqliteStore store, Path dataDir, SqliteStore.RepositoryRow repo, RepositoryRoot root,
             List<ValidatedTarget> targets, List<String> gaps, List<String> adapters, String source,
             CancellationToken cancellation, ScanListener listener) throws ScanException {
@@ -221,8 +281,9 @@ public final class ScanService {
                     "Cannot create run record: " + e.getMessage(), e);
         }
         if (cancellation != null && cancellation.isCancelled()) {
-            return finalizeRun(store, null, runId, repo, root, targets, gaps, List.of(),
+            ScanSummary terminal = finalizeRun(store, null, runId, repo, root, targets, gaps, List.of(),
                     ScanState.CANCELLED, ScanVerdict.INDETERMINATE, "CANCELLED", "cancelled before staging", runId);
+            return new BeginResult(runId, null, terminal);
         }
 
         emit(listener, STAGE_STAGE);
@@ -234,11 +295,25 @@ public final class ScanService {
                 store.addRunFile(runId, target.relativePath(), target.sha256(), target.sizeBytes());
             }
         } catch (Exception e) {
-            return finalizeRun(store, dataDir, runId, repo, root, targets, gaps, List.of(),
+            ScanSummary terminal = finalizeRun(store, dataDir, runId, repo, root, targets, gaps, List.of(),
                     ScanState.FAILED, ScanVerdict.INDETERMINATE,
                     "STAGING_FAILED", "Could not stage selected files: " + e.getMessage(), runId);
+            return new BeginResult(runId, null, terminal);
         }
+        return new BeginResult(runId, snapshot, null);
+    }
 
+    /**
+     * Executes adapters against an already-staged snapshot, persists
+     * outcomes, and finalizes the run. Observes both the in-memory token and
+     * the durable {@code cancel_requested} flag (set by any process), so a
+     * run can be cancelled cross-process.
+     */
+    public ScanSummary finishRun(
+            SqliteStore store, Path dataDir, String runId,
+            SqliteStore.RepositoryRow repo, RepositoryRoot root,
+            List<ValidatedTarget> targets, List<String> gaps, List<String> adapters, String source,
+            Path snapshot, CancellationToken cancellation, ScanListener listener) throws ScanException {
         List<ScannerOutcome> outcomes = new ArrayList<>();
         List<String> orderedAdapters = ADAPTER_ORDER.stream().filter(adapters::contains).toList();
         // Kubeconform default: explicit template wins, otherwise the managed
@@ -249,7 +324,7 @@ public final class ScanService {
         }
         boolean cancelled = false;
         for (String adapterId : orderedAdapters) {
-            if (cancellation != null && cancellation.isCancelled()) {
+            if (isCancelled(store, runId, cancellation)) {
                 cancelled = true;
                 try {
                     store.setCancelRequested(runId);
@@ -413,6 +488,112 @@ public final class ScanService {
             paths.add(target.relativePath());
         }
         return paths;
+    }
+
+    /**
+     * Cancellation from either channel: the in-memory token (same process)
+     * or the durable {@code cancel_requested} flag (any process). Store
+     * failures here are best-effort false; finalization surfaces real
+     * storage errors.
+     */
+    private static boolean isCancelled(SqliteStore store, String runId, CancellationToken cancellation) {
+        if (cancellation != null && cancellation.isCancelled()) {
+            return true;
+        }
+        try {
+            SqliteStore.RunView view = store.getRun(runId);
+            return view != null && view.cancelRequested();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Reassembles a persisted run into a {@link ScanSummary} (same shape as
+     * live results) for MCP responses and GUI history views. Report paths
+     * come from READY artifact rows.
+     */
+    public static ScanSummary loadSummary(SqliteStore store, String runId) throws ScanException {
+        SqliteStore.RunView view;
+        SqliteStore.RepositoryRow repo;
+        try {
+            view = store.getRun(runId);
+            if (view == null) {
+                return null;
+            }
+            repo = store.findRepositoryById(view.repositoryId());
+            if (repo == null) {
+                throw new ScanException(ScanException.Code.STORAGE_ERROR,
+                        "Run references unknown repository");
+            }
+        } catch (ScanException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ScanException(ScanException.Code.STORAGE_ERROR,
+                    "Cannot load run: " + e.getMessage(), e);
+        }
+        List<ScanSummary.SelectedTarget> targets = new ArrayList<>();
+        List<ScannerOutcome> outcomes = new ArrayList<>();
+        List<String> gaps = new ArrayList<>();
+        String jsonReport = null;
+        String markdownReport = null;
+        try {
+            for (SqliteStore.TargetRow row : store.listRunFiles(runId)) {
+                targets.add(new ScanSummary.SelectedTarget(
+                        row.relativePath(), row.sha256(), row.sizeBytes()));
+            }
+            List<SqliteStore.ScannerRunRow> scanners = store.listScannerRuns(runId);
+            java.util.Map<String, List<Finding>> findingsByScanner = new java.util.HashMap<>();
+            for (SqliteStore.FindingRow row : store.listFindings(runId)) {
+                findingsByScanner.computeIfAbsent(row.scannerRunId(), key -> new ArrayList<>())
+                        .add(row.finding());
+            }
+            for (SqliteStore.ScannerRunRow scanner : scanners) {
+                outcomes.add(new ScannerOutcome(scanner.adapterId(), scanner.toolName(),
+                        scanner.toolVersion(), scanner.status(), scanner.exitCode(), scanner.message(),
+                        findingsByScanner.getOrDefault(scanner.id(), List.of()), List.of()));
+            }
+            for (SqliteStore.ArtifactRow artifact : store.listArtifacts(runId)) {
+                if (!"READY".equals(artifact.status()) || artifact.relativePath() == null) {
+                    continue;
+                }
+                if ("JSON_REPORT".equals(artifact.kind())) {
+                    jsonReport = artifact.relativePath();
+                } else if ("MARKDOWN_REPORT".equals(artifact.kind())) {
+                    markdownReport = artifact.relativePath();
+                }
+            }
+            gaps.addAll(extractSummaryGaps(view.summaryJson()));
+        } catch (Exception e) {
+            throw new ScanException(ScanException.Code.STORAGE_ERROR,
+                    "Cannot load run details: " + e.getMessage(), e);
+        }
+        int findingCount = outcomes.stream().mapToInt(o -> o.findings().size()).sum();
+        return new ScanSummary(runId, repo.displayName(), repo.canonicalRoot(), view.state(), view.verdict(),
+                targets, outcomes, findingCount, jsonReport, markdownReport,
+                view.startedAt(), view.finishedAt(), gaps);
+    }
+
+    public static List<String> extractSummaryGaps(String summaryJson) {
+        List<String> gaps = new ArrayList<>();
+        if (summaryJson == null || summaryJson.isBlank()) {
+            return gaps;
+        }
+        try {
+            com.fasterxml.jackson.databind.JsonNode root =
+                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(summaryJson);
+            com.fasterxml.jackson.databind.JsonNode array = root.path("gaps");
+            if (array.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode gap : array) {
+                    if (gap.isTextual()) {
+                        gaps.add(gap.asText());
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // corrupt summary JSON: gaps stay empty rather than breaking loads
+        }
+        return gaps;
     }
 
     private static void emit(ScanListener listener, String stage) {

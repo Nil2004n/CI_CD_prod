@@ -1,94 +1,106 @@
-# Handover — PWT Java rebuild, Phases 1–3
+# Handover — PWT Java rebuild, Phases 1–4 (CLOSEOUT B)
 
-Checkpoint: 2026-11-12 (Phase 3). All six scanner integrations are
-implemented and verified in the working tree (branch `phase/P04-git-acquisition`,
-HEAD `c183267`, uncommitted by instruction). Next step needs the owner: accept
-Phase 3 or direct Phase 4. Live state: `status.md`.
+Checkpoint: 2026-11-13 (Phase 4). Implementation + all executable
+verification passed; one external check is blocked (OpenCode model credits).
+Working tree on `main`, uncommitted by instruction (HEAD `ac896c9`).
+Closeout outcome: **B — implementation complete, external verification
+blocked** (see status.md). Next step needs the owner: accept B with the
+limitation, or direct Phase 5. Live state: `status.md`.
 
-## 1. What exists and where (new in Phase 3)
+## 1. What exists and where (new in Phase 4)
 
-- `pwt.adapters.CheckovAdapter` — kubernetes-framework scans, `-f` per
-  applicable file, stdout JSON, severity preserved-or-UNKNOWN.
-- `pwt.adapters.ActionlintAdapter` — `-format '{{json .}}'`, helpers off,
-  `.github/workflows/*.yml|yaml` top-level rule, snippets dropped.
-- `pwt.adapters.KubeconformAdapter` — `-output json -verbose`, local
-  `-schema-location` only, statuses → findings/gaps; `countCachedSchemas`.
-- `pwt.adapters.LocalSchemaAdapter` — networknt + SnakeYAML, bindings,
-  2020-12/2019-09, ref policy, per-doc validation, no lines/values.
-- `pwt.adapters.YamlSniff` — shared safe k8s-manifest sniff.
-- `pwt.application.LocalSchemaConfig` — bindings + dialect validation.
-- `pwt.application.ScanConfig` + `KubeconformConfig` (template/version/strict).
-- `pwt.launcher.KubeconformSetup` — explicit schema download action.
-- `pwt.domain.ScannerStatus.NOT_APPLICABLE` (neutral) — report schema updated.
-- GUI: adapter checkboxes, bindings field, kubeconform version/strict,
-  outcomes list, six-way availability. `pwt_info`: Phase 3, all INTEGRATED.
-- Tests: Checkov/Actionlint/Kubeconform/LocalSchema parser + real-tool suites,
-  setup command tests, 5 schema/schema-template fixtures under
-  `pwt/src/test/resources/{localschema,kubeconform-local}/`. 121 total.
-- `phase/P04` branch/HEAD unchanged; old Rust tree untouched.
+- `pwt.mcp.McpScanTools` — 7 tools (5 read-only + start/cancel), cursor/limit
+  pagination, bounded report chunks, `OUT_OF_SCOPE`/`PERMISSION_DENIED`/
+  `CONFIGURATION_REQUIRED` errors with correlation IDs.
+- `pwt.mcp.McpScanManager` — validates synchronously, begins durable runs
+  under the repo lock, finishes in a bounded pool; durable + in-process
+  cancel; orderly shutdown.
+- `pwt.mcp.McpErrors`, `McpPresence` (live/stale/unknown classifier +
+  status lines), `McpActivity` (STARTING→CONNECTED flip, 2s heartbeat,
+  no-resurrection updates, shutdown close).
+- `SqliteStore` V2 (`mcp_sessions`, additive) + session queries.
+- `ScanService` validate/begin/finish split + `loadSummary` (+reconcile
+  unchanged). GUI/CLI paths behavior-identical.
+- GUI: 1s refresh of history + registered-root picker + live presence label
+  and per-client details + effective data-dir note; click-to-load runs.
+- Launcher: `repo-add`, `repo-list`, `doctor`, `mcp-status`,
+  `mcp [--data-dir] [--allow-scans]`, `gui [--data-dir]`.
+- `integrations/`: `pwt-mcp-stdio.sh` (single Java+JAR resolution),
+  `pwt-dashboard.sh` (single-instance, headless refusal, bracket-trick
+  pgrep), `setup_opencode.py`, `setup_claude.py` (merge + preserve mode),
+  `pwt-conversation.md`, `opencode/` + `claude-code/` (configs, `/pwt`
+  commands with bare-`/pwt`-opens-dashboard, READMEs).
+- `Makefile`: full target set (help/doctor/build/test/setup/repo-add/
+  repo-list/start/dashboard/setup-opencode/setup-claude/mcp/mcp-status).
+- Tests: `McpHarness` + `McpToolsTest` (12), `McpPresenceTest` (5),
+  `LauncherCommandsTest` (3, incl. V1→V2 migration + session lifecycle).
+  141 total, 0 skipped final. `GuiProbe5` (throwaway, /tmp) for
+  history/roots/presence.
 
 ## 2. How to verify (from repo root)
 
 ```sh
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64; export PATH="$JAVA_HOME/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"   # checkov/actionlint/kubeconform/gitleaks
-cd pwt && ./mvnw -B clean test        # expect 121/0/0/0, BUILD SUCCESS
-./mvnw -B -q package -DskipTests      # target/pwt-0.3.0.jar
-java -jar target/pwt-0.3.0.jar kubeconform-setup --k8s-version 1.29.0 \
-  --kinds Pod,Service --data-dir <dir>     # explicit schema cache fill
-java -jar target/pwt-0.3.0.jar scan --root <dir> --file <rel>... \
-  --schema-binding 'GLOB=/abs/schema.json' # same services as GUI
-java -jar target/pwt-0.3.0.jar gui    # needs display; screenshot-proven 2026-11-12
-python3 /tmp/opencode/mcp_check.py    # independent MCP harness (in /tmp)
+export PATH="$HOME/.local/bin:$PATH"
+cd pwt && ./mvnw -B clean test        # expect 141/0/0/0, BUILD SUCCESS
+./mvnw -B -q package -DskipTests      # target/pwt-0.4.0.jar
+make doctor DATA_DIR=<dir>
+make setup DATA_DIR=<dir> && make repo-add ROOT=<abs project>
+make setup-opencode ROOT=<abs project> ALLOW_SCANS=1
+make setup-claude ROOT=<abs project>
+make mcp-status DATA_DIR=<dir>
+integrations/pwt-mcp-stdio.sh --data-dir <dir> [--allow-scans]
+java -jar pwt/target/pwt-0.4.0.jar gui --data-dir <dir>
+python3 /tmp/opencode/mcp_check.py    # independent harness (in /tmp)
 ```
 
-Toolchain reality: default `java` is 25 — do not use; Maven only via wrapper;
-kubeconform reports version `development`; real X on `:0.0`, `xvfb-run` OK.
+Client checks: `/tmp/pwtagent` pattern (seed via CLI, register with
+`claude mcp add --scope project pwt -- ...`, copy command files, then
+`claude -p "/pwt status|report|scan|ask"`). Needs Claude auth (worked
+2026-11-13). OpenCode: `opencode mcp list` for health, but `opencode run`
+needs funded credits.
 
-## 3. Evidence from this session (all in `/tmp/opencode`, not in git)
+## 3. Evidence from this session (all in `/tmp`, not in git)
 
-- `mcp_check.py` (v0.3.0, 6× INTEGRATED) — ALL PASSED.
-- `GuiProbe.java` + run — six-adapter in-GUI scan (ALL CHECKS PASSED).
-- `pwt-gui3.png` — Phase 3 screenshot; `KcDebug/LsDebug/RefDebug/SvcDebug.java`
-  — throwaway root-cause drivers (kubeconform template casing, networknt
-  SchemaLocation+config, $id base-URI, gap propagation).
-- `kube-schemas/` — real upstream schemas downloaded explicitly (Deployment,
-  Pod, Service 1.29.0); `kclocal/` — local-template proof.
-- Fixtures: `mix/`, `mixdata/` (combined six-adapter CLI runs).
+- `mcp_check.py` (v0.4.0, 8 tools) — ALL PASSED.
+- `GuiProbe5.java` + run — history/roots/presence (ALL CHECKS PASSED).
+- `pwt-dash2.png` — helper-launched 0.4.0 window (Phase 4 GUI + history pane).
+- `/tmp/pwtagent/` — seed runs, `.mcp.json`, `/pwt` command, agent transcripts
+  (status/report/scan/ask + stale-note bug catch).
+- `opencode.json` in repo root (user-connected PWT MCP, read-only) plus
+  `.opencode/commands/pwt.md` + `.opencode/pwt-conversation.md` (installed
+  this session for the user's "can't see the command" report).
 
 ## 4. Traps for the next implementer
 
-- kubeconform lowercases `{{.ResourceKind}}`: local schema files must be
-  lowercase (`widget.json`, NOT `Widget.json`); full versioned template shape
-  is `.../{{.NormalizedKubernetesVersion}}-standalone{{.StrictSuffix}}/
-  {{.ResourceKind}}{{.KindSuffix}}.json`.
-- A schema-location that is not a full `...json` template gets the default
-  template APPENDED (kubeconform registry.go) — always pass full templates.
-- networknt 1.5.9: `getSchema(String)` parses CONTENT — load files via
-  `getSchema(SchemaLocation.of(uri), SchemaValidatorsConfig.builder().build())`.
-- `$id` sets the ref base URI (a remote `$id` + relative refs = network
-  fetch); vetting rejects that combination, not every remote `$id`.
-- ScannerOutcome now has 8 components incl. `coverageGaps`; ScanService
-  collects them into run gaps (SUCCEEDED outcomes can carry gaps).
-- `checkov -d` on a missing dir exits 0 — never trust exit codes without
-  parsing; checkov stdout JSON needs `--quiet` + `-o json` (no file).
-- Gitleaks uses `--exit-code 7`; yamllint non-strict 0/1 = executed.
-- Phase 2 tests pin `--adapter yamllint,gitleaks` for clean-run expectations;
-  bare defaults now include all six (honest INDETERMINATE with gaps).
+- `getSchema(String)` parses CONTENT in networknt 1.5.9 — always use
+  `SchemaLocation.of(uri)` + config builder (unchanged).
+- MCP tool handlers must return isError results, never throw (wrapper
+  converts `McpServiceException`; anything else → INTERNAL_ERROR).
+- `context.activity()` may be null in tests constructing McpContext directly.
+- Presence: STARTING flips only via tool calls; heartbeats/close are
+  conditional on non-DISCONNECTED; GUI staleness threshold 10s.
+- Never match own command lines with plain-string `pgrep -f` (use the
+  bracket trick); same for `pkill` in test/debug shells.
 - `System.setProperty("pwt.tools.<id>", ...)` must be cleared in `finally`.
-- Never assert on `~/.pwt-data`; every test uses `@TempDir`.
+- Tests that spawn the MCP server need `pwt-mcp-stdio.sh`-equivalent env
+  (java on PATH); the Python check harness needs `--data-dir` (never CWD).
+- `make mcp` stdout must stay empty: recipe lines are @-prefixed, the
+  launcher prints nothing on stdout, diagnostics go to stderr.
+- OpenCode `mcp list` may show "No MCP servers configured" on first touch
+  of a fresh dir; retry shows the truth (observed twice, cause unknown —
+  likely service caching).
+- `ui_files/` PNGs are stale pre-rebuild mockups; ignore them.
 
-## 5. Deferred to Phase 6 (do not sneak into Phase 4/5)
+## 5. Deferred to Phase 6 (do not sneak into Phase 5)
 
-Fault injection, sandboxing, secure deletion, crash/orphan recovery, output
-tuning under adversarial tools, YAML parser abuse limits, Checkov framework
-expansion, actionlint helper integration, broader kubeconform kind coverage,
-remote-ref support, cross-platform validation, performance budgets, log-leak
-fuzzing.
+Fault injection, sandboxing, secure deletion, crash/orphan recovery,
+tuning MCP limits under adversarial load, auth model beyond local stdio,
+cross-platform validation, performance budgets, log-leak fuzzing, MCP rate
+limiting/quotas, broader kind coverage, remote refs.
 
-## 6. Next task (Phase 4, per status.md)
+## 6. Next task (Phase 5, per status.md)
 
-MCP `list_repositories/list_runs/get_run/list_findings/get_report` plus
-opt-in `start_scan/cancel_scan` (`--allow-scans`, default read-only) over the
-same SQLite store; real-client verification incl. GUI-visible authorized scan.
-No edit/Git tools. Keep `pwt_info` as-is.
+Complete desktop workflows: repository list, full history + filtering,
+evidence detail, redacted logs, visible refresh, before/after comparison,
+rescan-after-edit. Reuse services as-is.

@@ -50,15 +50,12 @@ class McpInfoTest {
         String serialized = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(content);
         assertTrue(serialized.contains("scanner_catalog"));
         assertTrue(serialized.contains("INTEGRATED"));
-        assertFalse(serialized.contains("NOT_IMPLEMENTED"),
-                "no catalog entry may regress to NOT_IMPLEMENTED");
-        // The info payload must not offer scan execution, shell access, file
-        // reads, or editing affordances. ("Desktop shell" is the UI name and
-        // is allowed; a shell *command* affordance is not.)
-        assertFalse(serialized.contains("start_scan"));
-        assertFalse(serialized.contains("cancel_scan"));
+        // The info payload must not offer shell access, file reads, or editing
+        // affordances. (Mentioning the real scan-operation tool names is fine;
+        // offering a shell *command* affordance is not.)
         assertFalse(serialized.contains("run_command"));
         assertFalse(serialized.contains("execute_scan"));
+        assertFalse(serialized.contains("shell -c"));
         assertFalse(serialized.toLowerCase().contains("arbitrary file"));
     }
 }

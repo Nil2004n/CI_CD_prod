@@ -36,6 +36,8 @@ public final class ReportService {
         String config = run.configJson();
         if (config != null && config.contains("\"source\":\"GUI\"")) {
             source = "GUI";
+        } else if (config != null && config.contains("\"source\":\"MCP\"")) {
+            source = "MCP";
         }
         boolean complete = run.state() == ScanState.COMPLETED;
         List<String> gaps = extractGaps(run.summaryJson());
@@ -72,30 +74,14 @@ public final class ReportService {
         return "This assessment applies only to " + targetCount + " explicitly selected file(s) and "
                 + scannerCount + " configured check(s). It is not a repository-wide verdict:"
                 + " never display or describe this result as \"repository secure\"."
-                + " Planned scanners that are not yet integrated (Checkov, actionlint,"
-                + " kubeconform, local-schema) are outside this assessment's scope.";
+                + " The six integrated checks are yamllint, gitleaks, checkov, actionlint,"
+                + " kubeconform, and local-schema validation; only the checks selected for"
+                + " this run were applied, and unselected or out-of-scope checks are outside"
+                + " this assessment's scope.";
     }
 
     private static List<String> extractGaps(String summaryJson) {
-        List<String> gaps = new ArrayList<>();
-        if (summaryJson == null || summaryJson.isBlank()) {
-            return gaps;
-        }
-        try {
-            com.fasterxml.jackson.databind.JsonNode root =
-                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(summaryJson);
-            com.fasterxml.jackson.databind.JsonNode array = root.path("gaps");
-            if (array.isArray()) {
-                for (com.fasterxml.jackson.databind.JsonNode gap : array) {
-                    if (gap.isTextual()) {
-                        gaps.add(gap.asText());
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-            // corrupt summary JSON: gaps stay empty rather than breaking export
-        }
-        return gaps;
+        return ScanService.extractSummaryGaps(summaryJson);
     }
 
     private static String buildJson(SqliteStore.RunView run, SqliteStore.RepositoryRow repo,

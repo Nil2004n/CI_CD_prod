@@ -1,0 +1,17 @@
+{
+  "mcp": {
+    "servers": {
+      "pwt": {
+        "type": "local",
+        "command": [
+          "java",
+          "-jar",
+          "/home/kali/Desktop/CI_CD_prod/pwt/target/pwt-0.4.0.jar",
+          "mcp",
+          "--data-dir",
+          "/home/kali/.pwt-data"
+        ]
+      }
+    }
+  }
+}

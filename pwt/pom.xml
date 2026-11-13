@@ -21,7 +21,7 @@
 
   <groupId>dev.pwt</groupId>
   <artifactId>pwt</artifactId>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <packaging>jar</packaging>
   <name>PWT (Phase 1 rebuild)</name>
   <description>Local-first YAML assessment workbench: JavaFX desktop shell, safe YAML discovery, MCP stdio spike.</description>

@@ -37,7 +37,8 @@ public final class PwtInfo {
                 "Schema-versioned JSON and readable Markdown reports per terminal run",
                 "Terminal-inspired JavaFX desktop shell with real scan execution and results",
                 "Headless scan command using the same application services",
-                "Minimal MCP stdio server exposing this pwt_info tool only"));
+                "MCP read-only queries (repositories, runs, findings, reports) over the shared store",
+                "Opt-in MCP start_scan/cancel_scan (--allow-scans) reusing ScanService and locks"));
         info.put("capability_note", BuildInfo.PHASE_SUMMARY);
         List<Map<String, Object>> catalog = new ArrayList<>();
         for (ScannerDescriptor descriptor : ScannerCatalog.planned()) {

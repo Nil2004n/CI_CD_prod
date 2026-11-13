@@ -17,6 +17,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
@@ -92,12 +93,20 @@ public class PwtDesktopApp extends Application {
         worker.setDaemon(true);
         return worker;
     });
+    private final java.util.concurrent.ScheduledExecutorService historyRefresher =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread worker = new Thread(r, "pwt-history-refresh");
+                worker.setDaemon(true);
+                return worker;
+            });
     private final AtomicLong generation = new AtomicLong(0);
     private volatile CancellationToken activeCancellation = CancellationToken.none();
     private volatile Future<?> activeTask;
     private volatile RepositoryRoot activeRoot;
     private volatile CancellationToken scanCancellation;
     private volatile boolean scanning;
+    private volatile String displayedRunId;
+    private volatile boolean displayedTerminal = true;
 
     private TextField rootField;
     private ListView<String> fileList;
@@ -116,12 +125,21 @@ public class PwtDesktopApp extends Application {
     private ObservableList<FindingRow> findingRows;
     private ListView<String> outcomesList;
     private ObservableList<String> outcomeItems;
+    private ListView<HistoryRow> historyList;
+    private ObservableList<HistoryRow> historyItems;
     private final java.util.Map<String, ScannerRow> rowByTool = new java.util.HashMap<>();
     private final java.util.Map<String, CheckBox> adapterBoxes = new java.util.LinkedHashMap<>();
     private TextField bindingsField;
     private TextField kubeVersionField;
     private CheckBox kubeStrictBox;
+    private ComboBox<String> rootsComboBox;
+    private Label presenceLabel;
+    private ListView<String> presenceDetailsList;
+    private ObservableList<String> presenceDetails;
+    private Label dataDirLabel;
     private volatile int availableAdapterCount;
+    private final java.util.Map<String, String> rootsByDisplay = new java.util.LinkedHashMap<>();
+    private volatile boolean suppressRootEvents;
 
     @Override
     public void start(Stage stage) {
@@ -138,12 +156,14 @@ public class PwtDesktopApp extends Application {
 
         Scene scene = new Scene(root, 1100, 700);
         stage.setScene(scene);
-        log("PWT desktop started. Open a directory to discover YAML files.");
-        log("MCP sessions observed by this process: none (separate MCP processes do not share session state).");
+        log("PWT desktop started. Open a directory to discover YAML files, "
+                + "or pick a registered root above. Shared data dir: "
+                + ScanService.defaultDataDir());
         stage.show();
         LOG.warn("PWT desktop started");
         refreshAvailability();
         scanExecutor.submit(() -> ScanService.reconcileInterrupted(ScanService.defaultDataDir()));
+        historyRefresher.scheduleWithFixedDelay(this::refreshHistory, 1, 1, java.util.concurrent.TimeUnit.SECONDS);
     }
 
     private HBox buildToolbar(Stage stage) {
@@ -160,12 +180,22 @@ public class PwtDesktopApp extends Application {
         styleButton(openButton);
         openButton.setOnAction(event -> chooseAndDiscover(stage));
 
+        rootsComboBox = new ComboBox<>();
+        rootsComboBox.setPromptText("Registered roots…");
+        rootsComboBox.setPrefWidth(220);
+        rootsComboBox.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #c9d1d9;");
+        rootsComboBox.getSelectionModel().selectedItemProperty().addListener((obs, old, current) -> {
+            if (!suppressRootEvents && current != null) {
+                openRegisteredRoot(current);
+            }
+        });
+
         cancelButton = new Button("Cancel discovery");
         styleButton(cancelButton);
         cancelButton.setDisable(true);
         cancelButton.setOnAction(event -> cancelDiscovery());
 
-        HBox toolbar = new HBox(8, title, rootField, openButton, cancelButton);
+        HBox toolbar = new HBox(8, title, rootField, rootsComboBox, openButton, cancelButton);
         toolbar.setPadding(new Insets(8));
         toolbar.setStyle("-fx-background-color: #161b22; -fx-border-color: #30363d; -fx-border-width: 0 0 1 0;");
         return toolbar;
@@ -295,10 +325,19 @@ public class PwtDesktopApp extends Application {
         outcomesList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; "
                 + "-fx-font-family: monospace; -fx-font-size: 11;");
 
-        Label mcpLabel = styledLabel("MCP: not observed in this process.");
+        presenceLabel = styledLabel("MCP: No active clients.");
+        presenceDetails = FXCollections.observableArrayList();
+        ListView<String> presenceDetailsList = new ListView<>(presenceDetails);
+        presenceDetailsList.setPrefHeight(64);
+        presenceDetailsList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; "
+                + "-fx-font-family: monospace; -fx-font-size: 11;");
+        dataDirLabel = styledLabel("Shared data: " + ScanService.defaultDataDir().toString());
+        Label dataDirHint = styledLabel("MCP must use the same --data-dir to appear here.");
+        dataDirHint.setStyle("-fx-text-fill: #6e7681; -fx-font-family: monospace; -fx-font-size: 11;");
         VBox pane = new VBox(6, heading, table, scanButton, checksHeading, checksBar,
                 bindingsHeading, bindingsField, kubeBar, verdictLabel, outcomesHeading,
-                outcomesList, findingsHeading, findingsTable, reportsBar, mcpLabel);
+                outcomesList, findingsHeading, findingsTable, reportsBar, presenceLabel,
+                presenceDetailsList, dataDirLabel, dataDirHint);
         pane.setPadding(new Insets(8));
         pane.setStyle("-fx-background-color: #0d1117; -fx-border-color: #30363d; -fx-border-width: 0 0 0 1;");
         return pane;
@@ -311,7 +350,20 @@ public class PwtDesktopApp extends Application {
         logList.setPrefHeight(130);
         logList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; -fx-font-family: monospace;");
         statusLabel = styledLabel("status: idle");
-        VBox bottom = new VBox(4, heading, logList, statusLabel);
+
+        Label historyHeading = styledLabel("RUN HISTORY (shared store — refreshes every second, click to load)");
+        historyItems = FXCollections.observableArrayList();
+        historyList = new ListView<>(historyItems);
+        historyList.setPrefHeight(76);
+        historyList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; "
+                + "-fx-font-family: monospace; -fx-font-size: 11;");
+        historyList.getSelectionModel().selectedItemProperty().addListener((obs, old, current) -> {
+            if (current != null) {
+                loadHistoryRun(current.runId());
+            }
+        });
+
+        VBox bottom = new VBox(4, historyHeading, historyList, heading, logList, statusLabel);
         bottom.setPadding(new Insets(8));
         bottom.setStyle("-fx-background-color: #0d1117; -fx-border-color: #30363d; -fx-border-width: 1 0 0 0;");
         return bottom;
@@ -438,6 +490,13 @@ public class PwtDesktopApp extends Application {
             update.run();
             cancelButton.setDisable(true);
         });
+    }
+
+    private static boolean isTerminalState(String state) {
+        return switch (state) {
+            case "COMPLETED", "PARTIAL", "FAILED", "CANCELLED", "INTERRUPTED" -> true;
+            default -> false;
+        };
     }
 
     private void updateCounts() {
@@ -623,6 +682,10 @@ public class PwtDesktopApp extends Application {
     private void showScanSummary(ScanSummary summary) {
         scanning = false;
         updateScanButton();
+        displayedRunId = summary.runId();
+        displayedTerminal = isTerminalState(summary.state().name());
+        findingRows.clear();
+        outcomeItems.clear();
         for (ScannerOutcome outcome : summary.scannerOutcomes()) {
             StringBuilder line = new StringBuilder(outcome.adapterId())
                     .append(": ").append(outcome.status().name().toLowerCase())
@@ -684,6 +747,124 @@ public class PwtDesktopApp extends Application {
         }
     }
 
+    /**
+     * Shared-store refresh, roughly once per second. Reloads the recent-run
+     * list for the active root and, while the displayed run is non-terminal,
+     * its summary — so MCP/CLI-created runs and background progress become
+     * visible here. Store work stays off the FX thread; the list only changes
+     * when run IDs change (no selection reset churn).
+     */
+    private void openRegisteredRoot(String displayName) {
+        String canonical = rootsByDisplay.get(displayName);
+        if (canonical == null) {
+            return;
+        }
+        log("Opening registered root: " + canonical);
+        startDiscovery(java.nio.file.Path.of(canonical));
+    }
+
+    private void refreshHistory() {
+        RepositoryRoot root = activeRoot;
+        String displayed = displayedRunId;
+        boolean terminal = displayedTerminal;
+        try (pwt.infrastructure.SqliteStore store =
+                pwt.infrastructure.SqliteStore.open(ScanService.defaultDataDir())) {
+            final java.util.List<HistoryRow> rows = new java.util.ArrayList<>();
+            if (root != null) {
+                pwt.infrastructure.SqliteStore.RepositoryRow repo = store.registerRepository(
+                        root.root().toString(), root.displayName(), root.identityHash());
+                for (pwt.infrastructure.SqliteStore.RunView view :
+                        store.listRuns(repo.id(), null, 20, 0)) {
+                    rows.add(new HistoryRow(view.id(), view.state().name(), view.verdict().name(),
+                            store.countFindings(view.id()), view.createdAt()));
+                }
+            }
+            // Registered roots for the picker (shared store; MCP/CLI-created).
+            final java.util.Map<String, String> freshRoots = new java.util.LinkedHashMap<>();
+            for (pwt.infrastructure.SqliteStore.RepositoryRow row : store.listRepositories()) {
+                boolean available = java.nio.file.Files.isDirectory(java.nio.file.Path.of(row.canonicalRoot()));
+                String label = row.displayName() + (available ? "" : " (unavailable)");
+                if (!freshRoots.containsKey(label)) {
+                    freshRoots.put(label, row.canonicalRoot());
+                } else {
+                    freshRoots.put(label + " — " + row.canonicalRoot(), row.canonicalRoot());
+                }
+            }
+            // Live MCP presence for the same data directory.
+            final java.util.List<pwt.mcp.McpPresence.SessionView> presence =
+                    pwt.mcp.McpPresence.summarize(store.listLiveMcpSessions(), java.time.Instant.now());
+            final ScanSummary reload;
+            if (displayed != null && !terminal) {
+                ScanSummary loaded;
+                try {
+                    loaded = ScanService.loadSummary(store, displayed);
+                } catch (Exception e) {
+                    loaded = null;
+                }
+                reload = loaded;
+            } else {
+                reload = null;
+            }
+            Platform.runLater(() -> {
+                java.util.List<String> currentIds = new java.util.ArrayList<>();
+                for (HistoryRow row : historyItems) {
+                    currentIds.add(row.runId());
+                }
+                java.util.List<String> freshIds = new java.util.ArrayList<>();
+                for (HistoryRow row : rows) {
+                    freshIds.add(row.runId());
+                }
+                if (!currentIds.equals(freshIds)) {
+                    historyItems.setAll(rows);
+                }
+                if (!rootsByDisplay.equals(freshRoots)) {
+                    suppressRootEvents = true;
+                    try {
+                        rootsByDisplay.clear();
+                        rootsByDisplay.putAll(freshRoots);
+                        String keep = rootsComboBox.getValue();
+                        rootsComboBox.getItems().setAll(freshRoots.keySet());
+                        if (keep != null && freshRoots.containsKey(keep)) {
+                            rootsComboBox.setValue(keep);
+                        }
+                    } finally {
+                        suppressRootEvents = false;
+                    }
+                }
+                presenceLabel.setText(pwt.mcp.McpPresence.statusLine(presence));
+                java.util.List<String> details = new java.util.ArrayList<>();
+                for (pwt.mcp.McpPresence.SessionView view : presence) {
+                    details.add(view.clientLabel() + " · " + view.permissionMode()
+                            + " · " + view.presence().name() + " · heartbeat "
+                            + view.heartbeatAge());
+                }
+                if (!presenceDetails.equals(details)) {
+                    presenceDetails.setAll(details);
+                }
+                if (reload != null) {
+                    showScanSummary(reload);
+                }
+            });
+        } catch (Exception e) {
+            // Data dir may not exist yet; history simply stays empty.
+        }
+    }
+
+    private void loadHistoryRun(String runId) {
+        scanExecutor.submit(() -> {
+            try (pwt.infrastructure.SqliteStore store =
+                    pwt.infrastructure.SqliteStore.open(ScanService.defaultDataDir())) {
+                ScanSummary summary = ScanService.loadSummary(store, runId);
+                if (summary != null) {
+                    Platform.runLater(() -> showScanSummary(summary));
+                    log("Loaded persisted run " + runId + " from the shared store.");
+                }
+            } catch (Exception e) {
+                log("Could not load run " + runId + ": " + e.getMessage());
+            }
+        });
+    }
+
     private void log(String message) {
         String line = EventSanitizer.sanitize(message);
         LOG.warn("{}", line);
@@ -715,6 +896,7 @@ public class PwtDesktopApp extends Application {
 
     @Override
     public void stop() {
+        historyRefresher.shutdownNow();
         cancelInFlight();
         CancellationToken cancellation = scanCancellation;
         if (cancellation != null) {
@@ -722,6 +904,33 @@ public class PwtDesktopApp extends Application {
         }
         discoveryExecutor.shutdownNow();
         scanExecutor.shutdownNow();
+    }
+
+    /** Row bean for the shared-store run history list. */
+    public static final class HistoryRow {
+        private final String runId;
+        private final String state;
+        private final String verdict;
+        private final int findings;
+        private final String createdAt;
+
+        public HistoryRow(String runId, String state, String verdict, int findings, String createdAt) {
+            this.runId = runId;
+            this.state = state;
+            this.verdict = verdict;
+            this.findings = findings;
+            this.createdAt = createdAt;
+        }
+
+        public String runId() {
+            return runId;
+        }
+
+        @Override
+        public String toString() {
+            String shortId = runId.length() > 8 ? runId.substring(0, 8) : runId;
+            return state + " " + verdict + " " + shortId + " (" + findings + " findings)";
+        }
     }
 
     /** Row bean for the scanner catalog table. */
