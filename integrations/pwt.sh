@@ -36,26 +36,12 @@ if ! "$JAVA_BIN" -version >/dev/null 2>&1; then
   exit 2
 fi
 
+# Artifact: PWT_JAR if it names a file, else the single shared policy of
+# pwt-mcp-stdio.sh --print-jar (declared version first; never "any jar").
 if [ -n "${PWT_JAR:-}" ] && [ -f "$PWT_JAR" ]; then
   JAR="$PWT_JAR"
 else
-  JAR=""
-  for candidate in "$APP_ROOT"/pwt/target/pwt-*.jar; do
-    case "$candidate" in
-      *original-*|*sources*|*javadoc*|*tests*) continue;;
-    esac
-    if [ -f "$candidate" ]; then
-      if [ -z "$JAR" ]; then
-        JAR="$candidate"
-      else
-        echo "pwt: ambiguous application artifact (expected exactly one):" >&2
-        echo "pwt:   $JAR" >&2
-        echo "pwt:   $candidate" >&2
-        echo "pwt: pass PWT_JAR=/abs/path/pwt-X.jar to select one" >&2
-        exit 2
-      fi
-    fi
-  done
+  JAR="$(PWT_JAR= "$SCRIPT_DIR/pwt-mcp-stdio.sh" --java "$JAVA_BIN" --print-jar)" || exit 2
   if [ -z "$JAR" ]; then
     echo "pwt: no built artifact found under $APP_ROOT/pwt/target (run: make build)" >&2
     exit 2

@@ -1,69 +1,141 @@
-# Claude Code setup for PWT
+# Claude Code integration for PWT
 
-## 1. Register the MCP server (read-only default)
+Workflow:
 
-Scope `user` keeps one entry for all projects; scope `project` writes
-`.mcp.json` in the current project. Read-only first:
+1. `/pwt` opens the PWT dashboard. Scans are started and cancelled only there.
+   Like OpenCode, `/pwt help|repos|status [run-id]|report [latest|<run-id>]|dashboard`
+   and the aliases `/pwt-help`, `/pwt-repos`, `/pwt-status`, `/pwt-report`,
+   `/pwt-dashboard` report recorded state through the project-bound read-only
+   tools (`get_project_status`, `get_run`, `get_report`; pre-approved in each
+   command's `allowed-tools`). `/pwt scan|cancel` only point to the
+   dashboard. In Claude Code every command is a model turn; `/pwt-dashboard`
+   launches deterministically before the model runs, bare `/pwt` runs the same
+   pre-approved, non-blocking dashboard command as its first step.
+2. `/pwt-ask <question>` delegates to the `pwt` subagent.
+3. The subagent reads this project's scan journal first and uses read-only,
+   project-bound MCP tools only when the journal is not enough.
+4. It explains findings, coverage gaps, execution failures and differences
+   between this project's runs, and drafts minimal YAML fixes as proposed
+   patches. The parent session applies a patch only after you approve it,
+   through Claude Code's normal Edit permission prompt.
+5. Nothing in this integration starts or cancels a scan, registers a project,
+   or commits/pushes.
 
-```sh
-claude mcp add --scope user pwt -- java -jar /abs/path/pwt-1.0.0.jar mcp --data-dir /abs/path/pwt-data
-```
-
-Scan-enabled variant (separate name so the default stays read-only):
-
-```sh
-claude mcp add --scope user pwt-scan -- java -jar /abs/path/pwt-1.0.0.jar mcp --data-dir /abs/path/pwt-data --allow-scans
-```
-
-Check it: `claude mcp list`. MCP permission gating is enforced server-side;
-a client approval alone never enables scans.
-
-## 2. Install the `/pwt` command (project-local)
-
-```sh
-mkdir -p .claude/commands
-cp /abs/path/integrations/claude-code/commands/pwt.md .claude/commands/pwt.md
-cp /abs/path/integrations/pwt-conversation.md .claude/pwt-conversation.md
-```
-
-Use: `/pwt help`, `/pwt status`, `/pwt scan --file k8s/pod.yaml`,
-`/pwt report latest`, `/pwt report <run-id>`, `/pwt cancel <run-id>`,
-`/pwt dashboard`, `/pwt ask <message>`. Bare `/pwt` opens the dashboard.
-The command is agent-interpreted; assessment operations go through the
-`pwt` MCP tools, never shell scans. To register another repository:
-`make repo-add ROOT=/abs/project` (shared store) or `pwt repo-add`.
-
-## 3. Dashboard
+## Install
 
 ```sh
-/abs/path/integrations/pwt-dashboard.sh --jar /abs/path/pwt-1.0.0.jar --data-dir /abs/path/pwt-data
+make build                              # the MCP server needs the current jar
+make install-claude                     # user-wide /pwt, /pwt-ask, pwt subagent
+make setup-claude ROOT="/abs/project"   # project .mcp.json entry, bound to that project
+make claude-status ROOT="/abs/project" TEST=1
 ```
 
-Local graphical machine only; refuses without a display; never opens a
-second window if one is already running.
+- `install-claude` writes `commands/pwt.md`, `pwt-dashboard.md`, `pwt-help.md`,
+  `pwt-repos.md`, `pwt-status.md`, `pwt-report.md`, `pwt-ask.md` and
+  `agents/pwt.md` under `$CLAUDE_CONFIG_DIR` (default `~/.claude`). Each file
+  carries a `PWT-CLAUDE-MANAGED` marker; an existing file without it is never
+  overwritten (nothing is written). Rerunning is idempotent. `DATA_DIR=` is
+  baked into the dashboard command.
+- `setup-claude` merges one `pwt` server into `<project>/.mcp.json` and keeps
+  every other server. The entry is
+  `pwt-mcp-stdio.sh --data-dir <shared dir> --project-root <canonical project>`.
+  It never adds `--allow-scans`; `ALLOW_SCANS=1` is refused and an older entry
+  that had it is downgraded. `ALLOW_ANALYSIS=1|0` independently enables or
+  removes `--allow-analysis-writes` (omitted preserves; fresh entries: denied).
+  An older PWT-generated, scan-capable project `.claude/commands/pwt.md` is
+  removed; a user-owned file with that name is kept and reported.
+- Claude Code asks you to approve a project `.mcp.json` server the first time
+  it is used. The installer does not change client trust or permission
+  settings; approve `pwt` when prompted.
+- `claude-status` reports artifacts (current / outdated / unmanaged),
+  registration (read-only database query), the project MCP entry and its
+  permissions. With `TEST=1` it runs a real stdio MCP handshake with the
+  configured command (initialize, tools/list, `get_project_status`, and a
+  `start_scan` call that must return PERMISSION_DENIED); without it the
+  connection is reported NOT TESTED.
+- `uninstall-claude [ROOT=...]` removes only PWT-managed user files and, with
+  `ROOT`, that project's PWT-created `pwt` entry. The shared data directory,
+  the launcher and OpenCode files are untouched.
 
-## 4. Shared data directory
+`make install` runs the same `install-claude` step when Claude Code is present
+(`claude` on PATH or an existing config directory). A missing Claude Code or a
+conflicting unmanaged file only prints a warning; it never adds an MCP entry,
+registers a project or scans. `make uninstall` removes the PWT-managed Claude
+files too. Project `.mcp.json` entries are only ever added or removed
+explicitly, with `make setup-claude ROOT=...` and `make uninstall-claude ROOT=...`.
 
-GUI, CLI, and MCP must point at the same directory (default
-`<application-root>/.pwt-data`; GUI: `java -jar ... gui --data-dir DIR`;
-CLI: `scan --data-dir DIR`). That one directory holds repositories, runs,
-findings, and reports for all three.
+### Global entry (like OpenCode's `setup-opencode-global`)
 
-## 5. Removal
+```sh
+make setup-claude-global [ALLOW_ANALYSIS=1|0]
+```
 
-`claude mcp remove pwt` (and `pwt-scan` if added); delete
-`.claude/commands/pwt.md` and `.claude/pwt-conversation.md`. Delete the data
-directory if desired.
+Adds one user-scope `pwt` MCP server with the supported
+`claude mcp add-json -s user` CLI, so PWT is available in every directory
+without per-project setup. It is not unscoped: it runs the launcher with
+`--project-root-cwd`, and Claude Code starts stdio servers in the directory
+the session was started in (verified with Claude Code 2.1.325), so each
+session binds to the registered project owning that directory. In an
+unregistered directory every tool returns PROJECT_NOT_REGISTERED and never
+falls back to another project. A project's own `.mcp.json` `pwt` entry
+(`make setup-claude`) overrides the global one. `ALLOW_SCANS=1` is refused;
+`ALLOW_ANALYSIS` works as for `setup-claude`. A user-scope `pwt` entry that PWT
+did not create is never replaced. `uninstall-claude` / `make uninstall` remove
+the PWT-created entry. Like the OpenCode global entry, it is not part of
+`make install`. User-scope servers do not need the project approval prompt.
 
-## 6. Verified vs not
+Registration is unchanged: the first dashboard scan registers a project, or
+use `make repo-add ROOT=...` / `pwt repo-add --root <dir>`.
 
-End-to-end verification results are recorded in the project `handover.md`.
-`@pwt` mentions are not a routed mechanism in Claude Code (mentions address
-files); use `/pwt ask <message>`.
+## Project identity and scope
 
-Claude Code expansion is deferred while OpenCode is the focus: this guide
-describes the existing prompt-based slash command and MCP entry only.
-The native OpenCode plugin (`make install-opencode`, persistent scoped
-sessions) does not apply to Claude Code. Shared-backend behavior changes
-(database-first reports, additive V3 analysis tables) apply to both
-clients and remain backward compatible.
+The MCP server is started with `--project-root <dir>` and, on every call,
+resolves the registered repository owning that directory: the directory is
+canonicalised (symlinked spellings and subdirectories resolve to the same
+project) and the deepest registered root containing it wins (nested
+projects bind to the inner one). There is no user-wide unscoped entry.
+
+- Not registered yet: every tool returns `PROJECT_NOT_REGISTERED` ("open
+  /pwt and run its first scan"). Nothing is registered, and nothing falls back
+  to another project. A later dashboard scan is picked up without
+  restarting Claude Code.
+- Directory missing: `PROJECT_UNAVAILABLE`. Two registrations of the same
+  canonical root: `PROJECT_AMBIGUOUS`.
+- The first successful binding is pinned for the session. If the directory
+  later resolves to a different repository (for example a nested project
+  registered mid-session), calls fail with `PROJECT_SCOPE_CHANGED`; start a
+  new session.
+- Run IDs or repository IDs from another project return `NOT_FOUND` /
+  `OUT_OF_SCOPE`, without naming that project, its root or its findings.
+
+## MCP tools the subagent may use (read-only)
+
+| Tool | Purpose |
+|---|---|
+| `get_project_status` | identity, root availability, latest run (`final` or provisional), active runs, run count, journal path/availability, server permissions |
+| `list_runs` | this project's history, paginated (limit 1–500, cursor) |
+| `get_run` | one run: targets, per-scanner status/exit code/message with `execution` class, coverage gaps, recorded run error |
+| `list_findings` | findings of one run; exact filters `severity`, `adapter_id`, `rule_id`, `relative_path`; evidence capped |
+| `compare_runs` | two runs by recorded fingerprint: only in base / only in head (each with `comparable`), in both, possible line shifts, file and scanner differences, limitations; never labels anything fixed |
+| `get_report`, `get_analysis` | bounded rendered report; saved analysis |
+
+`start_scan`, `cancel_scan` and `save_analysis` exist on the server but are
+not in the subagent's tool list. On a Claude connection the server denies the
+first two (no `--allow-scans`); `save_analysis` needs the explicit
+`ALLOW_ANALYSIS=1`. Per-run event logs are not persisted by PWT; execution
+diagnostics come from the recorded scanner outcomes and run error.
+
+## Edits
+
+The subagent runs on the `haiku` model (`model: haiku` in its frontmatter;
+the parent session keeps its own model) and has Read/Grep/Glob plus the read
+tools above: no Edit, Write or Bash. It returns proposed patches; the parent session shows them and edits
+only after your approval. Its project boundary is an instruction, not an
+operating-system sandbox. After an edit, the saved scan still describes the
+pre-edit files: run a verification scan from `/pwt` before calling anything
+fixed.
+
+## Not supported
+
+`@pwt` mentions are not a routed mechanism (they address files). Use
+`/pwt-ask <question>`.

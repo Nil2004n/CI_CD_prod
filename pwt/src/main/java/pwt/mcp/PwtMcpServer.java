@@ -48,6 +48,17 @@ public final class PwtMcpServer {
      */
     public static void run(java.nio.file.Path dataDir, boolean allowScans, boolean allowAnalysis,
             String scopedRepositoryId) {
+        run(dataDir, allowScans, allowAnalysis, scopedRepositoryId, null);
+    }
+
+    /**
+     * As {@link #run(java.nio.file.Path, boolean, boolean, String)}, optionally bound to a
+     * project directory instead of a repository ID: every call then resolves
+     * the registered repository owning {@code projectRoot} (see
+     * {@link ProjectScope}) and fails closed when there is none.
+     */
+    public static void run(java.nio.file.Path dataDir, boolean allowScans, boolean allowAnalysis,
+            String scopedRepositoryId, java.nio.file.Path projectRoot) {
         System.setProperty("org.slf4j.simpleLogger.logFile", "System.err");
 
         StdioServerTransportProvider transport = new StdioServerTransportProvider();
@@ -56,7 +67,7 @@ public final class PwtMcpServer {
                 new java.util.concurrent.atomic.AtomicReference<>();
         McpActivity activity = new McpActivity(dataDir, allowScans, allowAnalysis, serverRef::get);
         McpScanTools.McpContext context = new McpScanTools.McpContext(dataDir, allowScans,
-                allowAnalysis, scans, activity, scopedRepositoryId);
+                allowAnalysis, scans, activity, scopedRepositoryId, projectRoot);
         java.util.List<McpServerFeatures.SyncToolSpecification> tools = new java.util.ArrayList<>();
         tools.add(PwtMcpTools.pwtInfoTool(activity::observed));
         tools.addAll(McpScanTools.allTools(context));
@@ -89,7 +100,8 @@ public final class PwtMcpServer {
         LOG.warn("pwt {} MCP stdio server started (data-dir {}, scans {}, analysis {}, scope {})",
                 BuildInfo.VERSION, dataDir, allowScans ? "enabled" : "read-only",
                 allowAnalysis ? "enabled" : "read-only",
-                scopedRepositoryId == null ? "unscoped-admin" : scopedRepositoryId);
+                projectRoot != null ? "project-root " + projectRoot
+                        : scopedRepositoryId == null ? "unscoped-admin" : scopedRepositoryId);
         CountDownLatch stayAlive = new CountDownLatch(1);
         try {
             stayAlive.await();

@@ -1,43 +1,52 @@
 ---
-description: PWT YAML assessment workbench — scan, findings, reports, dashboard (agent-interpreted; assessment work goes through MCP, never shell scans)
+description: PWT workbench — /pwt [help|repos|status [run-id]|report [latest|<run-id>]|dashboard]; bare /pwt opens the dashboard
+argument-hint: "[help|repos|status [run-id]|report [latest|<run-id>]|dashboard]"
+allowed-tools: Bash(@@DASHBOARD_CMD@@), mcp__pwt__get_project_status, mcp__pwt__get_run, mcp__pwt__get_report
 ---
+<!-- PWT-CLAUDE-MANAGED: installed by `make install-claude`; removed by `make uninstall-claude`. Edits are overwritten on reinstall. -->
 
-You are helping the user with PWT, the local YAML assessment workbench.
-This command is agent-interpreted: there is no deterministic native parsing.
-For every assessment claim, use the `pwt` MCP server's tools (same names in
-both read-only and scan-enabled setups). Follow `pwt-conversation.md`
-(evidence first, honest coverage, propose before editing, rescan after approval).
+Dispatch on the first word of the arguments below (the rest are its
+arguments). Arguments: `$ARGUMENTS`
 
-Dispatch on the first word of $ARGUMENTS (rest is its argument). A bare
-`/pwt` with no arguments opens the dashboard.
+- empty or `dashboard`: run exactly this Bash command once and report its
+  output in one sentence (launch requested, already running, or the exact
+  error such as no graphical session). It returns immediately:
+  `@@DASHBOARD_CMD@@`
+- `help`: print exactly this, nothing else:
+  ```
+  PWT commands:
+  /pwt                          open the dashboard
+  /pwt help                     this help
+  /pwt repos                    current project repository
+  /pwt status [run-id]          latest or exact run state
+  /pwt report [latest|<run-id>] bounded report with coverage gaps
+  /pwt dashboard                open the dashboard
+  /pwt-ask <question>           ask the pwt subagent (journal first, read-only)
+  Aliases: /pwt-help /pwt-repos /pwt-status /pwt-report /pwt-dashboard.
+  Scans are started and cancelled only in the dashboard.
+  ```
+- `repos`: call `mcp__pwt__get_project_status` once (no arguments). Reply
+  `Current project repository:` then `- <display_name> (<canonical_root>)`,
+  its id, availability, run count and whether its journal is available.
+- `status` [run-id]: with a run-id, call `mcp__pwt__get_run` with it. Without
+  one, call `mcp__pwt__get_project_status` (no arguments) and use its
+  `latest_run`; if it is null reply `<display_name> (<canonical_root>)` and
+  `No runs yet.` Reply with the project line, then
+  `Latest: <run_id> — <state> / <verdict>, <finding_count> finding(s)`
+  (drop `Latest: ` for an exact run-id), the finished time, the coverage gap
+  count, and per-scanner status when you called `get_run`. More than one
+  extra argument: reply `Usage: /pwt status [run-id]`.
+- `report` [latest|<run-id>] (default latest): for latest, call
+  `mcp__pwt__get_project_status` and take `latest_run.run_id` (none: reply
+  `No runs yet for this project.`). Call `mcp__pwt__get_report` with that
+  run_id, `format: "markdown"`, `length: 6000`. Reply `Report <run_id>:`
+  followed by the content verbatim; if `next_offset` is not null add
+  `…(truncated; ask /pwt-ask for the rest)`. More than one extra argument:
+  reply `Usage: /pwt report [latest|<run-id>]`.
+- `scan` or `cancel`: reply `Scanning and cancellation happen in the
+  dashboard. Use /pwt.`
+- `ask`: reply `Questions go to /pwt-ask <question> (the pwt subagent).`
+- anything else: reply `Unknown /pwt subcommand: <word>` followed by the help
+  text above.
 
-- `dashboard` (or empty input): run the `pwt-dashboard.sh` helper with the
-  configured JAR and the shared data directory (local graphical machine
-  only; if there is no display, say so instead of claiming a window opened).
-- `status`: `list_repositories`, then `list_runs` for the selected repository
-  (ask one focused question if the repository is ambiguous). Never scan all
-  repositories. Summarize states, verdicts, and coverage gaps.
-- `scan` with optional `--file <path>...` (repeatable): resolve the
-  repository from registered roots (ask if ambiguous), require explicit file
-  selections or a clearly defined saved selection, then `start_scan`.
-  If the server rejects it (read-only), explain how to restart with
-  `--allow-scans`. Poll `get_run` for the terminal summary. Never assemble
-  scanner shell commands.
-- `report latest`: resolve the newest run of the selected repository (never
-  global), fetch a bounded `get_report`, explain findings AND coverage gaps.
-  Only the adapters listed in that run's `scanner_runs` actually ran; the
-  other integrated checks were simply not selected for that run — say exactly
-  that instead of calling them unimplemented.
-- `report <run-id>`: fetch that exact persisted run (`get_run`,
-  `list_findings`, bounded `get_report`).
-- `cancel <run-id>`: `cancel_scan`; report whether cancellation was requested
-  or completed (CANCELLED only when the state says so).
-- `ask <message>`: answer per `pwt-conversation.md`; use MCP evidence.
-- `help`: explain these operations, the setup required (shared data
-  directory; scans need `--allow-scans`), and the current permission mode
-  read-only vs scan-enabled. Determine the effective mode by reading the
-  configured MCP server entry (look for `--allow-scans`), never by guessing
-  from server names.
-
-Never imply MCP access authorizes edits. Never use `pwt` MCP tools to read
-arbitrary paths, run commands, or modify sources — those tools do not exist.
+Rules: use only the tools listed for this command; the `pwt` MCP connection is bound to this project, so never pass another project's IDs. If a tool returns an error (for example PROJECT_NOT_REGISTERED: "No PWT assessment is available for this project. Open /pwt and run its first scan in the dashboard."), show its code and message and stop. Do not start or cancel scans, do not run shell commands, do not edit files, and do not add your own security judgement: this command only reports recorded state. A run with `final: false` is still active: say its results are provisional.

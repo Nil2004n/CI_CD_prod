@@ -4,3 +4,6 @@ pwt/dependency-reduced-pom.xml
 .pwt/
 .claude/
 .opencode/
+# Machine-local Claude Code project MCP entry written by `make setup-claude ROOT=<this checkout>`
+# (absolute paths); other projects keep their own .mcp.json.
+/.mcp.json

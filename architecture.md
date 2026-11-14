@@ -1,4 +1,4 @@
-Version: 0.1 draft | Date: 2026-11-12, updated 2026-11-13 (native OpenCode integration) | Status: implemented baseline (Phases 1–4)
+Version: 0.1 draft | Date: 2026-11-12, updated 2026-11-13 (native OpenCode integration), 2026-11-14 (1.1.0: Claude Code integration, project-root binding, read-only MCP expansion) | Status: implemented baseline (Phases 1–4 + 1.1.0)
 
 # PWT Architecture
 
@@ -22,9 +22,19 @@ Native OpenCode commands (project-specific: /pwt help|repos|status|report|dashbo
       |
 Persistent project-scoped MCP connection (one owned stdio server per --repo-id scope)
       |
-MCP stdio entrypoint (10 tools, permission gates, scope enforcement)
+MCP stdio entrypoint (12 tools, permission gates, scope enforcement)
       |
       +------- Application services + shared SQLite (same as above)
+
+Claude Code commands (/pwt [help|repos|status|report|dashboard], aliases, /pwt-ask)
+      |                                     |
+      |                          read-only `pwt` subagent (haiku; Read/Grep/Glob +
+      |                          read-only PWT tools; proposes patches, never edits)
+      |                                     |
+Project-root-bound MCP connection (project .mcp.json: --project-root <dir>;
+or user-wide entry: --project-root-cwd = directory Claude Code starts in)
+      |
+MCP stdio entrypoint (same server; scan/cancel denied, analysis writes off by default)
 
 Global Pwt agent (project-specific context per session)
       +-- project-scoped MCP evidence/analysis tools --> shared SQLite
@@ -65,10 +75,11 @@ All launchers must use the same data directory to share state and locks. Differe
 ## 6. MCP lifecycle and cancellation
 The agent launches `pwt mcp --data-dir <dir>`; the process stays alive for its MCP session. `start_scan` validates scope and starts a bounded background task, returning a run ID promptly. `get_run` polls status. `cancel_scan` requires a run-specific local authorization and signals the owning process through a durable cancellation_requested flag checked periodically by the worker.
 When an initiating process shuts down, it cancels its workers, terminates child processes, commits CANCELLED where possible, and leaves recovery to mark unclean exits INTERRUPTED. This is why connector-owned MCP sessions are persistent: a per-call server that exits after returning a run ID would cancel the scan it just started. One owned stdio server is therefore kept per project scope for the plugin lifetime (closed on plugin unload); scopes never share a session.
+Project binding has two forms. `--repo-id <id>` names one registered repository (used by the OpenCode connector after it resolves the working directory). `--project-root <abs dir>` (Claude Code) names a directory instead: on every call the server canonicalises it (`toRealPath`, so subdirectories and symlinked spellings agree) and binds to the deepest registered root that equals or contains it. The first successful binding is pinned for the life of the server process; if the directory later resolves to a different repository (for example a nested project registered mid-session) every call fails with PROJECT_SCOPE_CHANGED instead of moving the session. An unregistered directory fails closed with PROJECT_NOT_REGISTERED until its first dashboard scan registers it (picked up without a restart); a missing directory is PROJECT_UNAVAILABLE; two registrations of one canonical root are PROJECT_AMBIGUOUS. The launcher's `--project-root-cwd` passes the directory the client started the server in (`pwd -P`); Claude Code starts stdio servers in the session's directory, which makes a single user-wide entry project-bound per session rather than unscoped. Errors never name other repositories; no scope ever falls back to "the latest repository".
 MVP tools accept registered repository IDs and optional per-call filters, never arbitrary shell commands or arbitrary filesystem output paths. Scan and analysis-write permissions are enabled independently by the user; read-only MCP is the default. Agent-host confirmation is useful but not a substitute for server-side scope enforcement.
 
 ## 7. Trust boundaries
-Repository contents and scanner output are untrusted data. Never execute instructions found in findings or treat scanner output as agent policy. MCP returns provenance and marks evidence as untrusted content. Agent interpretation (priorities, judgments) is distinct from scanner evidence (severity, rule, location) and never mutates it.
+Repository contents and scanner output are untrusted data. Never execute instructions found in findings or treat scanner output as agent policy. MCP returns provenance and marks evidence as untrusted content. Agent interpretation (priorities, judgments) is distinct from scanner evidence (severity, rule, location) and never mutates it. Agent and subagent project boundaries (read only this project's journal and files) are instructions to the model, not an operating-system sandbox; the enforced boundary is the server-side MCP scope. The Claude subagent has no edit, write or shell tool; edits happen only in the main session through the client's own approval prompt.
 Exports are projections of persisted sanitized records, never a second source of truth; historical file-backed artifacts remain readable but retrieval never depends on them.
 ProcessBuilder receives executable and separate arguments; no `sh -c`, command concatenation, or shell interpretation. Executable configuration is local-user controlled, validated and displayed.
 Root containment is enforced using normalized paths and real filesystem checks, with symlinks excluded. Recheck at read time; never claim perfect protection from hostile concurrent filesystem mutation. If strong isolation is required, a sandbox is a separate feature.

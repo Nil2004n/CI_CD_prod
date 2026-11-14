@@ -92,6 +92,7 @@ public final class PwtMain {
         boolean allowScans = false;
         boolean allowAnalysis = false;
         String repoId = null;
+        java.nio.file.Path projectRoot = null;
         for (int i = 0; i < args.size(); i++) {
             String arg = args.get(i);
             switch (arg) {
@@ -113,6 +114,20 @@ public final class PwtMain {
                     }
                     repoId = args.get(++i);
                 }
+                case "--project-root" -> {
+                    if (i + 1 >= args.size()) {
+                        System.err.println("pwt mcp: missing value for --project-root");
+                        System.exit(2);
+                        return;
+                    }
+                    java.nio.file.Path candidate = java.nio.file.Path.of(args.get(++i));
+                    if (!candidate.isAbsolute()) {
+                        System.err.println("pwt mcp: --project-root must be an absolute path");
+                        System.exit(2);
+                        return;
+                    }
+                    projectRoot = candidate.normalize();
+                }
                 default -> {
                     System.err.println("pwt mcp: unknown argument: " + arg);
                     usage();
@@ -120,6 +135,15 @@ public final class PwtMain {
                     return;
                 }
             }
+        }
+        if (repoId != null && projectRoot != null) {
+            System.err.println("pwt mcp: use either --repo-id or --project-root, not both");
+            System.exit(2);
+            return;
+        }
+        if (projectRoot != null && !java.nio.file.Files.isDirectory(projectRoot)) {
+            // Not fatal: every tool call reports PROJECT_UNAVAILABLE until it exists.
+            System.err.println("pwt mcp: note: --project-root is not a directory right now: " + projectRoot);
         }
         if (repoId != null) {
             try (pwt.infrastructure.SqliteStore store =
@@ -135,7 +159,7 @@ public final class PwtMain {
                 return;
             }
         }
-        pwt.mcp.PwtMcpServer.run(dataDir, allowScans, allowAnalysis, repoId);
+        pwt.mcp.PwtMcpServer.run(dataDir, allowScans, allowAnalysis, repoId, projectRoot);
     }
 
     private static String[] stripFirst(String[] args) {
@@ -157,9 +181,12 @@ public final class PwtMain {
                 "     [--schema-binding GLOB=SCHEMA ...] [--kubeconform-schema T] [--export]",
                 "     Exit: 0 clean, 4 findings, 2 invalid/busy, 1 failure.",
                 "  mcp [--data-dir <dir>] [--allow-scans] [--allow-analysis-writes]",
-                "     [--repo-id <id>]      Start the MCP stdio server (stdout is MCP-protocol-only).",
+                "     [--repo-id <id> | --project-root <abs-dir>]",
+                "                              Start the MCP stdio server (stdout is MCP-protocol-only).",
                 "     Read-only tools always work; scan/analysis writes need their flags.",
-                "     --repo-id restricts every operation to one registered project.",
+                "     --repo-id restricts every operation to one registered project;",
+                "     --project-root binds to the registered project owning that directory,",
+                "     resolved per call (fails closed while it is unregistered; never registers).",
                 "  kubeconform-setup            Download kubeconform schemas into the local cache.",
                 "  repo-add --root <dir> ...    Register a repository root (idempotent).",
                 "  repo-list                    List registered roots and availability.",

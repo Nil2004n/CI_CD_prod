@@ -4,6 +4,46 @@ Updated: 2026-11-13 (dashboard-only scanning: /pwt opens the dashboard;
 OpenCode scan/cancel removed; GUI first-scan self-registration; strict
 current-project /pwt-ask; OpenCode MCP never scan-enabled). Outcome: **COMPLETE**.
 
+## Release 1.1.0 candidate (2026-11-14, uncommitted, not tagged)
+
+- Version 1.1.0 (owner-chosen; 1.0.0 is tagged/published). Scope: Claude Code
+  integration (commands, aliases, Haiku `pwt` subagent, project/global MCP
+  setup), read-only MCP expansion + `--project-root[-cwd]` binding (pinned per
+  session, PROJECT_SCOPE_CHANGED), OpenCode ghost-text fix, unified jar
+  selection (declared pom version first), dashboard restyle (fd9281e),
+  `get_analysis` read-only fix, CHANGELOG.md, `/.mcp.json` ignored.
+- Verified fresh (isolated clean copy): `./mvnw -B clean package` 172 run /
+  0 failures / 0 errors / 0 skipped; Python integration 19/19; Node 5/5; jar
+  contents clean (no db/.mcp.json/reports/private paths), `pwt 1.1.0`.
+- Real Claude Code (headless, stream-json traces, owner-authorized):
+  /pwt-help, /pwt-repos, /pwt-status, /pwt status, /pwt-report, bare /pwt
+  (dashboard launched), /pwt-dashboard (single instance) all correct;
+  /pwt-ask delegated to `pwt` (subagent messages on claude-haiku-5-5),
+  journal question = file reads only, history question = one list_runs; no
+  scan/cancel/save calls.
+- Pending owner: commit/tag/publish; delete unheld `pwt/target/*.jar.inuse`;
+  close the test dashboard window (started from the scratch RC jar).
+
+## Claude Code: project-bound read-only MCP + pwt subagent (2026-11-14, uncommitted)
+
+- Server: `pwt mcp --project-root <abs dir>` binds every call to the registered
+  repository owning that directory (canonical path, deepest root; fails closed
+  with PROJECT_NOT_REGISTERED / PROJECT_UNAVAILABLE / PROJECT_AMBIGUOUS; never
+  registers). New read tools `get_project_status`, `compare_runs`;
+  `list_findings` gains `rule_id`/`relative_path` filters; `get_run` adds
+  `execution` class, `final`, recorded run error. Fixed: `get_analysis` created
+  an empty analysis thread on read.
+- Claude: `make install-claude` (user-wide `/pwt` dashboard, `/pwt-ask`,
+  read-only `pwt` subagent), `make setup-claude ROOT=` (project `.mcp.json`,
+  `--project-root`, never `--allow-scans`), `make claude-status [TEST=1]`,
+  `make uninstall-claude`, `make test-integrations`. Not wired into
+  `make install/enable/uninstall` (owner decision pending).
+- Verified: `./mvnw -B test` 171 run / 0 failures / 0 errors / 2 skipped
+  (network schema downloads); integration tests 9/9; real launcher handshake
+  bound A, scan denied; `claude mcp list` discovers the project server
+  (Pending approval). NOT verified: approved Claude connection, `/pwt-ask`
+  subagent delegation (needs approval + model call).
+
 ## Release v1.0.0 (2026-11-14)
 
 Owner-requested freeze of the current state as 1.0.0: version bumped from

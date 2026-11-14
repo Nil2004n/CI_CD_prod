@@ -1,4 +1,4 @@
-Version: 0.1 draft | Date: 2026-11-12 | Status: proposed implementation baseline
+Version: 0.1 draft | Date: 2026-11-12, updated 2026-11-14 (1.1.0 features F10c, F14 MCP) | Status: proposed implementation baseline with implemented rows marked
 
 # PWT Product Requirements Document
 
@@ -48,11 +48,12 @@ Value: one honest assessment workspace rather than manually assembling scanner c
 | F09 | Durable sessions | Restart retains history; unfinished runs are reconciled, not displayed as completed |
 | F10 | Reports | Every terminal run can regenerate schema-versioned JSON and Markdown from retained sanitized records on demand; files are written only on explicit export |
 | F10a | Native OpenCode commands (implemented, dashboard-only scanning) | Direct `/pwt help/repos/status/report/dashboard` operations call MCP with no model turn (repos/status/report project-scoped); bare `/pwt` opens the dashboard (pending owner review vs help-default); scan/cancel have no OpenCode commands — dashboard only |
+| F10c | Claude Code integration (implemented, 1.1.0; dashboard-only scanning) | User-wide `/pwt [help/repos/status/report/dashboard]` with aliases and `/pwt-ask` delegating to a read-only `pwt` subagent (haiku model; journal first, read-only MCP when needed, patches proposed to the main session); project `.mcp.json` entry bound with `--project-root` or user-wide entry bound per session to the start directory; scan/cancel denied server-side; analysis writes off by default |
 | F10b | Database-backed agent analysis (implemented, Phase 4+) | Revisioned LOW/MEDIUM/HIGH analysis via `get_analysis`/`save_analysis`, optimistic concurrency, project-scoped, independent write permission |
 | F11 | Terminal-inspired GUI | Repo/file navigation, scanner controls, progress, findings, details, history, and redacted logs |
 | F12 | MCP access | Registered-repo discovery, run inspection, findings, reports, and explicit scan initiation share GUI state |
 | F13 | No covert mutation | No PWT YAML edit, commit, push, shell, or remediation tool in MVP |
-| F14 | Before/after comparison | Matching rule fingerprints and coverage expose added/persisting/not-observed findings without unsupported claims of resolution — PLANNED (Phase 5): fingerprints are recorded per finding today, but no compare MCP tool or GUI comparison view exists yet |
+| F14 | Before/after comparison | Matching rule fingerprints and coverage expose added/persisting/not-observed findings without unsupported claims of resolution — MCP `compare_runs` implemented in 1.1.0 (only-in-base/only-in-head with comparability, in-both, possible line shifts, limitations); GUI comparison view PLANNED (Phase 5) |
 | F15 | Secret handling | Seeded secrets absent from all persisted outputs, logs, exports, GUI, and MCP responses |
 | F16 | Offline operation | Installed local scanners operate without a cloud account; no telemetry or model API is required |
 

@@ -1,5 +1,21 @@
 # Handover — PWT Java rebuild, dashboard-only scanning
 
+## Next session: release 1.1.0 candidate (2026-11-14)
+
+State: everything for 1.1.0 is in the working tree, uncommitted; see
+`status.md` top entry and `CHANGELOG.md`. Release artifacts (jar,
+SHA256SUMS, release notes, proposed commit message) were prepared outside the
+repo in the session scratch area; rebuild with `make build` if needed (the
+jar is reproducible from the tree, but its checksum is not byte-for-byte
+stable across builds).
+Traps: jar selection is now "declared pom version first" in
+`pwt-mcp-stdio.sh` (pwt.sh and the dashboard helper delegate to it);
+`--project-root-cwd` relies on clients starting stdio servers in the session
+directory (verified for Claude Code 2.1.325); ProjectScope pins the first
+binding per process. Claude project `.mcp.json` servers need a one-time
+approval in the client; the user-scope entry does not.
+
+
 Checkpoint: 2026-11-13 (dashboard-only scanning complete: no OpenCode
 scan/cancel; GUI first-scan self-registers via idempotent runScan hook;
 strict current-project agent; OpenCode MCP never scan-enabled; installed

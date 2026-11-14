@@ -23,6 +23,14 @@ public final class McpErrors {
     public static final String CONFIGURATION_REQUIRED = "CONFIGURATION_REQUIRED";
     public static final String CONFLICT = "CONFLICT";
     public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
+    /** Project-root-bound server: the bound directory is not inside any registered repository. */
+    public static final String PROJECT_NOT_REGISTERED = "PROJECT_NOT_REGISTERED";
+    /** Project-root-bound server: the bound directory is missing or not a directory. */
+    public static final String PROJECT_UNAVAILABLE = "PROJECT_UNAVAILABLE";
+    /** Project-root-bound server: more than one registered repository claims the same root. */
+    public static final String PROJECT_AMBIGUOUS = "PROJECT_AMBIGUOUS";
+    /** Project-root-bound server: the bound directory now resolves to a different repository than earlier in this session. */
+    public static final String PROJECT_SCOPE_CHANGED = "PROJECT_SCOPE_CHANGED";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_MESSAGE = 500;

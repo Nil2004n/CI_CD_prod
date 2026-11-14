@@ -10,13 +10,17 @@ database. No cloud account, no embedded model, no telemetry.
 | Piece | Location | Purpose |
 |---|---|---|
 | Application code + build | `<app-root>/pwt/` (Maven) | Java services, adapters, GUI, MCP server |
-| Built artifact | `<app-root>/pwt/target/pwt-0.4.0.jar` | Single runnable jar for every entrypoint |
+| Built artifact | `<app-root>/pwt/target/pwt-1.1.0.jar` | Single runnable jar for every entrypoint |
 | Shared database | `<app-root>/.pwt-data/pwt.db` | ONE database for all repos and runs (see §5) |
 | Native OpenCode plugin | `~/.config/opencode/plugins/pwt/` | Model-free `/pwt` commands |
 | Global Pwt agent | `~/.config/opencode/agents/pwt.md` | Project-scoped conversation agent |
 | Global ask command | `~/.config/opencode/commands/pwt-ask.md` | `/pwt-ask <message>` entrypoint |
 | Project MCP entry | `<project>/opencode.json` | Host-managed `pwt` MCP server config |
 | Project plugin copy | `<project>/.opencode/plugins/pwt/` | Project-local native commands |
+| Claude Code commands | `~/.claude/commands/pwt*.md` | `/pwt` (+ help/repos/status/report/dashboard aliases), `/pwt-ask` |
+| Claude Code subagent | `~/.claude/agents/pwt.md` | Read-only `pwt` subagent (haiku model) |
+| Claude project MCP entry | `<project>/.mcp.json` | `pwt` server bound with `--project-root` (optional) |
+| Claude global MCP entry | `~/.claude.json` (user scope) | `pwt` server bound per session to the start directory (optional) |
 
 `<app-root>` is the PWT checkout root holding the root `Makefile`
 (this repository). Never hand-copy files into these locations; use the
@@ -46,7 +50,7 @@ From the application root:
 ```sh
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 export PATH="$JAVA_HOME/bin:$PATH"
-make build        # builds pwt/target/pwt-0.4.0.jar (skips tests)
+make build        # builds pwt/target/pwt-1.1.0.jar (skips tests)
 make test         # full JUnit suite (expect 147 pass; 1 known environmental
                   # skip if upstream schema download times out)
 make setup        # creates <app-root>/.pwt-data, prints scanner prerequisites
@@ -101,6 +105,36 @@ Alternatively select the `Pwt` agent in the agents dialog (shift+tab to
 cycle agents) and ask normally. `@pwt` is not a routed mention — typing it
 shows no agent completion. Telling the agent "act as PWT" is not
 supported; use the two routes above.
+
+## 4a. Claude Code integration
+
+`make install` writes the Claude Code commands and the subagent when Claude
+Code is present (`claude` on PATH or an existing `~/.claude`); it never adds
+an MCP entry. Then choose one connection form:
+
+```sh
+make setup-claude ROOT="/abs/project"   # project .mcp.json, bound to that project
+make setup-claude-global                # user-wide, bound per session to the start dir
+make claude-status ROOT="/abs/project" TEST=1
+```
+
+- Project `.mcp.json` servers need a one-time approval in Claude Code (start
+  `claude` in the project and approve `pwt`, or check with `/mcp`). The
+  user-scope entry needs no approval. A project entry overrides the global one.
+- Scan/cancel are denied server-side; `ALLOW_SCANS=1` is refused.
+  `ALLOW_ANALYSIS=1|0` sets analysis writes (default denied; omitted preserves).
+- Commands: `/pwt` (dashboard; non-blocking), `/pwt help|repos|status
+  [run-id]|report [latest|<run-id>]|dashboard`, aliases `/pwt-help`,
+  `/pwt-repos`, `/pwt-status`, `/pwt-report`, `/pwt-dashboard`, and
+  `/pwt-ask <question>`. Every Claude command is a model turn; each one
+  pre-approves only the read-only tools it uses (and the exact dashboard
+  command).
+- `/pwt-ask` delegates to the `pwt` subagent (haiku): journal first, read-only
+  MCP only when needed, proposed patches applied by the main session after
+  your approval; it never scans, edits, commits or pushes.
+- Removal: `make uninstall-claude [ROOT=…]` (managed files, the PWT-created
+  user-scope entry, and with ROOT that project's entry); `make uninstall`
+  includes the user-level part. Data is never removed.
 
 ## 5. The database: location and rules
 
@@ -166,7 +200,7 @@ configuration guidance.
 ## 8. Kubeconform and local schemas (explicit setup)
 
 ```sh
-java -jar pwt/target/pwt-0.4.0.jar kubeconform-setup \
+java -jar pwt/target/pwt-1.1.0.jar kubeconform-setup \
   --k8s-version 1.29.0 --kinds Pod,Service,Deployment.apps --data-dir <dir>
 ```
 
@@ -200,6 +234,12 @@ names). Local-schema bindings: `--schema-binding 'GLOB=/abs/schema.json'`
 8. Failure paths: unregistered directory message, "No runs yet" on empty
    repos, `REPOSITORY_BUSY` on concurrent same-repo scans, no stray
    `pwt.db` under assessed repos or staging dirs.
+9. Claude Code (if used): `make claude-status ROOT="<projA>" TEST=1` →
+   TESTED OK, bound to projA, `start_scan` PERMISSION_DENIED; `claude mcp
+   list` in projA shows `pwt` Connected; `/pwt-status` answers for projA;
+   `/pwt-ask` delegates to the `pwt` subagent.
+10. Integration tests: `make test-integrations` (Python installer/launcher
+   tests, Node OpenCode launch tests).
 
 ## 10. Troubleshooting
 
@@ -233,5 +273,6 @@ names). Local-schema bindings: `--schema-binding 'GLOB=/abs/schema.json'`
   components, scoping, trust boundaries. `data-schema.md` — migrations
   V1–V3, tables, retention. `plan.md` — roadmap phases.
 - `integrations/opencode/README.md` — OpenCode install/use/verify.
-  `integrations/claude-code/README.md` — Claude Code state (deferred scope).
+  `integrations/claude-code/README.md` — Claude Code commands, subagent,
+  project vs global MCP scope. `CHANGELOG.md` — release history.
   `status.md`, `handover.md` — verification evidence and next session.

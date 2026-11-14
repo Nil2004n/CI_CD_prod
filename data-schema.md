@@ -1,4 +1,10 @@
-Version: 0.1 draft | Date: 2026-11-12 | Status: proposed implementation baseline
+Version: 0.1 draft | Date: 2026-11-12, updated 2026-11-14 (1.1.0: no schema change) | Status: implemented baseline (migrations V1–V3)
+
+Release 1.1.0 adds no migration and no table. Its new MCP tools
+(`get_project_status`, `compare_runs`) read existing rows only; project-root
+binding reads `repositories` and never inserts. `analysis_threads` rows are
+created only by `save_analysis` (since 1.1.0 `get_analysis` no longer creates
+an empty thread on read).
 
 # PWT Data Schema
 

@@ -67,7 +67,9 @@ One-time user installation (run from the PWT checkout):
 
 ```sh
 make install                       # global pwt launcher + OpenCode plugin/agent/ask,
-                                 # desktop entry, then enable the current project
+                                 # Claude Code /pwt commands + pwt subagent (if Claude
+                                 # Code is present; no MCP entry), desktop entry, then
+                                 # enable the current project for OpenCode
                                  # (read-only; scans run only from the dashboard)
 ```
 
@@ -81,7 +83,7 @@ opencode                         # /pwt status … | /pwt-ask … | pwt gui …
 Lower-level equivalents (the install/enable targets wrap these):
 
 ```sh
-make build                       # builds pwt/target/pwt-1.0.0.jar (skips tests)
+make build                       # builds pwt/target/pwt-1.1.0.jar (skips tests)
 make test                        # full JUnit suite
 make setup                       # create <app-root>/.pwt-data, print scanner prerequisites
 make repo-add ROOT="/abs/project"
@@ -145,6 +147,46 @@ registered repository and refuses unregistered directories; one project
 per session, never other registered projects. Guide:
 `integrations/opencode/README.md`.
 
+## Claude Code usage
+
+`make install` (or `make install-claude`) installs user-wide commands and a
+read-only `pwt` subagent. Give Claude Code an MCP connection with **one** of:
+
+```sh
+make setup-claude ROOT="/abs/project"   # project .mcp.json entry bound to that project
+make setup-claude-global                # user-wide entry, bound per session to the
+                                        # project Claude Code is started in
+make claude-status ROOT="/abs/project" TEST=1   # check artifacts, binding, permissions
+```
+
+Commands: `/pwt` (dashboard), `/pwt help|repos|status [run-id]|report
+[latest|<run-id>]|dashboard`, aliases `/pwt-help`, `/pwt-repos`,
+`/pwt-status`, `/pwt-report`, `/pwt-dashboard`, and `/pwt-ask <question>`
+(delegates to the `pwt` subagent, which runs on the `haiku` model, reads the
+project journal first and proposes YAML patches that you approve in the main
+session). Scans and cancellation stay in the dashboard; Claude connections
+deny them server-side, and analysis writes are denied unless
+`ALLOW_ANALYSIS=1`. A global entry is not global repository access: every
+call is bound to the project owning the session's start directory, an
+unregistered directory gets `PROJECT_NOT_REGISTERED`, and a project's own
+`.mcp.json` entry overrides the global one. Project `.mcp.json` servers need
+a one-time approval in Claude Code. Guide: `integrations/claude-code/README.md`.
+
+## Upgrading from 1.0.0
+
+```sh
+make build && make install              # new jar, launcher, OpenCode plugin, Claude files
+opencode service restart                # running OpenCode sessions keep the old plugin
+make setup-claude ROOT="/abs/project"   # optional, per project (or setup-claude-global)
+```
+
+Data, registrations and journals in the shared data directory are kept;
+there is no schema change. Old jars may stay in `pwt/target/`: every launcher
+uses the jar for the version declared in `pwt/pom.xml`. To roll back, check
+out `v1.0.0`, `make build && make install`, and remove Claude artifacts with
+`make uninstall-claude [ROOT=…]` (1.0.0 has no Claude integration).
+`make uninstall` removes all PWT-owned install artifacts and keeps data.
+
 ## Storage and exports
 
 Effective data directory: `<application-root>/.pwt-data` by default
@@ -200,6 +242,12 @@ Applicability table: `pwt/README.md`.
   Scan/cancel requests from OpenCode are denied by configuration: run
   scans from the dashboard instead (`/pwt`). Client approval alone
   never enables writes.
+- `PROJECT_NOT_REGISTERED` from a Claude connection → run the project's
+  first scan from the dashboard (`/pwt`) or `make repo-add ROOT=…`; nothing
+  is registered automatically. `PROJECT_SCOPE_CHANGED` → the project's
+  registration changed during the session; start a new Claude session.
+- `ambiguous application artifacts` → `pwt/target` holds several jars and none
+  matches the version in `pwt/pom.xml`: run `make build`, or set `PWT_JAR`.
 - `NOT_FOUND`/`OUT_OF_SCOPE` or "not inside a registered repository" →
   `make repo-add ROOT="…"`, and point every client at the same
   `--data-dir`.
@@ -222,5 +270,5 @@ Applicability table: `pwt/README.md`.
 - `data-schema.md` — migrations V1–V3, tables, retention
 - `plan.md` — roadmap phases
 - `integrations/opencode/README.md` — OpenCode install/use/verify
-- `integrations/claude-code/README.md` — Claude Code state (deferred scope)
+- `integrations/claude-code/README.md` — Claude Code: `/pwt`, `/pwt-ask`, project-bound read-only MCP
 - `status.md`, `handover.md` — verification evidence and next session

@@ -188,7 +188,11 @@ and the `pwt` entry from `opencode.json`. Global: `make uninstall`
 (removes launcher, desktop entry, plugin, agent, and ask command; keeps
 data, projects, and source).
 
-Claude Code keeps its existing prompt-based `/pwt` slash command
-(`../claude-code/README.md`); the native OpenCode plugin does not apply
-there, and Claude Code expansion is deferred while OpenCode is the
-focus.
+Claude Code has its own integration since 1.1.0 (`/pwt`, aliases,
+`/pwt-ask` with a read-only subagent, project-root-bound MCP; see
+`../claude-code/README.md`). The native OpenCode plugin does not apply
+there, and nothing in this guide changes for it.
+
+After upgrading PWT, restart OpenCode (`opencode service restart`): a
+running session keeps the plugin it loaded at start (for example the 1.1.0
+`/pwt` stderr fix is not active until a restart).

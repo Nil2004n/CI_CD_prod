@@ -1,10 +1,10 @@
 import { Plugin } from "@opencode/plugin/tui";
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-interface McpEntry {
+export interface McpEntry {
   command: string[];
   dataDir: string;
   allowScans: boolean;
@@ -495,6 +495,89 @@ function helpText(): string {
   return usage();
 }
 
+function firstLine(value: unknown): string {
+  const text = typeof value === "string" ? value : Buffer.isBuffer(value) ? value.toString("utf8") : "";
+  const line = text.split("\n").map((item) => item.trim()).find((item) => item.length > 0) ?? "";
+  return line.slice(0, 300);
+}
+
+/**
+ * Opens the dashboard (the helper's single-instance check focuses/keeps an
+ * existing window) without letting any child process write onto the TUI's
+ * terminal: the jar lookup runs with captured stdout/stderr and only its
+ * stdout is parsed; the launched helper and all of its descendants get
+ * stdio "ignore". Failures are returned as text for the caller's toast;
+ * a later non-zero helper exit is reported through onFailure.
+ */
+export async function launchDashboard(
+  entry: McpEntry,
+  env: Record<string, string | undefined>,
+  onFailure: (message: string) => void,
+): Promise<string> {
+  const display = env["DISPLAY"] ?? "";
+  const wayland = env["WAYLAND_DISPLAY"] ?? "";
+  if (display === "" && wayland === "") {
+    return "No graphical session detected (DISPLAY and WAYLAND_DISPLAY are unset). The dashboard can only open on a machine with a display.";
+  }
+  let command: string;
+  let args: string[];
+  // Prefer the dashboard helper next to the launcher; fall back to a
+  // direct java invocation parsed from the MCP entry.
+  const helper = entry.command[0].endsWith("pwt-mcp-stdio.sh")
+    ? join(dirname(entry.command[0]), "pwt-dashboard.sh")
+    : undefined;
+  if (helper !== undefined && existsSync(helper)) {
+    let jar: string | undefined;
+    try {
+      const stdout = execFileSync(entry.command[0], ["--print-jar"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: 60_000,
+      });
+      jar = stdout.split("\n").map((line) => line.trim()).filter((line) => line.length > 0).pop();
+    } catch (error) {
+      const detail = firstLine((error as { stderr?: unknown }).stderr);
+      return `Could not resolve the PWT application jar for the dashboard${detail ? `: ${detail}` : "."}`;
+    }
+    if (!jar) {
+      return "Could not resolve the PWT application jar for the dashboard.";
+    }
+    command = helper;
+    args = ["--jar", jar, "--data-dir", entry.dataDir];
+  } else {
+    const jarIndex = entry.command.indexOf("-jar");
+    const jar = jarIndex >= 0 ? entry.command[jarIndex + 1] : undefined;
+    if (!jar) {
+      return "Could not resolve the PWT application jar for the dashboard.";
+    }
+    command = "java";
+    args = ["-jar", jar, "gui", "--data-dir", entry.dataDir];
+  }
+  let child: ChildProcess;
+  try {
+    child = spawn(command, args, { detached: true, stdio: "ignore" });
+  } catch (error) {
+    return `Could not start the PWT dashboard: ${firstLine(error instanceof Error ? error.message : String(error))}`;
+  }
+  const failure = await new Promise<string | null>((resolveStart) => {
+    child.once("spawn", () => resolveStart(null));
+    child.once("error", (error) => resolveStart(error.message));
+  });
+  if (failure !== null) {
+    return `Could not start the PWT dashboard: ${firstLine(failure)}`;
+  }
+  child.on("error", () => {
+    // already started; later errors (e.g. signalling) must not become uncaught exceptions
+  });
+  child.once("exit", (code) => {
+    if (code !== null && code !== 0) {
+      onFailure(`PWT dashboard helper exited with code ${code}; no window was opened.`);
+    }
+  });
+  child.unref();
+  return "Dashboard launch requested (check your local graphical session).";
+}
+
 export default Plugin.define({
   id: "pwt",
   setup(context) {
@@ -612,48 +695,14 @@ export default Plugin.define({
           const suffix = report.truncated === true ? "\n…(truncated; use get_report with offset)" : "";
           return `Report ${runId}:\n${report.content ?? ""}${suffix}`;
         }
-        case "dashboard": {
-          const display = process.env["DISPLAY"] ?? "";
-          const wayland = process.env["WAYLAND_DISPLAY"] ?? "";
-          if (display === "" && wayland === "") {
-            return "No graphical session detected (DISPLAY and WAYLAND_DISPLAY are unset). The dashboard can only open on a machine with a display.";
-          }
-          const { spawn, execFileSync } = await import("node:child_process");
-          const { existsSync: exists } = await import("node:fs");
-          // Prefer the dashboard helper next to the launcher; fall back to a
-          // direct java invocation parsed from the MCP entry.
-          let child;
-          const helper = entry.command[0].endsWith("pwt-mcp-stdio.sh")
-            ? join(dirname(entry.command[0]), "pwt-dashboard.sh")
-            : undefined;
-          if (helper !== undefined && exists(helper)) {
-            let jar: string | undefined;
+        case "dashboard":
+          return launchDashboard(entry, process.env, (message) => {
             try {
-              jar = execFileSync(entry.command[0], ["--print-jar"], { encoding: "utf8" }).trim() || undefined;
+              void context.ui.toast.show({ title: "PWT dashboard", message, variant: "error" });
             } catch {
-              jar = undefined;
+              // plugin unloaded: nothing left to notify
             }
-            if (!jar) {
-              return "Could not resolve the PWT application jar for the dashboard.";
-            }
-            child = spawn(helper, ["--jar", jar, "--data-dir", entry.dataDir], {
-              detached: true,
-              stdio: "ignore",
-            });
-          } else {
-            const jarIndex = entry.command.indexOf("-jar");
-            const jar = jarIndex >= 0 ? entry.command[jarIndex + 1] : undefined;
-            if (!jar) {
-              return "Could not resolve the PWT application jar for the dashboard.";
-            }
-            child = spawn("java", ["-jar", jar, "gui", "--data-dir", entry.dataDir], {
-              detached: true,
-              stdio: "ignore",
-            });
-          }
-          child.unref();
-          return "Dashboard launch requested (check your local graphical session).";
-        }
+          });
         case "error":
           return action.message;
       }

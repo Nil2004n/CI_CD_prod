@@ -11,6 +11,13 @@
 > direct commands + global agent + database-first store/analysis, COMPLETE —
 > see status.md top entry). Phase 5 desktop visual redesign NOT started.
 >
+> 2026-11-14: release 1.1.0 prepared (outside the phase order): Claude Code
+> integration (commands, read-only haiku subagent, project/global MCP bound by
+> project root), read-only MCP expansion incl. `compare_runs`, dashboard
+> restyle, OpenCode ghost-text fix, unified artifact selection. Phase 5 GUI
+> workflow (history/filtering/comparison view) remains NOT started; see
+> CHANGELOG.md and status.md.
+>
 > Roadmap as implemented (not the historical ordering): Phase 1 =
 > foundation/discovery/minimal MCP. Phase 2 = first real scanners and
 > persistence. Phase 3 = remaining scanner integrations (all six

@@ -37,11 +37,40 @@ public final class McpScanTools {
     private static final int MAX_REPORT_CHARS = 64_000;
     private static final long MAX_REPORT_BYTES = 8L * 1024 * 1024;
 
+    /**
+     * Server configuration seen by every handler. A connection is bound to
+     * one project either by {@code scopedRepositoryId} ({@code --repo-id}) or
+     * by {@code projectRoot} ({@code --project-root}, resolved per call via
+     * {@link ProjectScope}); with neither it is the explicit unscoped admin
+     * mode.
+     */
     public record McpContext(Path dataDir, boolean allowScans, boolean allowAnalysisWrites,
-            McpScanManager scans, McpActivity activity, String scopedRepositoryId) {
-        public McpContext(Path dataDir, boolean allowScans, McpScanManager scans) {
-            this(dataDir, allowScans, false, scans, null, null);
+            McpScanManager scans, McpActivity activity, String scopedRepositoryId, Path projectRoot) {
+        public McpContext(Path dataDir, boolean allowScans, boolean allowAnalysisWrites,
+                McpScanManager scans, McpActivity activity, String scopedRepositoryId) {
+            this(dataDir, allowScans, allowAnalysisWrites, scans, activity, scopedRepositoryId, null);
         }
+
+        public McpContext(Path dataDir, boolean allowScans, McpScanManager scans) {
+            this(dataDir, allowScans, false, scans, null, null, null);
+        }
+    }
+
+    /** True when this server is bound to exactly one project. */
+    static boolean isScoped(McpContext context) {
+        return context.projectRoot() != null || context.scopedRepositoryId() != null;
+    }
+
+    /**
+     * Effective project scope for this call: the repository owning the bound
+     * project root, the configured repository ID, or null in unscoped admin
+     * mode. Project-root resolution failures surface as non-disclosing errors.
+     */
+    static String scopeId(SqliteStore store, McpContext context) throws McpErrors.McpServiceException {
+        if (context.projectRoot() != null) {
+            return ProjectScope.resolve(store, context.projectRoot()).id();
+        }
+        return context.scopedRepositoryId();
     }
 
     private McpScanTools() {
@@ -54,6 +83,8 @@ public final class McpScanTools {
                 getRunTool(context),
                 listFindingsTool(context),
                 getReportTool(context),
+                getProjectStatusTool(context),
+                compareRunsTool(context),
                 startScanTool(context),
                 cancelScanTool(context),
                 getAnalysisTool(context),
@@ -208,11 +239,12 @@ public final class McpScanTools {
      */
     private static SqliteStore.RepositoryRow scopedRepository(SqliteStore store, McpContext context,
             String repositoryId, String operation) throws McpErrors.McpServiceException {
+        String scope = scopeId(store, context);
         String effective = repositoryId;
         if (effective == null || effective.isBlank()) {
-            effective = context.scopedRepositoryId();
+            effective = scope;
         }
-        if (context.scopedRepositoryId() != null && !context.scopedRepositoryId().equals(effective)) {
+        if (scope != null && !scope.equals(effective)) {
             throw new McpErrors.McpServiceException(McpErrors.OUT_OF_SCOPE,
                     operation + " is restricted to the configured project repository");
         }
@@ -240,13 +272,16 @@ public final class McpScanTools {
         if (runId == null || runId.isBlank()) {
             throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT, "run_id is required");
         }
+        if (runId.length() > 128) {
+            throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT, "run_id is too long");
+        }
+        String scope = scopeId(store, context);
         try {
             SqliteStore.RunView view = store.getRun(runId);
             if (view == null) {
                 throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND, "unknown run_id: " + runId);
             }
-            if (context.scopedRepositoryId() != null
-                    && !context.scopedRepositoryId().equals(view.repositoryId())) {
+            if (scope != null && !scope.equals(view.repositoryId())) {
                 throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND, "unknown run_id: " + runId);
             }
             return view;
@@ -271,9 +306,9 @@ public final class McpScanTools {
                     int limit = optLimit(args, DEFAULT_PAGE);
                     try (SqliteStore store = openStore(context.dataDir())) {
                         List<SqliteStore.RepositoryRow> rows;
-                        if (context.scopedRepositoryId() != null) {
+                        if (isScoped(context)) {
                             SqliteStore.RepositoryRow only =
-                                    store.findRepositoryById(context.scopedRepositoryId());
+                                    store.findRepositoryById(scopeId(store, context));
                             rows = only == null ? List.of() : List.of(only);
                         } else {
                             rows = store.listRepositories();
@@ -385,6 +420,17 @@ public final class McpScanTools {
             run.put("finished_at", summary.finishedAt());
             run.put("source", sourceOf(store, summary.runId()));
             run.put("finding_count", summary.findingCount());
+            run.put("final", isTerminal(summary.state().name()));
+            if (!isTerminal(summary.state().name())) {
+                run.put("provisional_note", "run is still active: counts and coverage may change");
+            }
+            SqliteStore.RunView recorded = store.getRun(summary.runId());
+            if (recorded != null && recorded.errorCode() != null) {
+                Map<String, Object> error = new LinkedHashMap<>();
+                error.put("code", recorded.errorCode());
+                error.put("message", McpErrors.sanitize(recorded.errorMessage()));
+                run.put("recorded_error", error);
+            }
             Map<String, Object> repository = new LinkedHashMap<>();
             repository.put("id", repo == null ? null : repo.id());
             repository.put("display_name", summary.repositoryDisplayName());
@@ -406,8 +452,9 @@ public final class McpScanTools {
                 entry.put("tool_version", outcome.toolVersion());
                 entry.put("status", outcome.status().name());
                 entry.put("exit_code", outcome.exitCode());
-                entry.put("message", outcome.detail());
+                entry.put("message", outcome.detail() == null ? null : McpErrors.sanitize(outcome.detail()));
                 entry.put("finding_count", outcome.findings().size());
+                entry.put("execution", executionClass(outcome.status().name()));
                 scanners.add(entry);
             }
             Map<String, Object> coverage = new LinkedHashMap<>();
@@ -481,11 +528,15 @@ public final class McpScanTools {
         properties.put("run_id", prop("string"));
         properties.put("severity", prop("string"));
         properties.put("adapter_id", prop("string"));
+        properties.put("rule_id", prop("string"));
+        properties.put("relative_path", prop("string"));
         properties.put("cursor", prop("string"));
         properties.put("limit", prop("integer"));
         return tool(context, "list_findings",
-                "Lists sanitized normalized findings for one run (stable order). "
-                        + "Optional severity/adapter filters; paginated (default 100/page, max 500).",
+                "Lists sanitized normalized findings for one run of this project (stable order). "
+                        + "Optional exact-match filters: severity, adapter_id, rule_id, relative_path "
+                        + "(repository-relative). Paginated (default 100/page, max 500). Severity is the "
+                        + "recorded mapping; original_severity is the scanner's own value.",
                 schema(properties, List.of("run_id")), args -> {
                     String runId = reqString(args, "run_id");
                     String severity = optString(args, "severity");
@@ -510,6 +561,8 @@ public final class McpScanTools {
                                     "unknown adapter_id filter: " + adapterId);
                         }
                     }
+                    String ruleFilter = boundedFilter(optString(args, "rule_id"), "rule_id");
+                    String pathFilter = boundedFilter(optString(args, "relative_path"), "relative_path");
                     int offset = optOffset(args);
                     int limit = optLimit(args, DEFAULT_PAGE);
                     try (SqliteStore store = openStore(context.dataDir())) {
@@ -527,6 +580,12 @@ public final class McpScanTools {
                                 continue;
                             }
                             if (adapterId != null && !info[0].equals(adapterId)) {
+                                continue;
+                            }
+                            if (ruleFilter != null && !ruleFilter.equals(row.finding().ruleId())) {
+                                continue;
+                            }
+                            if (pathFilter != null && !pathFilter.equals(row.finding().relativePath())) {
                                 continue;
                             }
                             pwt.domain.Finding finding = row.finding();
@@ -567,9 +626,18 @@ public final class McpScanTools {
                 });
     }
 
+    private static final int MAX_EVIDENCE_CHARS = 4_000;
+
     private static Object parseEvidence(String evidenceJson) {
         if (evidenceJson == null || evidenceJson.isBlank()) {
             return Map.of();
+        }
+        if (evidenceJson.length() > MAX_EVIDENCE_CHARS) {
+            Map<String, Object> capped = new LinkedHashMap<>();
+            capped.put("truncated", true);
+            capped.put("excerpt", McpErrors.sanitize(evidenceJson.substring(0, 400)));
+            capped.put("original_chars", evidenceJson.length());
+            return capped;
         }
         try {
             return MAPPER.readValue(evidenceJson, Object.class);
@@ -680,10 +748,15 @@ public final class McpScanTools {
                                         + " to enable start_scan/cancel_scan");
                     }
                     String repositoryId = reqString(args, "repository_id");
-                    if (context.scopedRepositoryId() != null
-                            && !context.scopedRepositoryId().equals(repositoryId)) {
-                        throw new McpErrors.McpServiceException(McpErrors.OUT_OF_SCOPE,
-                                "this MCP server is restricted to one registered project repository");
+                    if (isScoped(context)) {
+                        String scope;
+                        try (SqliteStore scopeStore = openStore(context.dataDir())) {
+                            scope = scopeId(scopeStore, context);
+                        }
+                        if (!scope.equals(repositoryId)) {
+                            throw new McpErrors.McpServiceException(McpErrors.OUT_OF_SCOPE,
+                                    "this MCP server is restricted to one registered project repository");
+                        }
                     }
                     List<String> relativePaths = optStringList(args, "relative_paths");
                     if (relativePaths.isEmpty()) {
@@ -764,7 +837,7 @@ public final class McpScanTools {
                                         + " to enable start_scan/cancel_scan");
                     }
                     String runId = reqString(args, "run_id");
-                    if (context.scopedRepositoryId() != null) {
+                    if (isScoped(context)) {
                         try (SqliteStore scopeStore = openStore(context.dataDir())) {
                             scopedRun(scopeStore, context, runId);
                         } catch (McpErrors.McpServiceException e) {
@@ -783,6 +856,409 @@ public final class McpScanTools {
                     return result;
                 });
     }
+    // shared read helpers -------------------------------------------------------
+
+    private static final int MAX_FILTER_CHARS = 512;
+
+    private static String boundedFilter(String value, String name) throws McpErrors.McpServiceException {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.length() > MAX_FILTER_CHARS) {
+            throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT, name + " filter is too long");
+        }
+        for (int i = 0; i < trimmed.length(); i++) {
+            char c = trimmed.charAt(i);
+            if (c < 0x20 || c == 0x7F) {
+                throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                        name + " filter contains control characters");
+            }
+        }
+        return trimmed;
+    }
+
+    static boolean isTerminal(String state) {
+        return switch (state) {
+            case "COMPLETED", "PARTIAL", "FAILED", "CANCELLED", "INTERRUPTED" -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * Execution class of a recorded scanner status. Separates "the tool did
+     * not complete" from "the tool completed" — a security/lint rule failure
+     * is a finding of an executed tool, never an execution failure.
+     */
+    static String executionClass(String status) {
+        return switch (status) {
+            case "SUCCEEDED" -> "executed";
+            case "FAILED", "TIMED_OUT", "INTERRUPTED" -> "execution_failure";
+            case "SKIPPED", "NOT_APPLICABLE" -> "not_executed";
+            case "UNAVAILABLE" -> "tool_unavailable";
+            case "CANCELLED" -> "cancelled";
+            case "PENDING", "RUNNING" -> "in_progress";
+            default -> "unknown";
+        };
+    }
+
+    private static Map<String, Object> runBrief(SqliteStore store, SqliteStore.RunView run) throws Exception {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("run_id", run.id());
+        item.put("state", run.state().name());
+        item.put("verdict", run.verdict().name());
+        item.put("final", isTerminal(run.state().name()));
+        item.put("created_at", run.createdAt());
+        item.put("finished_at", run.finishedAt());
+        item.put("finding_count", store.countFindings(run.id()));
+        item.put("target_count", store.listRunFiles(run.id()).size());
+        List<String> gaps = ScanService.extractSummaryGaps(run.summaryJson());
+        item.put("coverage_gap_count", gaps.size());
+        Map<String, Integer> statuses = new java.util.TreeMap<>();
+        for (SqliteStore.ScannerRunRow scanner : store.listScannerRuns(run.id())) {
+            statuses.merge(scanner.status().name(), 1, Integer::sum);
+        }
+        item.put("scanner_status_counts", statuses);
+        return item;
+    }
+
+    // get_project_status --------------------------------------------------------
+
+    private static McpServerFeatures.SyncToolSpecification getProjectStatusTool(McpContext context) {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("repository_id", prop("string"));
+        return tool(context, "get_project_status",
+                "Read-only status of this connection's project: identity and root availability, "
+                        + "latest recorded run (final or provisional), active runs, run count, scan-journal "
+                        + "availability, and the server's effective permissions. Takes no arguments on a "
+                        + "project-bound connection (repository_id is only for unscoped admin servers). "
+                        + "Never registers or scans.",
+                schema(properties, List.of()), args -> {
+                    try (SqliteStore store = openStore(context.dataDir())) {
+                        SqliteStore.RepositoryRow repo = scopedRepository(store, context,
+                                optString(args, "repository_id"), "get_project_status");
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        Map<String, Object> project = new LinkedHashMap<>();
+                        project.put("id", repo.id());
+                        project.put("display_name", repo.displayName());
+                        project.put("canonical_root", repo.canonicalRoot());
+                        boolean available = Files.isDirectory(Path.of(repo.canonicalRoot()));
+                        project.put("availability", available ? "available" : "unavailable");
+                        result.put("project", project);
+                        Map<String, Object> binding = new LinkedHashMap<>();
+                        binding.put("mode", context.projectRoot() != null ? "project-root"
+                                : context.scopedRepositoryId() != null ? "repository-id" : "unscoped-admin");
+                        result.put("binding", binding);
+                        result.put("run_count", store.countRuns(repo.id(), null));
+                        List<SqliteStore.RunView> latest = store.listRuns(repo.id(), null, 1, 0);
+                        result.put("latest_run", latest.isEmpty() ? null : runBrief(store, latest.get(0)));
+                        List<Map<String, Object>> active = new ArrayList<>();
+                        for (String state : List.of("CREATED", "RUNNING")) {
+                            for (SqliteStore.RunView run : store.listRuns(repo.id(), state, 20, 0)) {
+                                Map<String, Object> brief = runBrief(store, run);
+                                brief.put("provisional_note", "run is still active: counts and coverage may change");
+                                active.add(brief);
+                            }
+                        }
+                        result.put("active_runs", active);
+                        Path journal = pwt.application.JournalWriter.journalPath(context.dataDir(), repo);
+                        Map<String, Object> journalInfo = new LinkedHashMap<>();
+                        journalInfo.put("path", journal.toString());
+                        boolean journalExists = Files.isRegularFile(journal);
+                        journalInfo.put("available", journalExists);
+                        if (journalExists) {
+                            journalInfo.put("size_bytes", Files.size(journal));
+                            journalInfo.put("modified_at", Files.getLastModifiedTime(journal).toInstant().toString());
+                        }
+                        result.put("journal", journalInfo);
+                        Map<String, Object> permissions = new LinkedHashMap<>();
+                        permissions.put("scans", context.allowScans() ? "enabled" : "denied");
+                        permissions.put("analysis_writes", context.allowAnalysisWrites() ? "enabled" : "denied");
+                        result.put("server_permissions", permissions);
+                        return result;
+                    } catch (McpErrors.McpServiceException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR, e.getMessage());
+                    }
+                });
+    }
+
+    // compare_runs --------------------------------------------------------------
+
+    private record ComparedFinding(Map<String, Object> item, String adapterId, String ruleId,
+            String path, Integer line, String fingerprint) {
+    }
+
+    private static List<ComparedFinding> comparedFindings(SqliteStore store, String runId) throws Exception {
+        Map<String, String> adapterByScannerRun = new LinkedHashMap<>();
+        for (SqliteStore.ScannerRunRow scanner : store.listScannerRuns(runId)) {
+            adapterByScannerRun.put(scanner.id(), scanner.adapterId());
+        }
+        List<ComparedFinding> out = new ArrayList<>();
+        for (SqliteStore.FindingRow row : store.listFindings(runId)) {
+            pwt.domain.Finding finding = row.finding();
+            String adapter = adapterByScannerRun.getOrDefault(row.scannerRunId(), "unknown");
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("fingerprint", finding.fingerprint());
+            item.put("adapter_id", adapter);
+            item.put("rule_id", finding.ruleId());
+            item.put("severity", finding.severity().name());
+            item.put("relative_path", finding.relativePath());
+            item.put("line_start", finding.lineStart());
+            item.put("title", finding.title());
+            out.add(new ComparedFinding(item, adapter, finding.ruleId(), finding.relativePath(),
+                    finding.lineStart(), finding.fingerprint()));
+        }
+        return out;
+    }
+
+    private static McpServerFeatures.SyncToolSpecification compareRunsTool(McpContext context) {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("base_run_id", prop("string"));
+        properties.put("head_run_id", prop("string"));
+        properties.put("limit", prop("integer"));
+        return tool(context, "compare_runs",
+                "Compares two recorded runs of this project by recorded finding fingerprint "
+                        + "(adapter, rule, file, line). Returns findings only in base, only in head, in both, "
+                        + "possible line shifts (same adapter/rule/file, different line), and differences in "
+                        + "selected files, file content hashes, and scanner execution. Each one-sided finding "
+                        + "says whether the comparison is meaningful (same file selected and the adapter executed "
+                        + "in both runs). It never labels anything fixed: absence is only evidence where it is "
+                        + "comparable. Lists bounded by limit (default 100, max 500).",
+                schema(properties, List.of("base_run_id", "head_run_id")), args -> {
+                    String baseId = reqString(args, "base_run_id").trim();
+                    String headId = reqString(args, "head_run_id").trim();
+                    int limit = optLimit(args, DEFAULT_PAGE);
+                    if (baseId.equals(headId)) {
+                        throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                                "base_run_id and head_run_id must name two different runs");
+                    }
+                    try (SqliteStore store = openStore(context.dataDir())) {
+                        SqliteStore.RunView base = scopedRun(store, context, baseId);
+                        SqliteStore.RunView head = scopedRun(store, context, headId);
+                        if (!base.repositoryId().equals(head.repositoryId())) {
+                            throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                                    "both runs must belong to the same repository");
+                        }
+                        Map<String, String> baseFiles = new LinkedHashMap<>();
+                        for (SqliteStore.TargetRow row : store.listRunFiles(base.id())) {
+                            baseFiles.put(row.relativePath(), row.sha256());
+                        }
+                        Map<String, String> headFiles = new LinkedHashMap<>();
+                        for (SqliteStore.TargetRow row : store.listRunFiles(head.id())) {
+                            headFiles.put(row.relativePath(), row.sha256());
+                        }
+                        Map<String, String> baseScanners = new java.util.TreeMap<>();
+                        for (SqliteStore.ScannerRunRow row : store.listScannerRuns(base.id())) {
+                            baseScanners.put(row.adapterId(), row.status().name());
+                        }
+                        Map<String, String> headScanners = new java.util.TreeMap<>();
+                        for (SqliteStore.ScannerRunRow row : store.listScannerRuns(head.id())) {
+                            headScanners.put(row.adapterId(), row.status().name());
+                        }
+
+                        List<String> onlyBaseFiles = new ArrayList<>();
+                        List<String> onlyHeadFiles = new ArrayList<>();
+                        List<String> changedFiles = new ArrayList<>();
+                        int unchangedFiles = 0;
+                        for (Map.Entry<String, String> entry : baseFiles.entrySet()) {
+                            String other = headFiles.get(entry.getKey());
+                            if (other == null) {
+                                onlyBaseFiles.add(entry.getKey());
+                            } else if (!other.equals(entry.getValue())) {
+                                changedFiles.add(entry.getKey());
+                            } else {
+                                unchangedFiles++;
+                            }
+                        }
+                        for (String path : headFiles.keySet()) {
+                            if (!baseFiles.containsKey(path)) {
+                                onlyHeadFiles.add(path);
+                            }
+                        }
+                        List<Map<String, Object>> scannerDiffs = new ArrayList<>();
+                        java.util.Set<String> adapters = new java.util.TreeSet<>(baseScanners.keySet());
+                        adapters.addAll(headScanners.keySet());
+                        for (String adapter : adapters) {
+                            Map<String, Object> diff = new LinkedHashMap<>();
+                            diff.put("adapter_id", adapter);
+                            diff.put("base_status", baseScanners.get(adapter));
+                            diff.put("head_status", headScanners.get(adapter));
+                            diff.put("executed_in_both", "SUCCEEDED".equals(baseScanners.get(adapter))
+                                    && "SUCCEEDED".equals(headScanners.get(adapter)));
+                            scannerDiffs.add(diff);
+                        }
+
+                        List<ComparedFinding> baseFindings = comparedFindings(store, base.id());
+                        List<ComparedFinding> headFindings = comparedFindings(store, head.id());
+                        Map<String, Integer> headCounts = new java.util.HashMap<>();
+                        for (ComparedFinding f : headFindings) {
+                            headCounts.merge(f.fingerprint(), 1, Integer::sum);
+                        }
+                        Map<String, Integer> baseCounts = new java.util.HashMap<>();
+                        for (ComparedFinding f : baseFindings) {
+                            baseCounts.merge(f.fingerprint(), 1, Integer::sum);
+                        }
+                        List<ComparedFinding> onlyBase = new ArrayList<>();
+                        List<ComparedFinding> inBoth = new ArrayList<>();
+                        Map<String, Integer> remaining = new java.util.HashMap<>(headCounts);
+                        for (ComparedFinding f : baseFindings) {
+                            int left = remaining.getOrDefault(f.fingerprint(), 0);
+                            if (left > 0) {
+                                remaining.put(f.fingerprint(), left - 1);
+                                inBoth.add(f);
+                            } else {
+                                onlyBase.add(f);
+                            }
+                        }
+                        List<ComparedFinding> onlyHead = new ArrayList<>();
+                        Map<String, Integer> remainingBase = new java.util.HashMap<>(baseCounts);
+                        for (ComparedFinding f : headFindings) {
+                            int left = remainingBase.getOrDefault(f.fingerprint(), 0);
+                            if (left > 0) {
+                                remainingBase.put(f.fingerprint(), left - 1);
+                            } else {
+                                onlyHead.add(f);
+                            }
+                        }
+                        // Possible line shifts: same adapter/rule/file, different line. Labeled as candidates.
+                        List<Map<String, Object>> shifts = new ArrayList<>();
+                        java.util.Set<ComparedFinding> pairedHead = java.util.Collections.newSetFromMap(
+                                new java.util.IdentityHashMap<>());
+                        java.util.Set<ComparedFinding> pairedBase = java.util.Collections.newSetFromMap(
+                                new java.util.IdentityHashMap<>());
+                        for (ComparedFinding b : onlyBase) {
+                            for (ComparedFinding h : onlyHead) {
+                                if (pairedHead.contains(h)) {
+                                    continue;
+                                }
+                                if (java.util.Objects.equals(b.adapterId(), h.adapterId())
+                                        && java.util.Objects.equals(b.ruleId(), h.ruleId())
+                                        && java.util.Objects.equals(b.path(), h.path())
+                                        && !java.util.Objects.equals(b.line(), h.line())) {
+                                    Map<String, Object> shift = new LinkedHashMap<>();
+                                    shift.put("adapter_id", b.adapterId());
+                                    shift.put("rule_id", b.ruleId());
+                                    shift.put("relative_path", b.path());
+                                    shift.put("base_line", b.line());
+                                    shift.put("head_line", h.line());
+                                    shift.put("note", "same rule and file at a different line; possibly the same "
+                                            + "issue after an edit — not confirmed");
+                                    shifts.add(shift);
+                                    pairedHead.add(h);
+                                    pairedBase.add(b);
+                                    break;
+                                }
+                            }
+                        }
+
+                        List<Map<String, Object>> onlyBaseItems = new ArrayList<>();
+                        for (ComparedFinding f : onlyBase) {
+                            if (pairedBase.contains(f)) {
+                                continue;
+                            }
+                            onlyBaseItems.add(annotate(f, baseFiles, headFiles, baseScanners, headScanners, true));
+                        }
+                        List<Map<String, Object>> onlyHeadItems = new ArrayList<>();
+                        for (ComparedFinding f : onlyHead) {
+                            if (pairedHead.contains(f)) {
+                                continue;
+                            }
+                            onlyHeadItems.add(annotate(f, baseFiles, headFiles, baseScanners, headScanners, false));
+                        }
+                        List<Map<String, Object>> bothItems = new ArrayList<>();
+                        for (ComparedFinding f : inBoth) {
+                            bothItems.add(f.item());
+                        }
+
+                        List<String> limitations = new ArrayList<>();
+                        if (!isTerminal(base.state().name()) || !isTerminal(head.state().name())) {
+                            limitations.add("at least one run is still active; its results are provisional");
+                        }
+                        if (!onlyBaseFiles.isEmpty() || !onlyHeadFiles.isEmpty()) {
+                            limitations.add("the runs selected different files; findings in files selected by only "
+                                    + "one run are not comparable");
+                        }
+                        if (!changedFiles.isEmpty()) {
+                            limitations.add("file content changed between runs for " + changedFiles.size()
+                                    + " file(s); line-based fingerprints may differ for unchanged issues");
+                        }
+                        for (Map<String, Object> diff : scannerDiffs) {
+                            if (!Boolean.TRUE.equals(diff.get("executed_in_both"))) {
+                                limitations.add("adapter " + diff.get("adapter_id") + " did not execute successfully "
+                                        + "in both runs (base " + diff.get("base_status") + ", head "
+                                        + diff.get("head_status") + "); its absent findings are not evidence");
+                            }
+                        }
+                        List<String> baseGaps = ScanService.extractSummaryGaps(base.summaryJson());
+                        List<String> headGaps = ScanService.extractSummaryGaps(head.summaryJson());
+                        if (!baseGaps.isEmpty() || !headGaps.isEmpty()) {
+                            limitations.add("coverage gaps recorded: base " + baseGaps.size() + ", head "
+                                    + headGaps.size());
+                        }
+
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        Map<String, Object> runs = new LinkedHashMap<>();
+                        runs.put("base", runBrief(store, base));
+                        runs.put("head", runBrief(store, head));
+                        result.put("runs", runs);
+                        Map<String, Object> files = new LinkedHashMap<>();
+                        files.put("only_in_base", capList(onlyBaseFiles, limit));
+                        files.put("only_in_head", capList(onlyHeadFiles, limit));
+                        files.put("content_changed", capList(changedFiles, limit));
+                        files.put("unchanged_count", unchangedFiles);
+                        result.put("selected_files", files);
+                        result.put("scanners", scannerDiffs);
+                        Map<String, Object> findings = new LinkedHashMap<>();
+                        findings.put("only_in_base_total", onlyBaseItems.size());
+                        findings.put("only_in_base", capList(onlyBaseItems, limit));
+                        findings.put("only_in_head_total", onlyHeadItems.size());
+                        findings.put("only_in_head", capList(onlyHeadItems, limit));
+                        findings.put("in_both_total", bothItems.size());
+                        findings.put("in_both", capList(bothItems, limit));
+                        findings.put("possible_line_shifts", capList(shifts, limit));
+                        result.put("findings", findings);
+                        result.put("limitations", limitations);
+                        result.put("interpretation_note", "Identity is the recorded fingerprint. 'only_in_base' "
+                                + "means the head run's recorded results do not contain that identity; it supports "
+                                + "'no longer reported' only where comparable=true, and never proves a fix by itself.");
+                        return result;
+                    } catch (McpErrors.McpServiceException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR, e.getMessage());
+                    }
+                });
+    }
+
+    private static Map<String, Object> annotate(ComparedFinding f, Map<String, String> baseFiles,
+            Map<String, String> headFiles, Map<String, String> baseScanners, Map<String, String> headScanners,
+            boolean fromBase) {
+        Map<String, Object> item = new LinkedHashMap<>(f.item());
+        boolean fileInBoth = f.path() != null && baseFiles.containsKey(f.path()) && headFiles.containsKey(f.path());
+        boolean executedBoth = "SUCCEEDED".equals(baseScanners.get(f.adapterId()))
+                && "SUCCEEDED".equals(headScanners.get(f.adapterId()));
+        item.put("comparable", fileInBoth && executedBoth);
+        if (!fileInBoth) {
+            item.put("not_comparable_reason", "file was not selected in both runs");
+        } else if (!executedBoth) {
+            item.put("not_comparable_reason", "adapter did not execute successfully in both runs");
+        }
+        if (fileInBoth && !java.util.Objects.equals(baseFiles.get(f.path()), headFiles.get(f.path()))) {
+            item.put("file_content_changed", true);
+        }
+        item.put("side", fromBase ? "base" : "head");
+        return item;
+    }
+
+    private static <T> List<T> capList(List<T> list, int limit) {
+        return list.size() > limit ? new ArrayList<>(list.subList(0, limit)) : list;
+    }
+
     // get_analysis / save_analysis ---------------------------------------------
 
     private static void checkPriority(String value, String field) throws McpErrors.McpServiceException {
@@ -820,15 +1296,17 @@ public final class McpScanTools {
                             throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
                                     "unknown run_id: " + runId);
                         }
+                        // Read path: look the thread up, never create it (get_analysis is read-only).
                         SqliteStore.AnalysisThreadView thread =
-                                store.getOrCreateAnalysisThread(view.repositoryId(), runId);
-                        SqliteStore.AnalysisRevisionRow resolved =
-                                store.getAnalysisRevision(thread.threadId(), revision);
-                        List<Integer> available = store.listAnalysisRevisions(thread.threadId());
+                                store.findAnalysisThread(view.repositoryId(), runId);
+                        SqliteStore.AnalysisRevisionRow resolved = thread == null ? null
+                                : store.getAnalysisRevision(thread.threadId(), revision);
+                        List<Integer> available = thread == null ? List.of()
+                                : store.listAnalysisRevisions(thread.threadId());
                         Map<String, Object> result = new LinkedHashMap<>();
                         result.put("repository_id", view.repositoryId());
                         result.put("run_id", runId);
-                        result.put("current_revision", thread.currentRevision());
+                        result.put("current_revision", thread == null ? 0 : thread.currentRevision());
                         result.put("available_revisions", available);
                         if (resolved == null) {
                             result.put("revision", null);

@@ -83,8 +83,18 @@ class McpHarness implements AutoCloseable {
         this(dataDir, allowScans, allowAnalysis, repoId, null);
     }
 
+    /** Server with arbitrary extra arguments after {@code mcp --data-dir DIR} (e.g. --project-root). */
+    McpHarness(Path dataDir, List<String> extraArgs) throws Exception {
+        this(dataDir, false, false, null, null, extraArgs);
+    }
+
     McpHarness(Path dataDir, boolean allowScans, boolean allowAnalysis, String repoId,
             Map<String, String> extraEnv) throws Exception {
+        this(dataDir, allowScans, allowAnalysis, repoId, extraEnv, List.of());
+    }
+
+    private McpHarness(Path dataDir, boolean allowScans, boolean allowAnalysis, String repoId,
+            Map<String, String> extraEnv, List<String> extraArgs) throws Exception {
         String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
         List<String> command = new ArrayList<>();
         command.add(javaBin);
@@ -104,6 +114,7 @@ class McpHarness implements AutoCloseable {
             command.add("--repo-id");
             command.add(repoId);
         }
+        command.addAll(extraArgs);
         ProcessBuilder builder = new ProcessBuilder(command);
         if (extraEnv != null) {
             builder.environment().putAll(extraEnv);
