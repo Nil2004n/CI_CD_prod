@@ -79,6 +79,55 @@ class McpHarness implements AutoCloseable {
         this(dataDir, allowScans, null);
     }
 
+    McpHarness(Path dataDir, boolean allowScans, boolean allowAnalysis, String repoId) throws Exception {
+        this(dataDir, allowScans, allowAnalysis, repoId, null);
+    }
+
+    McpHarness(Path dataDir, boolean allowScans, boolean allowAnalysis, String repoId,
+            Map<String, String> extraEnv) throws Exception {
+        String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+        List<String> command = new ArrayList<>();
+        command.add(javaBin);
+        command.add("-cp");
+        command.add(System.getProperty("java.class.path"));
+        command.add("pwt.launcher.PwtMain");
+        command.add("mcp");
+        command.add("--data-dir");
+        command.add(dataDir.toString());
+        if (allowScans) {
+            command.add("--allow-scans");
+        }
+        if (allowAnalysis) {
+            command.add("--allow-analysis-writes");
+        }
+        if (repoId != null) {
+            command.add("--repo-id");
+            command.add(repoId);
+        }
+        ProcessBuilder builder = new ProcessBuilder(command);
+        if (extraEnv != null) {
+            builder.environment().putAll(extraEnv);
+        }
+        stderrFile = Files.createTempFile("pwt-mcp-stderr", ".log");
+        builder.redirectError(stderrFile.toFile());
+        server = builder.start();
+        stdin = new BufferedWriter(new OutputStreamWriter(server.getOutputStream(), StandardCharsets.UTF_8));
+        Thread reader = new Thread(() -> {
+            try (BufferedReader stdout = new BufferedReader(
+                    new InputStreamReader(server.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = stdout.readLine()) != null) {
+                    stdoutLines.add(line);
+                }
+            } catch (Exception ignored) {
+                // torn down
+            }
+        }, "mcp-harness-reader");
+        reader.setDaemon(true);
+        reader.start();
+        initialize();
+    }
+
     private void initialize() throws Exception {
         var params = MAPPER.createObjectNode();
         params.put("protocolVersion", "2024-11-05");

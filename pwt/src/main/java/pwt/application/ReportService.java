@@ -22,7 +22,15 @@ public final class ReportService {
     public record ReportPaths(String jsonPath, String jsonError, String markdownPath, String markdownError) {
     }
 
-    public ReportPaths generate(SqliteStore store, Path dataDir, String runId) throws Exception {
+    public record RenderedReport(String json, String markdown, String source) {
+    }
+
+    /**
+     * Renders both report formats from sanitized persisted records only.
+     * Never touches report files: retrieval always works whether or not an
+     * export was ever written.
+     */
+    public RenderedReport render(SqliteStore store, String runId) throws Exception {
         SqliteStore.RunView run = store.getRun(runId);
         if (run == null) {
             throw new IllegalArgumentException("Unknown run: " + runId);
@@ -45,14 +53,24 @@ public final class ReportService {
 
         String json = buildJson(run, repo, targets, scanners, findings, complete, gaps, source, scopeNote);
         String markdown = buildMarkdown(run, repo, targets, scanners, findings, complete, gaps, source, scopeNote);
+        return new RenderedReport(json, markdown, source);
+    }
 
+    /**
+     * Explicit export path: writes rendered reports to run-specific files
+     * atomically and records the artifacts. Used by the CLI --export flag
+     * and the GUI Export action — never implicitly by scan completion.
+     */
+    public ReportPaths generate(SqliteStore store, Path dataDir, String runId) throws Exception {
+        RenderedReport rendered = render(store, runId);
         Path artifactDir = dataDir.resolve("artifacts").resolve(runId);
         String jsonPath = null;
         String jsonError = null;
         String mdPath = null;
         String mdError = null;
         try {
-            ReportWriter.WrittenFile written = ReportWriter.writeAtomically(artifactDir, "report.json", json);
+            ReportWriter.WrittenFile written = ReportWriter.writeAtomically(artifactDir, "report.json",
+                    rendered.json());
             jsonPath = dataDir.relativize(written.path()).toString().replace('\\', '/');
             store.recordArtifact(runId, "JSON_REPORT", "READY", jsonPath, written.sha256(), written.sizeBytes(), null);
         } catch (Exception e) {
@@ -60,7 +78,8 @@ public final class ReportService {
             store.recordArtifact(runId, "JSON_REPORT", "FAILED", null, null, null, "EXPORT_FAILED");
         }
         try {
-            ReportWriter.WrittenFile written = ReportWriter.writeAtomically(artifactDir, "report.md", markdown);
+            ReportWriter.WrittenFile written = ReportWriter.writeAtomically(artifactDir, "report.md",
+                    rendered.markdown());
             mdPath = dataDir.relativize(written.path()).toString().replace('\\', '/');
             store.recordArtifact(runId, "MARKDOWN_REPORT", "READY", mdPath, written.sha256(), written.sizeBytes(), null);
         } catch (Exception e) {

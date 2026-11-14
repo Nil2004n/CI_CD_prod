@@ -12,7 +12,10 @@
 set -u
 
 JAR=""
-DATA_DIR="$HOME/.pwt-data"
+# One shared database: <application-root>/.pwt-data unless --data-dir says
+# otherwise explicitly. Never generated per repository or scan.
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+DATA_DIR="$SCRIPT_DIR/../.pwt-data"
 JAVA_BIN="java"
 
 while [ $# -gt 0 ]; do

@@ -35,23 +35,28 @@ public final class PwtMcpServer {
 
     /** Starts the server on stdio and blocks until the process is stopped. */
     public static void run() {
-        run(ScanService.defaultDataDir(), false);
+        run(ScanService.defaultDataDir(), false, false, null);
     }
 
     /**
      * Starts the server on stdio over one data directory. Read-only tools
      * always work; {@code start_scan}/{@code cancel_scan} additionally require
-     * {@code allowScans} (the {@code --allow-scans} flag).
+     * {@code allowScans}, and {@code save_analysis} requires
+     * {@code allowAnalysis}. A non-null {@code scopedRepositoryId} restricts
+     * every handler to one registered repository (unscoped = explicit local
+     * admin mode).
      */
-    public static void run(java.nio.file.Path dataDir, boolean allowScans) {
+    public static void run(java.nio.file.Path dataDir, boolean allowScans, boolean allowAnalysis,
+            String scopedRepositoryId) {
         System.setProperty("org.slf4j.simpleLogger.logFile", "System.err");
 
         StdioServerTransportProvider transport = new StdioServerTransportProvider();
         McpScanManager scans = new McpScanManager(dataDir);
         java.util.concurrent.atomic.AtomicReference<McpSyncServer> serverRef =
                 new java.util.concurrent.atomic.AtomicReference<>();
-        McpActivity activity = new McpActivity(dataDir, allowScans, serverRef::get);
-        McpScanTools.McpContext context = new McpScanTools.McpContext(dataDir, allowScans, scans, activity);
+        McpActivity activity = new McpActivity(dataDir, allowScans, allowAnalysis, serverRef::get);
+        McpScanTools.McpContext context = new McpScanTools.McpContext(dataDir, allowScans,
+                allowAnalysis, scans, activity, scopedRepositoryId);
         java.util.List<McpServerFeatures.SyncToolSpecification> tools = new java.util.ArrayList<>();
         tools.add(PwtMcpTools.pwtInfoTool(activity::observed));
         tools.addAll(McpScanTools.allTools(context));
@@ -81,8 +86,10 @@ public final class PwtMcpServer {
             }
         }, "pwt-mcp-shutdown"));
 
-        LOG.warn("pwt {} MCP stdio server started (data-dir {}, scans {})",
-                BuildInfo.VERSION, dataDir, allowScans ? "enabled" : "read-only");
+        LOG.warn("pwt {} MCP stdio server started (data-dir {}, scans {}, analysis {}, scope {})",
+                BuildInfo.VERSION, dataDir, allowScans ? "enabled" : "read-only",
+                allowAnalysis ? "enabled" : "read-only",
+                scopedRepositoryId == null ? "unscoped-admin" : scopedRepositoryId);
         CountDownLatch stayAlive = new CountDownLatch(1);
         try {
             stayAlive.await();

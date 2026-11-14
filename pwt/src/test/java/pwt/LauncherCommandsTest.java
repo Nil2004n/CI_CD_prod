@@ -1,6 +1,7 @@
 package pwt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -90,6 +91,34 @@ class LauncherCommandsTest {
         }
         assertTrue(yamllint, "yamllint must be available in this environment");
         assertEquals(2, DoctorCommand.execute(List.of("--bogus")));
+        // Diagnostics print the effective absolute database path.
+        assertEquals(dataDir.toAbsolutePath().normalize().resolve("pwt.db").toString(),
+                report.get("database").asText());
+        assertEquals(dataDir.toAbsolutePath().normalize().toString(),
+                report.get("data_dir").asText());
+        // Installation state is reported read-only; absence is data, not failure.
+        JsonNode install = report.get("install");
+        assertNotNull(install);
+        assertTrue(install.has("app_root"));
+        assertTrue(install.has("launcher_on_path"));
+        assertTrue(install.has("plugin_installed"));
+        assertTrue(install.has("agent_installed"));
+        assertTrue(install.has("ask_command_installed"));
+        assertTrue(install.get("data_writable").asBoolean());
+    }
+
+    @Test
+    void defaultDataDirResolvesToApplicationRoot() {
+        // One shared database: the default lives under the application root
+        // (directory holding the root Makefile), never under a repository,
+        // scan directory, or working directory.
+        java.nio.file.Path root = pwt.launcher.AppPaths.appRoot();
+        assertTrue(java.nio.file.Files.isRegularFile(root.resolve("Makefile")));
+        assertTrue(java.nio.file.Files.isExecutable(root.resolve("integrations/pwt-mcp-stdio.sh")));
+        assertEquals(root.resolve(".pwt-data"),
+                pwt.launcher.AppPaths.defaultDataDir());
+        assertEquals(root.resolve(".pwt-data"),
+                pwt.application.ScanService.defaultDataDir());
     }
 
     @Test
@@ -101,7 +130,7 @@ class LauncherCommandsTest {
         assertEquals("MCP: No active clients.", emptyJson.get("status_line").asText());
 
         try (pwt.infrastructure.SqliteStore store = pwt.infrastructure.SqliteStore.open(dataDir)) {
-            store.insertMcpSession("sess-1", "srv-1", "SCANS_ENABLED");
+            store.insertMcpSession("sess-1", "srv-1", "SCANS_ENABLED", true);
             store.markMcpSessionConnected("sess-1", "Claude Code", "2.1", "2024-11-05");
         }
         String live = captureStdout(

@@ -25,7 +25,8 @@ public final class McpPresence {
     }
 
     public record SessionView(String sessionId, String clientLabel, String permissionMode,
-            Presence presence, String connectedAt, String lastActivityAt, String heartbeatAge) {
+            boolean analysisAllowed, Presence presence, String connectedAt, String lastActivityAt,
+            String heartbeatAge) {
     }
 
     private McpPresence() {
@@ -83,7 +84,7 @@ public final class McpPresence {
             }
             views.add(new SessionView(row.sessionId(), client,
                     "SCANS_ENABLED".equals(row.permissionMode()) ? "Scans enabled" : "Read-only",
-                    presence, row.connectedAt(), row.lastClientActivityAt(),
+                    row.analysisAllowed(), presence, row.connectedAt(), row.lastClientActivityAt(),
                     ageOf(row.serverHeartbeatAt(), now)));
         }
         return views;
@@ -105,7 +106,8 @@ public final class McpPresence {
         }
         if (live.size() == 1) {
             SessionView view = live.get(0);
-            return "MCP: " + view.clientLabel() + " connected · " + view.permissionMode() + ".";
+            String analysis = view.analysisAllowed() ? " + analysis" : "";
+            return "MCP: " + view.clientLabel() + " connected · " + view.permissionMode() + analysis + ".";
         }
         return "MCP: " + live.size() + " active clients.";
     }

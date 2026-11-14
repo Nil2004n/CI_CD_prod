@@ -7,7 +7,9 @@ No embedded chatbot, no model backend, no source-edit/Git MCP tools.
 |---|---|
 | `pwt-dashboard.sh` | Fixed-entrypoint dashboard launcher (local display only, single instance). Usage: `pwt-dashboard.sh --jar /abs/pwt-X.jar [--data-dir DIR] [--java BIN]`. |
 | `pwt-conversation.md` | Reusable agent instructions (evidence-first, honest coverage, propose-before-edit, rescan-after-approval). Referenced by both clients below. |
-| `opencode/` | OpenCode setup: MCP config template, `/pwt` custom command, dashboard instructions. |
+| `opencode/` | OpenCode setup: native command plugin, global plugin/agent installer, project setup helper, per-project MCP entry. See `opencode/README.md`. |
+| `opencode-plugin/` | Shipped native TUI plugin source (`tui.ts`, single file) and the global agent definition (`agent-pwt.md`). Installed by `install-opencode.py` / `setup_opencode.py`; do not hand-edit installed copies. |
+| `install-opencode.py` | Global installer: `~/.config/opencode/plugins/pwt/` + `~/.config/opencode/agents/pwt.md`, with unmanaged-overwrite protection and uninstall. |
 | `claude-code/` | Claude Code setup: `claude mcp add` lines, `/pwt` slash command, dashboard instructions. |
 
 Placeholders like `/abs/path/pwt-0.4.0.jar` and `/abs/path/pwt-data` must be
@@ -19,5 +21,9 @@ Removal: delete the copied files and the MCP server entry
 (`opencode mcp remove` is not a command — edit `opencode.json`;
 `claude mcp remove pwt`), then delete your data directory if desired.
 
-`@pwt` mentions: neither OpenCode nor Claude Code documents custom `@`-mention
-routing. Use `/pwt ask <message>` as the consistent entry point.
+`@pwt` mentions: neither OpenCode nor Claude Code routes custom `@`-mention
+shortcuts to the Pwt agent. In OpenCode, use `/pwt-ask <message>` (selects
+the `Pwt` agent) or select the `Pwt` agent in the agents dialog and ask
+directly (native `/pwt` commands take no model-driven `ask` path; typing
+`/pwt ask` returns a deterministic pointer to `/pwt-ask`). In Claude Code,
+use `/pwt ask <message>`.

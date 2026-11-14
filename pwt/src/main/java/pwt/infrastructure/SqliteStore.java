@@ -25,7 +25,7 @@ import pwt.domain.ScannerStatus;
  */
 public final class SqliteStore implements AutoCloseable {
 
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
 
     private final Connection connection;
 
@@ -35,7 +35,19 @@ public final class SqliteStore implements AutoCloseable {
 
     public static SqliteStore open(Path dataDir) throws SQLException {
         try {
+            boolean created = !Files.isDirectory(dataDir);
             Files.createDirectories(dataDir);
+            if (created) {
+                // Owner-only by default; best effort on non-POSIX filesystems.
+                try {
+                    Files.setPosixFilePermissions(dataDir, java.util.EnumSet.of(
+                            java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+                            java.nio.file.attribute.PosixFilePermission.OWNER_WRITE,
+                            java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE));
+                } catch (Exception ignored) {
+                    // non-POSIX filesystem: umask applies
+                }
+            }
         } catch (Exception e) {
             throw new SQLException("Cannot create data directory: " + dataDir, e);
         }
@@ -92,6 +104,15 @@ public final class SqliteStore implements AutoCloseable {
             }
             current = 2;
         }
+        if (current < 3) {
+            applyV3();
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES(3, ?)")) {
+                ps.setString(1, now());
+                ps.executeUpdate();
+            }
+            current = 3;
+        }
         if (current > SCHEMA_VERSION) {
             throw new SQLException("Database schema version " + current + " is newer than supported "
                     + SCHEMA_VERSION + "; refusing to open");
@@ -142,10 +163,62 @@ public final class SqliteStore implements AutoCloseable {
     public record RepositoryRow(String id, String displayName, String canonicalRoot, String identityHash) {
     }
 
+    /**
+     * Additive migration V3: agent analysis threads. One thread per
+     * (repository, run); each save appends a revision row; structured
+     * per-finding assessments reference findings without mutating them.
+     * Scanner-owned tables are untouched.
+     */
+    private synchronized void applyV3() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE IF NOT EXISTS analysis_threads("
+                    + "id TEXT PRIMARY KEY, repository_id TEXT NOT NULL REFERENCES repositories(id), "
+                    + "run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE, "
+                    + "current_revision INTEGER NOT NULL DEFAULT 0, "
+                    + "created_at TEXT NOT NULL, updated_at TEXT NOT NULL, "
+                    + "UNIQUE(repository_id, run_id))");
+            stmt.execute("CREATE TABLE IF NOT EXISTS analysis_revisions("
+                    + "id TEXT PRIMARY KEY, thread_id TEXT NOT NULL REFERENCES analysis_threads(id) ON DELETE CASCADE, "
+                    + "revision INTEGER NOT NULL, summary TEXT NOT NULL DEFAULT '', "
+                    + "priority TEXT NOT NULL CHECK(priority IN ('LOW','MEDIUM','HIGH')), "
+                    + "priority_rationale TEXT NOT NULL DEFAULT '', "
+                    + "category TEXT NOT NULL DEFAULT '', change_status TEXT NOT NULL DEFAULT '', "
+                    + "verification_run_id TEXT NULL REFERENCES runs(id), "
+                    + "author_client TEXT NULL, author_name TEXT NULL, created_at TEXT NOT NULL, "
+                    + "UNIQUE(thread_id, revision))");
+            stmt.execute("CREATE TABLE IF NOT EXISTS analysis_assessments("
+                    + "id TEXT PRIMARY KEY, revision_id TEXT NOT NULL REFERENCES analysis_revisions(id) ON DELETE CASCADE, "
+                    + "finding_id TEXT NULL REFERENCES findings(id), "
+                    + "rule_id TEXT NOT NULL DEFAULT '', relative_path TEXT NULL, line_start INTEGER NULL, "
+                    + "priority TEXT NOT NULL CHECK(priority IN ('LOW','MEDIUM','HIGH')), "
+                    + "rationale TEXT NOT NULL DEFAULT '', category TEXT NOT NULL DEFAULT '', "
+                    + "change_status TEXT NOT NULL DEFAULT '', verification_run_id TEXT NULL REFERENCES runs(id), "
+                    + "message TEXT NOT NULL DEFAULT '')");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_analysis_threads_repo "
+                    + "ON analysis_threads(repository_id, run_id)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_analysis_revisions_thread "
+                    + "ON analysis_revisions(thread_id, revision)");
+            boolean hasAnalysisWrites = false;
+            try (java.sql.ResultSet columns = stmt.executeQuery("PRAGMA table_info(mcp_sessions)")) {
+                while (columns.next()) {
+                    if ("analysis_writes".equalsIgnoreCase(columns.getString("name"))) {
+                        hasAnalysisWrites = true;
+                    }
+                }
+            }
+            if (!hasAnalysisWrites) {
+                stmt.execute("ALTER TABLE mcp_sessions ADD COLUMN analysis_writes TEXT NOT NULL DEFAULT 'DENIED'");
+            }
+        }
+    }
+
     public record McpSessionRow(String sessionId, String serverInstanceId, String clientName,
             String clientVersion, String protocolVersion, String permissionMode, String lifecycleState,
             String connectedAt, String serverHeartbeatAt, String lastClientActivityAt,
-            String disconnectedAt, String closeReason) {
+            String disconnectedAt, String closeReason, String analysisWrites) {
+        public boolean analysisAllowed() {
+            return "ALLOWED".equals(analysisWrites);
+        }
     }
 
     /**
@@ -185,18 +258,345 @@ public final class SqliteStore implements AutoCloseable {
             Long sizeBytes, String generatedAt, String errorCode) {
     }
 
-    public synchronized void insertMcpSession(String sessionId, String serverInstanceId,
-            String permissionMode) throws SQLException {
+    public record AnalysisThreadView(String threadId, String repositoryId, String runId, int currentRevision) {
+    }
+
+    /** Finds the analysis thread for a run, or null when none was ever saved. */
+    public synchronized AnalysisThreadView findAnalysisThread(String repositoryId, String runId)
+            throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO mcp_sessions(session_id, server_instance_id, permission_mode,"
+                "SELECT id, repository_id, run_id, current_revision FROM analysis_threads"
+                        + " WHERE repository_id=? AND run_id=?")) {
+            ps.setString(1, repositoryId);
+            ps.setString(2, runId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new AnalysisThreadView(rs.getString(1), rs.getString(2), rs.getString(3),
+                            rs.getInt(4));
+                }
+            }
+        }
+        return null;
+    }
+
+    public record AnalysisRevisionRow(String id, String threadId, int revision, String summary,
+            String priority, String priorityRationale, String category, String changeStatus,
+            String verificationRunId, String authorClient, String authorName, String createdAt) {
+    }
+
+    public record AnalysisAssessmentInput(String findingId, String ruleId, String relativePath,
+            Integer lineStart, String priority, String rationale, String category,
+            String changeStatus, String verificationRunId, String message) {
+    }
+
+    public record AnalysisAssessmentRow(String id, String revisionId, String findingId, String ruleId,
+            String relativePath, Integer lineStart, String priority, String rationale,
+            String category, String changeStatus, String verificationRunId, String message) {
+    }
+
+    public record AnalysisSaveResult(boolean conflict, int currentRevision, int savedRevision,
+            String revisionId) {
+    }
+
+    /** Gets or creates the analysis thread for one (repository, run) pair. */
+    public synchronized AnalysisThreadView getOrCreateAnalysisThread(String repositoryId, String runId)
+            throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT id, repository_id, run_id, current_revision FROM analysis_threads"
+                        + " WHERE repository_id=? AND run_id=?")) {
+            ps.setString(1, repositoryId);
+            ps.setString(2, runId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new AnalysisThreadView(rs.getString(1), rs.getString(2), rs.getString(3),
+                            rs.getInt(4));
+                }
+            }
+        }
+        String id = java.util.UUID.randomUUID().toString();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "INSERT INTO analysis_threads(id, repository_id, run_id, current_revision, created_at, updated_at)"
+                        + " VALUES(?,?,?,0,?,?)")) {
+            String timestamp = now();
+            ps.setString(1, id);
+            ps.setString(2, repositoryId);
+            ps.setString(3, runId);
+            ps.setString(4, timestamp);
+            ps.setString(5, timestamp);
+            ps.executeUpdate();
+        }
+        return new AnalysisThreadView(id, repositoryId, runId, 0);
+    }
+
+    private static void checkText(String field, String value, int max) throws SQLException {
+        if (value != null && value.length() > max) {
+            throw new SQLException("analysis field too long: " + field + " (max " + max + " chars)");
+        }
+    }
+
+    static String sanitizeAnalysisText(String value) {
+        if (value == null) {
+            return "";
+        }
+        StringBuilder clean = new StringBuilder();
+        for (int i = 0; i < value.length() && clean.length() < 4000; i++) {
+            char c = value.charAt(i);
+            if (c == '\n' || c == '\r' || c == '\t') {
+                clean.append(c);
+            } else if (c < 0x20 || c == 0x7F) {
+                clean.append('?');
+            } else {
+                clean.append(c);
+            }
+        }
+        return clean.toString().strip();
+    }
+
+    private static void checkPriority(String priority) throws SQLException {
+        if (!"LOW".equals(priority) && !"MEDIUM".equals(priority) && !"HIGH".equals(priority)) {
+            throw new SQLException("analysis priority must be LOW, MEDIUM, or HIGH");
+        }
+    }
+
+    private String runRepository(String runId) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT repository_id FROM runs WHERE id=?")) {
+            ps.setString(1, runId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString(1);
+                }
+            }
+        }
+        return null;
+    }
+
+    private String findingRun(String findingId) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT run_id FROM findings WHERE id=?")) {
+            ps.setString(1, findingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString(1);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Appends a revision with optimistic concurrency: expectedRevision must
+     * equal the thread's current revision or a conflict is reported (no write).
+     */
+    public synchronized AnalysisSaveResult saveAnalysis(String threadId, int expectedRevision,
+            String summary, String priority, String priorityRationale, String category,
+            String changeStatus, String verificationRunId, String authorClient, String authorName,
+            List<AnalysisAssessmentInput> assessments) throws SQLException {
+        AnalysisThreadView thread;
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT id, repository_id, run_id, current_revision FROM analysis_threads WHERE id=?")) {
+            ps.setString(1, threadId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("unknown analysis thread: " + threadId);
+                }
+                thread = new AnalysisThreadView(rs.getString(1), rs.getString(2), rs.getString(3), rs.getInt(4));
+            }
+        }
+        if (expectedRevision != thread.currentRevision()) {
+            return new AnalysisSaveResult(true, thread.currentRevision(), -1, null);
+        }
+        checkPriority(priority);
+        checkText("summary", summary, 4000);
+        checkText("priority_rationale", priorityRationale, 2000);
+        if (verificationRunId != null && !verificationRunId.isBlank()) {
+            String verificationRepo = runRepository(verificationRunId);
+            if (verificationRepo == null) {
+                throw new SQLException("verification run not found: " + verificationRunId);
+            }
+            if (!verificationRepo.equals(thread.repositoryId())) {
+                throw new SQLException("verification run belongs to a different repository");
+            }
+        }
+        List<AnalysisAssessmentInput> items = assessments == null ? List.of() : assessments;
+        for (AnalysisAssessmentInput item : items) {
+            checkPriority(item.priority());
+            checkText("assessment message", item.message(), 2000);
+            checkText("assessment rationale", item.rationale(), 2000);
+            if (item.findingId() != null && !item.findingId().isBlank()) {
+                String findingRun = findingRun(item.findingId());
+                if (findingRun == null) {
+                    throw new SQLException("finding not found: " + item.findingId());
+                }
+                if (!findingRun.equals(thread.runId())) {
+                    throw new SQLException("finding belongs to a different run: " + item.findingId());
+                }
+            }
+            if (item.verificationRunId() != null && !item.verificationRunId().isBlank()) {
+                String verificationRepo = runRepository(item.verificationRunId());
+                if (verificationRepo == null) {
+                    throw new SQLException("verification run not found: " + item.verificationRunId());
+                }
+                if (!verificationRepo.equals(thread.repositoryId())) {
+                    throw new SQLException("verification run belongs to a different repository");
+                }
+            }
+        }
+        int nextRevision = thread.currentRevision() + 1;
+        String revisionId = java.util.UUID.randomUUID().toString();
+        String timestamp = now();
+        boolean previous = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO analysis_revisions(id, thread_id, revision, summary, priority,"
+                            + " priority_rationale, category, change_status, verification_run_id,"
+                            + " author_client, author_name, created_at)"
+                            + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")) {
+                ps.setString(1, revisionId);
+                ps.setString(2, threadId);
+                ps.setInt(3, nextRevision);
+                ps.setString(4, sanitizeAnalysisText(summary));
+                ps.setString(5, priority);
+                ps.setString(6, sanitizeAnalysisText(priorityRationale));
+                ps.setString(7, sanitizeAnalysisText(category));
+                ps.setString(8, sanitizeAnalysisText(changeStatus));
+                setNullable(ps, 9, verificationRunId);
+                setNullable(ps, 10, authorClient);
+                setNullable(ps, 11, authorName);
+                ps.setString(12, timestamp);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO analysis_assessments(id, revision_id, finding_id, rule_id,"
+                            + " relative_path, line_start, priority, rationale, category,"
+                            + " change_status, verification_run_id, message)"
+                            + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")) {
+                for (AnalysisAssessmentInput item : items) {
+                    ps.setString(1, java.util.UUID.randomUUID().toString());
+                    ps.setString(2, revisionId);
+                    setNullable(ps, 3, blankToNull(item.findingId()));
+                    ps.setString(4, sanitizeAnalysisText(item.ruleId()));
+                    setNullable(ps, 5, item.relativePath());
+                    if (item.lineStart() == null) {
+                        ps.setNull(6, java.sql.Types.INTEGER);
+                    } else {
+                        ps.setInt(6, item.lineStart());
+                    }
+                    ps.setString(7, item.priority());
+                    ps.setString(8, sanitizeAnalysisText(item.rationale()));
+                    ps.setString(9, sanitizeAnalysisText(item.category()));
+                    ps.setString(10, sanitizeAnalysisText(item.changeStatus()));
+                    setNullable(ps, 11, blankToNull(item.verificationRunId()));
+                    ps.setString(12, sanitizeAnalysisText(item.message()));
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "UPDATE analysis_threads SET current_revision=?, updated_at=? WHERE id=?")) {
+                ps.setInt(1, nextRevision);
+                ps.setString(2, timestamp);
+                ps.setString(3, threadId);
+                ps.executeUpdate();
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            connection.rollback();
+            throw e;
+        } finally {
+            connection.setAutoCommit(previous);
+        }
+        return new AnalysisSaveResult(false, nextRevision, nextRevision, revisionId);
+    }
+
+    private static void setNullable(PreparedStatement ps, int index, String value) throws SQLException {
+        if (value == null) {
+            ps.setNull(index, java.sql.Types.VARCHAR);
+        } else {
+            ps.setString(index, value);
+        }
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    public synchronized AnalysisRevisionRow getAnalysisRevision(String threadId, int revision)
+            throws SQLException {
+        String sql = revision < 0
+                ? "SELECT id, thread_id, revision, summary, priority, priority_rationale, category,"
+                        + " change_status, verification_run_id, author_client, author_name, created_at"
+                        + " FROM analysis_revisions WHERE thread_id=? ORDER BY revision DESC LIMIT 1"
+                : "SELECT id, thread_id, revision, summary, priority, priority_rationale, category,"
+                        + " change_status, verification_run_id, author_client, author_name, created_at"
+                        + " FROM analysis_revisions WHERE thread_id=? AND revision=?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, threadId);
+            if (revision >= 0) {
+                ps.setInt(2, revision);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new AnalysisRevisionRow(rs.getString(1), rs.getString(2), rs.getInt(3),
+                            rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7),
+                            rs.getString(8), rs.getString(9), rs.getString(10), rs.getString(11),
+                            rs.getString(12));
+                }
+            }
+        }
+        return null;
+    }
+
+    public synchronized List<Integer> listAnalysisRevisions(String threadId) throws SQLException {
+        List<Integer> revisions = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT revision FROM analysis_revisions WHERE thread_id=? ORDER BY revision")) {
+            ps.setString(1, threadId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    revisions.add(rs.getInt(1));
+                }
+            }
+        }
+        return revisions;
+    }
+
+    public synchronized List<AnalysisAssessmentRow> listAnalysisAssessments(String revisionId)
+            throws SQLException {
+        List<AnalysisAssessmentRow> rows = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT id, revision_id, finding_id, rule_id, relative_path, line_start, priority,"
+                        + " rationale, category, change_status, verification_run_id, message"
+                        + " FROM analysis_assessments WHERE revision_id=? ORDER BY rowid")) {
+            ps.setString(1, revisionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Object line = rs.getObject(6);
+                    rows.add(new AnalysisAssessmentRow(rs.getString(1), rs.getString(2), rs.getString(3),
+                            rs.getString(4), rs.getString(5),
+                            line == null ? null : rs.getInt(6),
+                            rs.getString(7), rs.getString(8), rs.getString(9),
+                            rs.getString(10), rs.getString(11), rs.getString(12)));
+                }
+            }
+        }
+        return rows;
+    }
+
+    public synchronized void insertMcpSession(String sessionId, String serverInstanceId,
+            String permissionMode, boolean allowAnalysis) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "INSERT INTO mcp_sessions(session_id, server_instance_id, permission_mode, analysis_writes,"
                         + " lifecycle_state, connected_at, server_heartbeat_at)"
-                        + " VALUES(?,?,?,'STARTING',?,?)")) {
+                        + " VALUES(?,?,?,?,'STARTING',?,?)")) {
             String timestamp = now();
             ps.setString(1, sessionId);
             ps.setString(2, serverInstanceId);
             ps.setString(3, permissionMode);
-            ps.setString(4, timestamp);
+            ps.setString(4, allowAnalysis ? "ALLOWED" : "DENIED");
             ps.setString(5, timestamp);
+            ps.setString(6, timestamp);
             ps.executeUpdate();
         }
     }
@@ -254,7 +654,8 @@ public final class SqliteStore implements AutoCloseable {
         try (PreparedStatement ps = connection.prepareStatement(
                 "SELECT session_id, server_instance_id, client_name, client_version, protocol_version,"
                         + " permission_mode, lifecycle_state, connected_at, server_heartbeat_at,"
-                        + " last_client_activity_at, disconnected_at, close_reason"
+                        + " last_client_activity_at, disconnected_at, close_reason,"
+                        + " COALESCE(analysis_writes, 'DENIED')"
                         + " FROM mcp_sessions WHERE session_id=?")) {
             ps.setString(1, sessionId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -272,7 +673,8 @@ public final class SqliteStore implements AutoCloseable {
         try (PreparedStatement ps = connection.prepareStatement(
                 "SELECT session_id, server_instance_id, client_name, client_version, protocol_version,"
                         + " permission_mode, lifecycle_state, connected_at, server_heartbeat_at,"
-                        + " last_client_activity_at, disconnected_at, close_reason"
+                        + " last_client_activity_at, disconnected_at, close_reason,"
+                        + " COALESCE(analysis_writes, 'DENIED')"
                         + " FROM mcp_sessions WHERE lifecycle_state!='DISCONNECTED'"
                         + " ORDER BY server_heartbeat_at DESC")) {
             try (ResultSet rs = ps.executeQuery()) {
@@ -287,7 +689,7 @@ public final class SqliteStore implements AutoCloseable {
     private static McpSessionRow readMcpSession(ResultSet rs) throws SQLException {
         return new McpSessionRow(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
                 rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9),
-                rs.getString(10), rs.getString(11), rs.getString(12));
+                rs.getString(10), rs.getString(11), rs.getString(12), rs.getString(13));
     }
 
     public synchronized RepositoryRow registerRepository(String canonicalRoot, String displayName,

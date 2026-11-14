@@ -89,8 +89,9 @@ class McpToolsTest {
             assertEquals(2, run.get("targets").size());
             assertEquals(2, run.get("scanner_runs").size());
             assertEquals("CLI", run.get("run").get("source").asText());
-            assertNotNull(run.get("reports").get("json_report").asText());
-            assertTrue(run.get("coverage").get("gaps").isArray());
+            assertTrue(run.get("reports").get("json_report").isNull());
+            assertEquals(true, run.get("reports").get("rendered_on_demand").asBoolean());
+            assertNotNull(run.get("coverage").get("gaps"));
 
             JsonNode findings = mcp.callResult("list_findings", McpHarness.params("run_id", runId));
             assertTrue(findings.get("total").asInt() > 0);
@@ -402,6 +403,182 @@ class McpToolsTest {
                     store.listLiveMcpSessions(), java.time.Instant.now().plusSeconds(3600));
             assertEquals(1, views.size());
             assertEquals(pwt.mcp.McpPresence.Presence.STALE, views.get(0).presence());
+        }
+    }
+
+    @Test
+    void saveAnalysisRequiresExplicitPermission() throws Exception {
+        assumeToolsPresent();
+        Path dataDir = seedDataDir("analysis-perm");
+        try (McpHarness mcp = new McpHarness(dataDir, true)) {
+            String repoId = repoIdOf(dataDir, mcp);
+            JsonNode runs = mcp.callResult("list_runs", McpHarness.params("repository_id", repoId));
+            String runId = runs.get("runs").get(0).get("run_id").asText();
+            JsonNode denied = mcp.callToolError("save_analysis", McpHarness.params(
+                    "run_id", runId, "expected_revision", 0, "priority", "HIGH"));
+            assertEquals("PERMISSION_DENIED", denied.get("code").asText());
+        }
+    }
+
+    @Test
+    void analysisSaveLoadConflictAndSanitization() throws Exception {
+        assumeToolsPresent();
+        Path dataDir = seedDataDir("analysis");
+        // Control characters are stripped and long text is capped before
+        // persistence (sanitization). Agent-authored text is otherwise stored
+        // verbatim: agents must reference findings instead of pasting values
+        // (see pwt-conversation.md), since silent rewriting would corrupt
+        // legitimate assessment prose.
+        String dirty = "line one\u0000line two\u001b[31m plus " + "x".repeat(1500);
+        try (McpHarness mcp = new McpHarness(dataDir, false, true, null)) {
+            String repoId = repoIdOf(dataDir, mcp);
+            JsonNode runs = mcp.callResult("list_runs", McpHarness.params("repository_id", repoId));
+            String runId = runs.get("runs").get(0).get("run_id").asText();
+
+            JsonNode none = mcp.callResult("get_analysis", McpHarness.params("run_id", runId));
+            assertEquals(0, none.get("current_revision").asInt());
+            assertEquals("no analysis saved yet for this run", none.get("note").asText());
+
+            Map<String, Object> assessment = new java.util.LinkedHashMap<>();
+            assessment.put("rule_id", "gitleaks/github-pat");
+            assessment.put("relative_path", "leak.yaml");
+            assessment.put("line_start", 2);
+            assessment.put("priority", "HIGH");
+            assessment.put("rationale", dirty);
+            assessment.put("category", "SECRET");
+            assessment.put("change_status", "proposed");
+            assessment.put("message", "Rotate the token and purge history");
+            JsonNode saved = mcp.callResult("save_analysis", McpHarness.params(
+                    "repository_id", repoId, "run_id", runId, "expected_revision", 0,
+                    "priority", "HIGH", "summary", "One leaked test token",
+                    "priority_rationale", "detection is high-signal",
+                    "category", "SECRET", "change_status", "proposed",
+                    "assessments", List.of(assessment)));
+            assertEquals(1, saved.get("saved_revision").asInt());
+
+            JsonNode stale = mcp.callToolError("save_analysis", McpHarness.params(
+                    "repository_id", repoId, "run_id", runId, "expected_revision", 0,
+                    "priority", "LOW"));
+            assertEquals("CONFLICT", stale.get("code").asText());
+
+            JsonNode loaded = mcp.callResult("get_analysis", McpHarness.params("run_id", runId));
+            assertEquals(1, loaded.get("current_revision").asInt());
+            assertEquals("One leaked test token", loaded.get("analysis").get("summary").asText());
+            String storedRationale = loaded.get("assessments").get(0).get("rationale").asText();
+            assertFalse(storedRationale.contains("\u0000"), "control chars must be stripped");
+            assertFalse(storedRationale.contains("\u001b"), "escape sequences must be stripped");
+            assertTrue(storedRationale.length() <= 2000, "rationale must be length-capped");
+            assertEquals(1, loaded.get("assessments").size());
+            assertEquals("HIGH", loaded.get("assessments").get(0).get("priority").asText());
+            java.util.List<Integer> availableRevisions = new java.util.ArrayList<>();
+            loaded.get("available_revisions").forEach(v -> availableRevisions.add(v.asInt()));
+            assertEquals(List.of(1), availableRevisions);
+
+            JsonNode missing = mcp.callResult("get_analysis",
+                    McpHarness.params("run_id", runId, "revision", 99));
+            assertEquals(null, missing.get("revision").isNull() ? null : missing.get("revision"));
+        }
+    }
+
+    @Test
+    void analysisRejectsCrossProjectReferences() throws Exception {
+        assumeToolsPresent();
+        Path dataDir = work.resolve("xproj-data");
+        Files.createDirectories(dataDir);
+        Path repoA = work.resolve("xproj-a");
+        Files.createDirectories(repoA);
+        write(repoA, "a.yaml", "---\nkey: value\n");
+        Path repoB = work.resolve("xproj-b");
+        Files.createDirectories(repoB);
+        write(repoB, "b.yaml", "---\nkey: value\n");
+        ScanService service = new ScanService(ScanConfig.defaults());
+        ScanSummary runA = service.runScan(repoA, List.of("a.yaml"), Set.of("yamllint"),
+                "CLI", dataDir, CancellationToken.none(), null);
+        ScanSummary runB = service.runScan(repoB, List.of("b.yaml"), Set.of("yamllint"),
+                "CLI", dataDir, CancellationToken.none(), null);
+        assertNotNull(runA.runId());
+        assertNotNull(runB.runId());
+        String repoAId;
+        String repoBId;
+        try (SqliteStore store = SqliteStore.open(dataDir)) {
+            repoAId = store.findRepositoryById(
+                    store.listRepositories().stream().filter(r -> r.displayName().equals("xproj-a"))
+                            .findFirst().orElseThrow().id()).id();
+            repoBId = store.listRepositories().stream().filter(r -> r.displayName().equals("xproj-b"))
+                    .findFirst().orElseThrow().id();
+        }
+        try (McpHarness mcp = new McpHarness(dataDir, false, true, null)) {
+            // Cross-project verification run rejected.
+            JsonNode badVerify = mcp.callToolError("save_analysis", McpHarness.params(
+                    "repository_id", repoAId, "run_id", runA.runId(), "expected_revision", 0,
+                    "priority", "LOW", "verification_run_id", runB.runId()));
+            assertEquals("INTERNAL_ERROR", badVerify.get("code").asText());
+            // Cross-project finding reference rejected: store one finding for B
+            // directly (store-level fixture, not scanner output), then try to
+            // attach it to A's thread.
+            String findingId;
+            try (SqliteStore store = SqliteStore.open(dataDir)) {
+                String scannerRun = store.recordScannerRun(runB.runId(), "gitleaks", "Gitleaks",
+                        "8.30.1", pwt.domain.ScannerStatus.SUCCEEDED, 0, "ok");
+                store.addFindings(runB.runId(), scannerRun,
+                        List.of(new pwt.domain.Finding("gitleaks/test", "t",
+                                pwt.domain.Severity.HIGH, "leak", pwt.domain.FindingCategory.SECRET,
+                                "b.yaml", 1, 1, 1, "m", "{}", "fp-b")));
+                findingId = store.listFindings(runB.runId()).get(0).id();
+            }
+            Map<String, Object> assessment = new java.util.LinkedHashMap<>();
+            assessment.put("finding_id", findingId);
+            assessment.put("rule_id", "x");
+            assessment.put("priority", "LOW");
+            JsonNode badFinding = mcp.callToolError("save_analysis", McpHarness.params(
+                    "repository_id", repoAId, "run_id", runA.runId(), "expected_revision", 0,
+                    "priority", "LOW", "assessments", List.of(assessment)));
+            assertEquals("INTERNAL_ERROR", badFinding.get("code").asText());
+            // Unknown verification run rejected.
+            JsonNode ghost = mcp.callToolError("save_analysis", McpHarness.params(
+                    "repository_id", repoBId, "run_id", runB.runId(), "expected_revision", 0,
+                    "priority", "LOW", "verification_run_id", "no-such-run"));
+            assertEquals("INTERNAL_ERROR", ghost.get("code").asText());
+        }
+    }
+
+    @Test
+    void scopedServerIsolatesProjects() throws Exception {
+        assumeToolsPresent();
+        Path dataDir = work.resolve("scoped-data");
+        Files.createDirectories(dataDir);
+        Path repoA = work.resolve("scoped-a");
+        Files.createDirectories(repoA);
+        write(repoA, "a.yaml", "---\nkey: value\n");
+        Path repoB = work.resolve("scoped-b");
+        Files.createDirectories(repoB);
+        write(repoB, "b.yaml", "---\nother: 1\n");
+        ScanService service = new ScanService(ScanConfig.defaults());
+        ScanSummary runA = service.runScan(repoA, List.of("a.yaml"), Set.of("yamllint"),
+                "CLI", dataDir, CancellationToken.none(), null);
+        service.runScan(repoB, List.of("b.yaml"), Set.of("yamllint"),
+                "CLI", dataDir, CancellationToken.none(), null);
+        String repoAId;
+        try (SqliteStore store = SqliteStore.open(dataDir)) {
+            repoAId = store.listRepositories().stream()
+                    .filter(r -> r.displayName().equals("scoped-a")).findFirst().orElseThrow().id();
+        }
+        try (McpHarness mcp = new McpHarness(dataDir, true, false, repoAId)) {
+            JsonNode repos = mcp.callResult("list_repositories", Map.of());
+            assertEquals(1, repos.get("total").asInt());
+            assertEquals(repoAId, repos.get("repositories").get(0).get("id").asText());
+            // Other project's run is invisible, not an error leak.
+            JsonNode runs = mcp.callResult("list_runs", Map.of());
+            assertEquals(1, runs.get("total").asInt());
+            assertEquals(runA.runId(), runs.get("runs").get(0).get("run_id").asText());
+            JsonNode otherRepo = mcp.callToolError("list_runs",
+                    McpHarness.params("repository_id", "00000000-0000-0000-0000-000000000000"));
+            assertEquals("OUT_OF_SCOPE", otherRepo.get("code").asText());
+            // Cross-project start_scan rejected up front.
+            JsonNode crossStart = mcp.callToolError("start_scan", McpHarness.params(
+                    "repository_id", "00000000-0000-0000-0000-000000000000",
+                    "relative_paths", List.of("a.yaml"), "adapter_ids", List.of("yamllint")));
+            assertEquals("OUT_OF_SCOPE", crossStart.get("code").asText());
         }
     }
 

@@ -1,0 +1,4 @@
+---
+name: clean-service
+image: nginx:1.25
+replicas: 2

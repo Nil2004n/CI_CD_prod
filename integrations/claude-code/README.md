@@ -44,9 +44,10 @@ second window if one is already running.
 
 ## 4. Shared data directory
 
-GUI, CLI, and MCP must point at the same directory (GUI:
-`java -jar ... gui --data-dir DIR`; CLI: `scan --data-dir DIR`). That one
-directory holds repositories, runs, findings, and reports for all three.
+GUI, CLI, and MCP must point at the same directory (default
+`<application-root>/.pwt-data`; GUI: `java -jar ... gui --data-dir DIR`;
+CLI: `scan --data-dir DIR`). That one directory holds repositories, runs,
+findings, and reports for all three.
 
 ## 5. Removal
 
@@ -59,3 +60,10 @@ directory if desired.
 End-to-end verification results are recorded in the project `handover.md`.
 `@pwt` mentions are not a routed mechanism in Claude Code (mentions address
 files); use `/pwt ask <message>`.
+
+Claude Code expansion is deferred while OpenCode is the focus: this guide
+describes the existing prompt-based slash command and MCP entry only.
+The native OpenCode plugin (`make install-opencode`, persistent scoped
+sessions) does not apply to Claude Code. Shared-backend behavior changes
+(database-first reports, additive V3 analysis tables) apply to both
+clients and remain backward compatible.

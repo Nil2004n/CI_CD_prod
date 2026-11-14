@@ -78,6 +78,19 @@ public final class RepoCommand {
                     + "\"display_name\":\"" + JsonWriter.escape(row.displayName()) + "\","
                     + "\"canonical_root\":\"" + JsonWriter.escape(row.canonicalRoot()) + "\","
                     + "\"availability\":\"" + (available ? "available" : "unavailable") + "\"}");
+            try {
+                Path journal = pwt.application.JournalWriter.journalPath(
+                        dataDir.toAbsolutePath().normalize(), row);
+                Path written = ProjectContext.writeIfManaged(registered.root(), row, journal,
+                        AppPaths.appRoot(), dataDir.toAbsolutePath().normalize());
+                if (written != null) {
+                    System.err.println("pwt repo-add: context pointer: " + written);
+                } else {
+                    System.err.println("pwt repo-add: kept existing non-PWT .pwt/context.md untouched");
+                }
+            } catch (Exception e) {
+                System.err.println("pwt repo-add: warning: context pointer not written: " + e.getMessage());
+            }
             return 0;
         } catch (Exception e) {
             System.err.println("pwt repo-add: storage failure: " + e.getMessage());

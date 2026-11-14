@@ -1,6 +1,7 @@
 package pwt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -20,12 +21,14 @@ import pwt.adapters.KubeconformAdapter;
 import pwt.adapters.LocalSchemaAdapter;
 import pwt.application.CancellationToken;
 import pwt.application.LocalSchemaConfig;
+import pwt.application.ReportService;
 import pwt.application.ScanConfig;
 import pwt.application.ScanService;
 import pwt.domain.ScanState;
 import pwt.domain.ScanSummary;
 import pwt.domain.ScanVerdict;
 import pwt.domain.ScannerStatus;
+import pwt.infrastructure.SqliteStore;
 
 /**
  * Real-tool integration for the four Phase 3 adapters. Tests that need an
@@ -350,11 +353,19 @@ class ScanServicePhase3Test {
         assertEquals(ScanVerdict.FINDINGS, summary.verdict());
         assertTrue(summary.findingCount() >= 4);
         // Reports include every outcome and validate against the schema.
-        String json = Files.readString(dataDir.resolve(summary.jsonReportPath()));
+        // Rendered from the database (no files needed); explicit export
+        // still writes files.
+        String json;
+        try (SqliteStore store = SqliteStore.open(dataDir)) {
+            json = new ReportService().render(store, summary.runId()).json();
+            ReportService.ReportPaths exported =
+                    new ReportService().generate(store, dataDir, summary.runId());
+            assertNotNull(exported.jsonPath());
+            assertTrue(Files.exists(dataDir.resolve(exported.jsonPath())));
+        }
         JsonNode root = MAPPER.readTree(json);
         assertEquals(6, root.get("scanner_runs").size());
         assertEquals(summary.runId(), root.get("run").get("id").asText());
-        assertTrue(Files.exists(dataDir.resolve(summary.markdownReportPath())));
     }
 
     @Test

@@ -5,7 +5,12 @@ Version: 0.1 draft | Date: 2026-11-12 | Status: proposed implementation baseline
 ## 1. Product definition
 PWT is a local-first desktop workbench for assessing YAML/YML using installed open-source security tools. It discovers selected files, runs applicable scanners, normalizes and redacts evidence, and retains session-specific JSON and Markdown reports.
 
-The desktop GUI has a terminal-inspired aesthetic; it does not run inside a terminal and does not expose an unrestricted shell. An existing coding agent connects through MCP for evidence retrieval, explanation, and agent-owned editing. PWT is not an embedded chatbot or autonomous remediation engine.
+The desktop GUI has a terminal-inspired aesthetic; it does not run inside a terminal and does not expose an unrestricted shell. An existing coding agent connects through MCP for evidence retrieval, explanation, and approved editing; OpenCode additionally gets native model-free commands. PWT is not an embedded chatbot or autonomous remediation engine.
+
+As implemented: the GUI covers all registered projects; native OpenCode
+commands perform direct project-specific operations; the global Pwt agent
+handles discussion, priority assessment, approved edits, and rescan; all
+share one SQLite database; report files are optional explicit exports.
 
 ## 2. Decision status
 Confirmed direction from the owner: rebuild from a fresh repository; replace the TUI with a terminal-like GUI; retain the scanner-wrapper philosophy and external coding-agent integration.
@@ -23,7 +28,8 @@ Value: one honest assessment workspace rather than manually assembling scanner c
 3. Inspect scanner availability and applicable checks.
 4. Run an assessment and see progress, cancellation, and scanner outcomes.
 5. Inspect normalized findings, locations, redacted evidence, and coverage gaps.
-6. Open retained JSON/Markdown reports and compare runs when snapshots are comparable.
+6. Render the current run's JSON/Markdown report on demand from retained
+   records (files only on explicit export); run comparison is planned.
 7. Configure a coding agent to launch the PWT MCP entrypoint with the same local data directory.
 8. Ask the agent to inspect findings; let the agent propose and perform edits under its own approval controls.
 9. Explicitly rescan the edited files and inspect the new results.
@@ -40,28 +46,30 @@ Value: one honest assessment workspace rather than manually assembling scanner c
 | F07 | Normalized findings | Stable fields, source tool/rule, severity, path, location, and redacted evidence |
 | F08 | Execution control | Bounded concurrent tasks, cancel, timeout, output-size limits, child-process cleanup |
 | F09 | Durable sessions | Restart retains history; unfinished runs are reconciled, not displayed as completed |
-| F10 | Reports | Every terminal run produces or can regenerate schema-versioned JSON and Markdown, including failures |
+| F10 | Reports | Every terminal run can regenerate schema-versioned JSON and Markdown from retained sanitized records on demand; files are written only on explicit export |
+| F10a | Native OpenCode commands (implemented, dashboard-only scanning) | Direct `/pwt help/repos/status/report/dashboard` operations call MCP with no model turn (repos/status/report project-scoped); bare `/pwt` opens the dashboard (pending owner review vs help-default); scan/cancel have no OpenCode commands — dashboard only |
+| F10b | Database-backed agent analysis (implemented, Phase 4+) | Revisioned LOW/MEDIUM/HIGH analysis via `get_analysis`/`save_analysis`, optimistic concurrency, project-scoped, independent write permission |
 | F11 | Terminal-inspired GUI | Repo/file navigation, scanner controls, progress, findings, details, history, and redacted logs |
 | F12 | MCP access | Registered-repo discovery, run inspection, findings, reports, and explicit scan initiation share GUI state |
 | F13 | No covert mutation | No PWT YAML edit, commit, push, shell, or remediation tool in MVP |
-| F14 | Before/after comparison | Matching rule fingerprints and coverage expose added/persisting/not-observed findings without unsupported claims of resolution |
+| F14 | Before/after comparison | Matching rule fingerprints and coverage expose added/persisting/not-observed findings without unsupported claims of resolution — PLANNED (Phase 5): fingerprints are recorded per finding today, but no compare MCP tool or GUI comparison view exists yet |
 | F15 | Secret handling | Seeded secrets absent from all persisted outputs, logs, exports, GUI, and MCP responses |
 | F16 | Offline operation | Installed local scanners operate without a cloud account; no telemetry or model API is required |
 
 ## 6. MVP scanner scope
 The intended complete scanner/validation scope for the rebuild is exactly these six integrations:
 1. yamllint, 2. Gitleaks, 3. Checkov, 4. actionlint, 5. kubeconform, 6. local user-supplied schema validation.
-These are the planned integrations, not optional candidates. Implement them incrementally: the first real scanner adapter is a Phase 2 milestone, not the final scope; full scanner integration belongs to Phase 5, with hardening in Phase 6.
+These are the planned integrations, not optional candidates. Implement them incrementally: the first real scanner adapter is a Phase 2 milestone; all six were INTEGRATED in Phase 3 (verified), with hardening in Phase 6.
 Syntax validation is not schema validation. Schema coverage must name the supported document family and schema version. Arbitrary YAML does not automatically receive Kubernetes, CI, or cloud validation.
 
 ## 7. GUI contract
 Desktop layout: repositories/files on the left; progress and findings centrally; evidence detail alongside or below findings; collapsible redacted execution log; history view; action palette.
 Dark default theme, monospace presentation, readable contrast, severity labels in addition to colors, keyboard navigation, mouse support, selectable text, and resizable panels.
 No fake terminal animation, unrestricted shell prompt, or built-in AI chat. UI must remain responsive during scans; detailed rendering and performance budgets are established with the first vertical slice.
-MCP connection status must reflect actual observed sessions or say unknown; sharing a database alone is not a connection indicator.
+MCP connection status must reflect actual observed sessions or say unknown; sharing a database alone is not a connection indicator. The GUI shows saved agent analysis read-only (writes go through MCP only).
 
 ## 8. Nonfunctional requirements
-Local-only storage by default; restrictive permissions where supported; bounded parsing and execution; durable transactions; no raw secret evidence retained by default; atomic report publication; explicit database migration versions.
+Local-only storage by default; restrictive permissions where supported; bounded parsing and execution; durable transactions; no raw secret evidence retained by default; explicit database migration versions; explicit-only report file publication (on-demand rendering never requires files).
 Initial validation target: Linux development environment. Windows/macOS releases require separate scanner and packaging validation; do not label them supported before passing checks.
 
 ## 9. Not in MVP

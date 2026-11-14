@@ -20,6 +20,10 @@ import pwt.application.ScanService;
  *   <li>{@code repo-add --root <dir> [--name N] [--data-dir D]} — register a
  *       repository root (idempotent, shared across GUI/CLI/MCP).</li>
  *   <li>{@code repo-list [--data-dir D]} — list registered roots.</li>
+ *   <li>{@code journal --root <dir> [--run-id <id>] [--check] [--data-dir D]}
+ *       — append missing scan sections to the repository Markdown journal
+ *       from persisted runs (backfill + retry); {@code --check} only reports
+ *       currency without writing.</li>
  *   <li>{@code doctor [--data-dir D]} — environment/dependency report.</li>
  *   <li>{@code mcp-status [--data-dir D]} — recorded MCP session presence.</li>
  *   <li>{@code mcp} — MCP stdio server; stdout is MCP-protocol-only.</li>
@@ -50,6 +54,7 @@ public final class PwtMain {
                     KubeconformSetup.split(args, 1), ScanService.defaultDataDir()));
             case "repo-add" -> System.exit(RepoCommand.add(RepoCommand.split(args, 1)));
             case "repo-list" -> System.exit(RepoCommand.list(RepoCommand.split(args, 1)));
+            case "journal" -> System.exit(JournalCommand.execute(JournalCommand.split(args, 1)));
             case "doctor" -> System.exit(DoctorCommand.execute(DoctorCommand.split(args, 1)));
             case "mcp-status" -> System.exit(McpStatusCommand.execute(McpStatusCommand.split(args, 1)));
             case "mcp" -> runMcp(ScanCommand.split(args, 1));
@@ -72,7 +77,7 @@ public final class PwtMain {
     private static void launchGui(String[] args) {
         // Optional shared data directory so the GUI observes the same store
         // as headless/MCP entrypoints: `gui [--data-dir <directory>]`.
-        // Defaults to ~/.pwt-data when absent.
+        // Defaults to <application-root>/.pwt-data when absent.
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--data-dir") && i + 1 < args.length) {
                 System.setProperty("pwt.data.dir", args[i + 1]);
@@ -85,6 +90,8 @@ public final class PwtMain {
     private static void runMcp(List<String> args) {
         java.nio.file.Path dataDir = pwt.application.ScanService.defaultDataDir();
         boolean allowScans = false;
+        boolean allowAnalysis = false;
+        String repoId = null;
         for (int i = 0; i < args.size(); i++) {
             String arg = args.get(i);
             switch (arg) {
@@ -97,6 +104,15 @@ public final class PwtMain {
                     dataDir = java.nio.file.Path.of(args.get(++i));
                 }
                 case "--allow-scans" -> allowScans = true;
+                case "--allow-analysis-writes" -> allowAnalysis = true;
+                case "--repo-id" -> {
+                    if (i + 1 >= args.size()) {
+                        System.err.println("pwt mcp: missing value for --repo-id");
+                        System.exit(2);
+                        return;
+                    }
+                    repoId = args.get(++i);
+                }
                 default -> {
                     System.err.println("pwt mcp: unknown argument: " + arg);
                     usage();
@@ -105,7 +121,21 @@ public final class PwtMain {
                 }
             }
         }
-        pwt.mcp.PwtMcpServer.run(dataDir, allowScans);
+        if (repoId != null) {
+            try (pwt.infrastructure.SqliteStore store =
+                    pwt.infrastructure.SqliteStore.open(dataDir)) {
+                if (store.findRepositoryById(repoId) == null) {
+                    System.err.println("pwt mcp: unknown --repo-id: " + repoId);
+                    System.exit(2);
+                    return;
+                }
+            } catch (Exception e) {
+                System.err.println("pwt mcp: cannot validate --repo-id: " + e.getMessage());
+                System.exit(2);
+                return;
+            }
+        }
+        pwt.mcp.PwtMcpServer.run(dataDir, allowScans, allowAnalysis, repoId);
     }
 
     private static String[] stripFirst(String[] args) {
@@ -122,15 +152,19 @@ public final class PwtMain {
                 "  gui                          Launch the JavaFX desktop shell.",
                 "  discover --root <directory>  Run headless YAML discovery; JSON on stdout.",
                 "     [--max-files N] [--max-depth N] [--exclude name,...]",
-                "  scan --root <dir> --file <rel>...  Scan selected files (yamllint+gitleaks);",
+                "  scan --root <dir> --file <rel>...  Scan selected files (DB is authoritative;",
                 "     result JSON on stdout. [--adapter id,...] [--data-dir <dir>] [--timeout-sec N]",
+                "     [--schema-binding GLOB=SCHEMA ...] [--kubeconform-schema T] [--export]",
                 "     Exit: 0 clean, 4 findings, 2 invalid/busy, 1 failure.",
-                "  mcp [--data-dir <dir>] [--allow-scans]",
-                "                             Start the MCP stdio server (stdout is MCP-protocol-only).",
-                "     Read-only tools always work; start_scan/cancel_scan need --allow-scans.",
+                "  mcp [--data-dir <dir>] [--allow-scans] [--allow-analysis-writes]",
+                "     [--repo-id <id>]      Start the MCP stdio server (stdout is MCP-protocol-only).",
+                "     Read-only tools always work; scan/analysis writes need their flags.",
+                "     --repo-id restricts every operation to one registered project.",
                 "  kubeconform-setup            Download kubeconform schemas into the local cache.",
                 "  repo-add --root <dir> ...    Register a repository root (idempotent).",
                 "  repo-list                    List registered roots and availability.",
+                "  journal --root <dir> [...]   Append missing scan sections to the repo journal;",
+                "     --run-id <id>, --check (report only), --data-dir <dir>.",
                 "  doctor                       Java/artifact/data-dir/repos/scanner report.",
                 "  mcp-status                   Recorded MCP session presence and modes.",
                 "",

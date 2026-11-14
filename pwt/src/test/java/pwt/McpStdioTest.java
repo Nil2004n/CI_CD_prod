@@ -159,7 +159,8 @@ class McpStdioTest {
         }
         assertEquals(
                 List.of("pwt_info", "list_repositories", "list_runs", "get_run",
-                        "list_findings", "get_report", "start_scan", "cancel_scan"),
+                        "list_findings", "get_report", "start_scan", "cancel_scan",
+                        "get_analysis", "save_analysis"),
                 toolNames);
 
         // 4. tools/call pwt_info returns the six-entry catalog, all INTEGRATED.

@@ -1,0 +1,9 @@
+{
+  "name": "pwt-opencode-plugin",
+  "version": "0.4.0",
+  "description": "PWT native OpenCode commands: direct MCP operations without model calls",
+  "type": "module",
+  "exports": {
+    "./tui": "./tui.ts"
+  }
+}

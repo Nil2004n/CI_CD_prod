@@ -21,6 +21,7 @@ public final class McpErrors {
     public static final String PERMISSION_DENIED = "PERMISSION_DENIED";
     public static final String REPOSITORY_BUSY = "REPOSITORY_BUSY";
     public static final String CONFIGURATION_REQUIRED = "CONFIGURATION_REQUIRED";
+    public static final String CONFLICT = "CONFLICT";
     public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

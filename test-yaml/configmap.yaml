@@ -1,0 +1,9 @@
+---
+# yamllint disable rule:line-length
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-settings
+data:
+  log_level: info
+  retries: "3"

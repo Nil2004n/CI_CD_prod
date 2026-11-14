@@ -1,4 +1,141 @@
-# Handover — PWT Java rebuild, Phases 1–4 (CLOSEOUT B)
+# Handover — PWT Java rebuild, dashboard-only scanning
+
+Checkpoint: 2026-11-13 (dashboard-only scanning complete: no OpenCode
+scan/cancel; GUI first-scan self-registers via idempotent runScan hook;
+strict current-project agent; OpenCode MCP never scan-enabled; installed
+artifacts synced; full suite 161/0/0/2; uncommitted). Live state:
+`status.md` (top entry). Previous entries kept as record.
+
+Checkpoint: 2026-11-13 (`make setup-opencode-global`: unscoped read-only
+user-global MCP entry; native plugin falls back to it, then resolves cwd
+to registered roots; uncommitted). Verified: `mcp list` connected; native
+status with no project config (hook log, no model); journal-only agent
+answer (frozen presence timestamp); cross-project denial with correlation
+ID; honest unregistered-dir error. `make enable` stays the explicit
+per-project route. Live state: `status.md` (top entry). Previous entries
+kept as record.
+
+## 0z. Dashboard-only delta (this session, read first)
+
+- `ScanService.runScan`: single first-scan hook (register idempotent +
+  `ProjectContext.writeIfManaged` + journal path); duplicate pointer block
+  removed. `ProjectContext` + setup pointer text now say exactly: "No PWT
+  assessment is available for this project. Open /pwt and run its first
+  scan in the dashboard."
+- `setup_opencode.py`: never writes `--allow-scans` (deprecated flag warns
+  on 1, strips + reports legacy flags); analysis-writes unchanged.
+  Makefile OpenCode targets (`setup-opencode`, `setup-opencode-global`,
+  `enable`) drop `ALLOW_SCANS` passthrough (warn when set); `make mcp` and
+  `setup-claude` keep it for deliberate non-OpenCode use.
+- TUI/agent/ask already dashboard-only from the prior stack; verified, not
+  re-cut: 6 commands, no scan/cancel aliases, repos scoped, ambiguous
+  roots ask, unregistered dirs get the dashboard-first message.
+- Verify: `make test` (full suite) + `/tmp/pwttest/harness.mjs` with
+  `PWT_JAR=pwt/target/pwt-0.4.0.jar` + `repo-list` on one shared DB. Do not
+  alter real project YAML for demos (use /tmp fixtures). Never run pkill -f
+  with a pattern matching your own shell line — kill by PID.
+
+## 0. New/changed since Phase 4 (for the next developer)
+
+- `integrations/opencode-plugin/tui.ts` (NEW, single file — keep it that
+  way): dispatcher (quote-aware splitArgs, repeatable `--file`, deterministic
+  PwtAction) + owned persistent MCP client (one ChildProcess per exact spawn
+  command incl. `--repo-id`; serialized writes; transparent respawn;
+  cleanup on plugin unload). `/pwt <sub> <args>` is the args path; bare
+  aliases (`/pwt-scan` …) fire with empty input when accepted from the
+  palette. TRAP: ephemeral per-call servers cancel their own scans on
+  shutdown (server hook cancels live tokens) — never go back to spawn-per-call.
+- `integrations/opencode-plugin/agent-pwt.md` (NEW): global agent rules.
+  Installed to `~/.config/opencode/agents/pwt.md` only (never into projects).
+- `integrations/install-opencode.py` (NEW) + `make install-opencode /
+  uninstall-opencode`: global plugin + agent with managed-markers + refuse
+  unmanaged-overwrite. `setup_opencode.py` now installs the project plugin
+  dir, merges `--allow-analysis-writes`, deletes stale prompt `pwt.md`.
+- Backend: V3 migration (analysis_threads/revisions/assessments +
+  `mcp_sessions.analysis_writes`, PRAGMA-guarded ALTER); `ReportService.
+  render()` (DB-only) vs `generate()` (explicit export); `ScanService`
+  finalize no longer exports; CLI `scan --export`; `pwt mcp --repo-id /
+  --allow-analysis-writes`; scoped helpers in `McpScanTools`
+  (scopedRepository/scopedRun); `get_analysis`/`save_analysis`;
+  `McpContext(allowAnalysisWrites, scopedRepositoryId)`; `pwt-mcp-stdio.sh`
+  passes `--repo-id/--allow-analysis-writes/--print-jar`.
+- GUI: AGENT ANALYSIS section (read-only, `loadAnalysis` on
+  showScanSummary/selection incl. STALE indicator), View/Export report
+  buttons, reports label "in database (not exported)", presence "+ analysis".
+- `make doctor` now reports opencode version, native-command compatibility,
+  and both permission flags (additive JSON fields).
+- REMOVED: `integrations/opencode/commands/pwt.md` (prompt template),
+  `integrations/opencode/opencode.json` (stale direct-java template);
+  README rewritten for native flow. `pwt-conversation.md` += never paste
+  secrets into analysis.
+- Gotchas: `summarizeRun` must accept both `id` (get_run) and `run_id`
+  (list_runs); OpenCode TUI palette accepts the command first — full text
+  with args typed in one go may execute the alias with empty input (use
+  `/pwt <sub> <args>`); `@pwt` is not routed (use `/pwt-ask` or agents
+  dialog); markdown command frontmatter MUST open with `---` (a missing
+  first fence silently disables agent selection); `send-keys` needs `-l`
+  for `--flags`; `===` echo breaks this zsh tool. Never run pkill -f with
+  a pattern that also matches your own shell command line — kill by PID.
+
+## 0a. Agent routing + hang fix (this session)
+
+- Hang: host gateway MCP session went stale (8 tools vs current 10) and
+  parked `tools/call` with the 12h default execution timeout; orphans with
+  no presence activity were the symptom. Server proven healthy via bounded
+  harness (0.7s full handshake both JVMs; missing `notifications/initialized`
+  is the only server-side silent drop). Fix: `"timeout": {"execution":
+  300000}` on the pwt MCP entry (repo + setup-generated, preserves user
+  values); reconnect via `/mcps` if a session wedges.
+- `/pwt-ask`: global markdown command with `agent: pwt` frontmatter
+  (verified supported), installed by `install-opencode.py` with marker
+  protection + uninstall; agent frontmatter now `description` + `mode: all`
+  (body unchanged); native dispatcher `ask` case points at `/pwt-ask`.
+- Verified live: `/pwt status` native; `/pwt-ask` → Pwt agent answered
+  from persisted evidence; propose → approve → edit → rescan
+  (COMPLETED/NO_FINDINGS) → save_analysis rev 1 both threads (SQLite
+  confirmed); read-only denials PERMISSION_DENIED; unconfigured/empty
+  projects honest errors; GUI standalone on same data dir with live
+  presence (row-click driving still synthetic-input limited).
+
+## 0b. How to verify (delta)
+
+```sh
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64; export PATH="$JAVA_HOME/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+cd pwt && ./mvnw -B test                       # expect 146/0/0/0
+make doctor | python3 -m json.tool             # opencode + permissions fields
+rm -rf /tmp/oc3 && mkdir -p /tmp/oc3 && python3 integrations/setup_opencode.py \
+  --project-dir /tmp/oc3 --data-dir /tmp/oc3/data --allow-scans 1 --allow-analysis 1
+make install-opencode && ls ~/.config/opencode/plugins/pwt ~/.config/opencode/agents/
+```
+Headless plugin harness: copy `integrations/opencode-plugin/tui.ts` to
+scratch, stub `@opencode/plugin`, drive all 8 `run()` handlers against
+`java -jar pwt/target/pwt-0.4.0.jar mcp` (expect run-id + COMPLETED +
+rendered report + honest cancel; no OpenCode needed). Real TUI: launch in a
+registered project dir, `/pwt status|scan|report|cancel` must append to
+`PWT_TEST_OUT` hook log with zero chat turns; select `Pwt` in agents dialog
+for analysis save (needs `--allow-analysis-writes` in project opencode.json).
+
+## 0c. Known gaps + next concrete Phase 5 task
+
+- GUI history-row click was not driven (synthetic clicks did not reach the
+  app under Xvfb); store + loader paths are tested. Drive it with a real
+  display session before calling the analysis view fully verified.
+- Native plugin headless harness is session evidence only; check a
+  repo-owned reproducible script into `integrations/` (Phase 6 at latest).
+- Run comparison (fingerprints recorded, no compare tool/view) and the full
+  desktop workflow/UI redesign are the Phase 5 scope; start only on
+  explicit owner go-ahead. No owner acceptance of any closeout is recorded.
+- Current architecture in one paragraph: one shared SQLite database;
+  standalone GUI with cross-project visibility; native OpenCode commands via
+  persistent per-scope MCP sessions calling the same application services;
+  global Pwt agent with per-session project context via scoped MCP tools
+  plus OpenCode file tools for approved edits; exports are explicit
+  projections, never a second store; no daemon, no cloud, no model needed
+  for operations.
+
+---
+# Previous handover — Phases 1–4 (CLOSEOUT B, kept as record)
 
 Checkpoint: 2026-11-13 (Phase 4). Implementation + all executable
 verification passed; one external check is blocked (OpenCode model credits).
@@ -42,7 +179,7 @@ limitation, or direct Phase 5. Live state: `status.md`.
 ```sh
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64; export PATH="$JAVA_HOME/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
-cd pwt && ./mvnw -B clean test        # expect 141/0/0/0, BUILD SUCCESS
+cd pwt && ./mvnw -B clean test        # expect 146/0/0/0, BUILD SUCCESS (Phase 4 was 141)
 ./mvnw -B -q package -DskipTests      # target/pwt-0.4.0.jar
 make doctor DATA_DIR=<dir>
 make setup DATA_DIR=<dir> && make repo-add ROOT=<abs project>
@@ -57,8 +194,8 @@ python3 /tmp/opencode/mcp_check.py    # independent harness (in /tmp)
 Client checks: `/tmp/pwtagent` pattern (seed via CLI, register with
 `claude mcp add --scope project pwt -- ...`, copy command files, then
 `claude -p "/pwt status|report|scan|ask"`). Needs Claude auth (worked
-2026-11-13). OpenCode: `opencode mcp list` for health, but `opencode run`
-needs funded credits.
+2026-11-13). OpenCode: native commands need no credits (verified live 2026-11-13);
+agent turns also ran in this environment ($0.00 spend).
 
 ## 3. Evidence from this session (all in `/tmp`, not in git)
 

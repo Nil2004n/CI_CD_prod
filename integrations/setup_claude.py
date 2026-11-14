@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Install/merge project-local Claude Code PWT configuration.
 
-Usage: setup_claude.py --project-dir DIR --data-dir DIR [--allow-scans 0|1]
+Usage: setup_claude.py --project-dir DIR [--data-dir DIR] [--allow-scans 0|1]
+                       [--allow-analysis 0|1]  (data dir defaults to <application-root>/.pwt-data;
+must be absolute if given)
                        [--launcher PATH]
 
 - Merges the `pwt` MCP server entry into <project>/.mcp.json (project scope),
@@ -14,11 +16,14 @@ Usage: setup_claude.py --project-dir DIR --data-dir DIR [--allow-scans 0|1]
 """
 import argparse
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+APP_ROOT = HERE.parent
+DEFAULT_DATA_DIR = APP_ROOT / ".pwt-data"
 
 
 def load_json(path):
@@ -35,8 +40,9 @@ def load_json(path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-dir", required=True)
-    parser.add_argument("--data-dir", required=True)
+    parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--allow-scans", default="", choices=["", "0", "1"])
+    parser.add_argument("--allow-analysis", default="", choices=["", "0", "1"])
     parser.add_argument("--launcher", default=str(HERE / "pwt-mcp-stdio.sh"))
     parser.add_argument("--command-src", default=str(HERE / "claude-code" / "commands" / "pwt.md"))
     parser.add_argument("--instructions-src", default=str(HERE / "pwt-conversation.md"))
@@ -51,8 +57,15 @@ def main():
         print(f"setup-claude: launcher missing: {launcher}", file=sys.stderr)
         return 2
     data_dir = Path(args.data_dir)
+    if not data_dir.is_absolute():
+        print(f"setup-claude: --data-dir must be absolute: {args.data_dir}", file=sys.stderr)
+        return 2
     try:
         data_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            os.chmod(data_dir, 0o700)
+        except OSError:
+            pass  # non-POSIX filesystem: umask applies
     except OSError as exc:
         print(f"setup-claude: cannot create data dir {data_dir}: {exc}", file=sys.stderr)
         return 2
@@ -68,15 +81,15 @@ def main():
     if not isinstance(entry, dict):
         entry = {}
     command_args = ["--data-dir", str(data_dir)]
-    if args.allow_scans == "1":
-        command_args.append("--allow-scans")
-    elif args.allow_scans == "0":
-        pass  # read-only: no flag
-    else:
-        # Preserve: keep an existing --allow-scans if the user already had it.
-        existing = entry.get("args", [])
-        if isinstance(existing, list) and "--allow-scans" in existing:
-            command_args.append("--allow-scans")
+    existing = entry.get("args", [])
+    for flag, value in (("--allow-scans", args.allow_scans),
+                        ("--allow-analysis-writes", args.allow_analysis)):
+        if value == "1":
+            command_args.append(flag)
+        elif value == "0":
+            pass
+        elif isinstance(existing, list) and flag in existing:
+            command_args.append(flag)  # preserve existing mode
     entry["type"] = "stdio"
     entry["command"] = str(launcher)
     entry["args"] = command_args
@@ -90,6 +103,8 @@ def main():
     shutil.copyfile(args.instructions_src, project / ".claude" / "pwt-conversation.md")
 
     mode = "scan-enabled (--allow-scans)" if "--allow-scans" in command_args else "read-only"
+    if "--allow-analysis-writes" in command_args:
+        mode += " + analysis writes (--allow-analysis-writes)"
     print(f"setup-claude: pwt MCP server configured ({mode})")
     print(f"setup-claude: data directory: {data_dir}")
     print(f"setup-claude: command installed: {commands_dir / 'pwt.md'}")

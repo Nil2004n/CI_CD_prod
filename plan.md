@@ -7,6 +7,16 @@
 > results/report tools over shared persisted state; Phase 5 = desktop
 > workflows, history, filtering, comparison; Phase 6 = hardening; Phase 7 =
 > packaging and release. GUI-first work was deferred in favor of integrations.
+> 2026-11-13: final pre-Phase-5 architecture adjustment DONE (OpenCode native
+> direct commands + global agent + database-first store/analysis, COMPLETE —
+> see status.md top entry). Phase 5 desktop visual redesign NOT started.
+>
+> Roadmap as implemented (not the historical ordering): Phase 1 =
+> foundation/discovery/minimal MCP. Phase 2 = first real scanners and
+> persistence. Phase 3 = remaining scanner integrations (all six
+> INTEGRATED). Phase 4 = native OpenCode integration, project-scoped MCP,
+> shared state, database-backed analysis. Phase 5 = complete desktop
+> workflow/UI. Phase 6 = hardening. Phase 7 = packaging/release.
 
 Plan revision: 1 (2026-10-23), with updates of 2026-10-24, 2026-10-26, 2026-10-27/28 (P02 progress, FR-32/FR-33) and 2026-10-29 (P02 accepted and merged; **P03 planned, §5C; C1–C10 = recommended**), 2026-10-30/31 (P03 T01–T04 accepted, wave 1 + P03-D01 done, cargo-audit installed; progress only, no scope change), 2026-11-01 (P03 accepted and merged; continuity rewritten for a developer takeover), 2026-11-01 (**P04 planned, §5E; E1–E14 = recommended**), 2026-10-31 (**owner requirement D-18 automatic LLM evidence analysis; CA-05 design direction accepted with qualifications the same day — not implementation or release acceptance**, §1, §4, §5D, §7, §8) (P01 progress, D-16/CA-03, FR-31, **D-17 headless CLI §4.1**): status (task progress, answered questions, blocker states, branch-policy record) and owner-directed follow-up requirement register entries (§5.2). Scope/estimate change on 2026-10-26: D-17 adds a headless CLI increment to every feature phase from P02 (§4.1, §7.1); no phases added or removed. Current Git state: see `status.md`.
 

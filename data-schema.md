@@ -121,6 +121,43 @@ Storage paths are relative to the application artifact root, never caller-provid
 - details_json TEXT NOT NULL
 Bound event count and message bytes. Never persist unfiltered scanner output. MCP connection presence is not inferred from these events.
 
+### analysis_threads (V3, agent analysis; scanner tables untouched)
+- id TEXT PRIMARY KEY
+- repository_id TEXT NOT NULL REFERENCES repositories(id)
+- run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE
+- current_revision INTEGER NOT NULL DEFAULT 0
+- created_at/updated_at TEXT NOT NULL
+- UNIQUE(repository_id, run_id): one thread per assessed run.
+
+### analysis_revisions (V3, append-only; prior revisions preserved)
+- id TEXT PRIMARY KEY
+- thread_id TEXT NOT NULL REFERENCES analysis_threads(id) ON DELETE CASCADE
+- revision INTEGER NOT NULL; UNIQUE(thread_id, revision)
+- summary TEXT (sanitized, capped); priority TEXT CHECK IN (LOW, MEDIUM, HIGH)
+- priority_rationale TEXT (sanitized, capped)
+- category TEXT; change_status TEXT (free-text workflow state, e.g. proposed/applied/verified)
+- verification_run_id TEXT NULL REFERENCES runs(id) (must belong to the same repository)
+- author_client TEXT NULL (e.g. "mcp"); author_name TEXT NULL; created_at TEXT NOT NULL
+Scanner severity is never stored here and never modified by analysis writes.
+
+### analysis_assessments (V3, structured per-finding judgments)
+- id TEXT PRIMARY KEY; revision_id TEXT NOT NULL REFERENCES analysis_revisions(id) ON DELETE CASCADE
+- finding_id TEXT NULL REFERENCES findings(id) (must belong to the thread's run)
+- rule_id TEXT; relative_path TEXT NULL; line_start INTEGER NULL
+- priority TEXT CHECK IN (LOW, MEDIUM, HIGH); rationale TEXT (sanitized, capped)
+- category TEXT; change_status TEXT; verification_run_id TEXT NULL REFERENCES runs(id)
+- message TEXT (sanitized, capped)
+No raw secret values: agents reference findings by rule/file/line; control
+characters are stripped and texts length-capped before persistence.
+
+### mcp_sessions (V2 presence + V3 analysis_writes, additive)
+- session_id TEXT PRIMARY KEY; server_instance_id TEXT NOT NULL
+- client_name/version, protocol_version TEXT NULL (self-reported)
+- permission_mode TEXT CHECK IN (READ_ONLY, SCANS_ENABLED)
+- analysis_writes TEXT NOT NULL DEFAULT 'DENIED' (V3; values ALLOWED/DENIED written by the server from its flags, no DB CHECK constraint — enforced at the write path)
+- lifecycle_state TEXT; connected_at, server_heartbeat_at, last_client_activity_at,
+  disconnected_at TEXT NULL; close_reason TEXT NULL
+
 ## 3. Storage relationships
 ```text
 repositories 1 -> N runs
@@ -129,6 +166,9 @@ runs 1 -> N scanner_runs
 scanner_runs N <-> N run_files through scanner_targets
 scanner_runs 1 -> N findings
 runs 1 -> N artifacts
+runs 1 -> N analysis_threads (V3; at most one per (repository, run))
+analysis_threads 1 -> N analysis_revisions (append-only; current_revision tracks head)
+analysis_revisions 1 -> N analysis_assessments (structured finding judgments)
 runs 1 -> N run_events
 ```
 Repository deletion with retained history is restricted by default. History purge is an explicit local-user action with confirmation; delete dependent rows and associated artifacts together with recoverable cleanup tracking. No MCP purge tool in MVP.
@@ -139,6 +179,7 @@ CREATED/RUNNING transitions update revision. Findings are inserted with their sc
 Verdict NO_FINDINGS requires state COMPLETED and no findings plus complete declared coverage. Any findings yield FINDINGS even when partial. Otherwise verdict INDETERMINATE.
 An optional scanner failure remains visible but does not by itself make required coverage incomplete. Required applicability is recorded at preflight. A run with no required applicable scanner cannot be called clean.
 Cancel requested is cooperative and does not itself imply CANCELLED; workers record the actual terminal outcome. Persisted evidence from successful scanners survives cancellation.
+Analysis staleness is advisory, never automatic: a saved revision stays attached to its source run, and readers (GUI included) flag it STALE when a newer scan exists for the same repository — the stored revision is never rewritten or deleted by later scans. Stale `save_analysis` calls fail with CONFLICT and write nothing; the caller reloads and merges. Cross-project references are rejected, not re-scoped: verification runs and finding IDs must belong to the thread's repository/run (mismatches are errors), and scoped servers answer cross-project run IDs with NOT_FOUND rather than leaking their existence.
 
 ## 5. JSON report envelope
 ```json
@@ -167,11 +208,13 @@ This envelope is illustrative, not executable seed data or a complete formal JSO
 <data-dir>/
   pwt.db
   locks/<root-identity-hash>.lock
-  artifacts/<run-id>/report.json
-  artifacts/<run-id>/report.md
+  artifacts/<run-id>/report.json   # explicit export only; never required
+  artifacts/<run-id>/report.md      # explicit export only; never required
   transient/<run-id>/snapshot/    # sensitive, deleted after use
+  schemas/kubeconform/...         # explicitly provisioned local schemas (scanner cache)
 ```
 SQLite may create WAL/SHM files. Data directory requires local-user access restrictions; filesystem encryption is not supplied by this schema. Recovery cleans orphaned transient snapshots only after repository lock ownership is established.
 
 ## 7. Retention and migrations
 No automatic destructive retention in MVP. Show storage usage and explain sensitive metadata. Migrations run under a cross-process migration lock, inside transactions where supported; refuse unsupported newer schema versions. Do not drop existing records silently or create unrequested backup copies. Recommend user-controlled backup before destructive future migrations.
+Migration history: V1 scanner evidence tables, V2 `mcp_sessions` presence (additive), V3 analysis threads/revisions/assessments plus `mcp_sessions.analysis_writes` (additive, PRAGMA-guarded ALTER). V1/V2 definitions were preserved, never rewritten; no historical artifact deletion was required. Raw secret-bearing scanner output is sanitized before persistence and is not authoritative retained evidence.

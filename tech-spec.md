@@ -1,4 +1,4 @@
-Version: 0.1 draft | Date: 2026-11-12 | Status: proposed implementation baseline
+Version: 0.1 draft | Date: 2026-11-12, updated 2026-11-13 (native OpenCode integration) | Status: implemented baseline (Phases 1–4); §11 comparison and full Phase 5 UI remain planned
 
 # PWT Technical Specification
 
@@ -16,12 +16,15 @@ No Spring Boot, Electron, embedded browser, cloud inference, or Rust runtime dep
 ## 2. Launch contract
 ```text
 pwt gui [--data-dir <directory>]
-pwt mcp --data-dir <directory> [--allow-scans]
-pwt scan --repo <id> --file <relative-path>... --data-dir <directory>
+pwt mcp [--data-dir <directory>] [--allow-scans] [--allow-analysis-writes] [--repo-id <id>]
+pwt scan --root <dir> --file <relative>... [--adapter id,...] [--data-dir <directory>] [--export] [...]
+pwt repo-add --root <dir> [--data-dir <directory>]
+pwt repo-list [--data-dir <directory>]
 pwt doctor [--data-dir <directory>]
+pwt mcp-status [--data-dir <directory>]
 ```
-These are target interfaces, not commands claimed to work today. CLI scan is a headless validation path using the same services; no independent scanner implementation.
-Use an explicit application data directory resolved consistently by all modes. No implicit repository .env or working-directory config execution. CLI emits sanitized human output or an explicit machine-readable mode; MCP stdout is reserved for protocol messages.
+CLI scan is a headless validation path using the same services; no independent scanner implementation. `--repo-id` restricts every MCP operation to one registered project (unscoped mode is explicit local admin). `--export` is the only scan-time file writer; without it the database is authoritative and no report files exist.
+Use an explicit application data directory resolved consistently by all modes. No implicit repository .env or working-directory config execution. CLI emits sanitized human output or a machine-readable result JSON; MCP stdout is reserved for protocol messages.
 
 ## 3. Adapter interface
 ```java
@@ -61,31 +64,36 @@ Assessment verdict is a separate field: FINDINGS, NO_FINDINGS, or INDETERMINATE.
 If no selected target or no applicable required scanner exists, reject before execution or return an explicit indeterminate terminal record; never report a clean scan.
 
 ## 8. Persistence and export
-See data-schema.md for normative entity fields and invariants. Commit findings per scanner transaction. Finalize run state before exporting. Export failures are recorded independently and do not erase scan results.
-Write temp files inside the destination data directory, flush, then atomic rename where supported. Export names include UTC date, sanitized repo name, and run UUID to avoid collisions. Reports contain relative paths by default, provenance, tool versions, target hashes, findings, and coverage gaps.
-Regeneration uses retained sanitized data only. Report schema and database migration versions are independent.
+See data-schema.md for normative entity fields and invariants. Commit findings per scanner transaction. Finalize run state durably; scan completion writes no report files. Explicit export (`scan --export`, GUI Export) writes `<data-dir>/artifacts/<run-id>/report.{json,md}` atomically (temp file, flush, rename) and records READY/FAILED artifacts independently; export failure never erases scan results.
+Write temp files inside the destination data directory, flush, then atomic rename where supported. Reports contain relative paths by default, provenance, tool versions, target hashes, findings, and coverage gaps.
+On-demand rendering (`get_report`, GUI View) uses retained sanitized data only and requires no files. Report schema and database migration versions are independent.
 
 ## 9. MCP contract
 | Tool | Input | Result / constraint |
 |---|---|---|
-| list_repositories | cursor?, limit? | Registered IDs, names, availability; no arbitrary registration |
-| list_runs | repository_id, cursor?, limit? | Paginated summaries |
-| get_run | run_id | Status, coverage, snapshot hashes, scanner outcomes |
-| list_findings | run_id, severity?, cursor?, limit? | Sanitized structured evidence |
-| get_report | run_id, format | JSON or Markdown content; bounded/paginated response |
-| start_scan | repository_id, relative_paths[], adapter_ids[] | Requires --allow-scans; validated IDs/scope; returns run ID |
-| cancel_scan | run_id | Requires scan permission and ownership/scope validation |
-| compare_runs | base_run_id, target_run_id | Same repository; fingerprint version and coverage caveats |
-Default page size 100, maximum 500; bounded strings and response bytes. Reject unknown adapter IDs, absolute paths, traversal, and paths not inside the registered root. No shell, edit, Git push, arbitrary file read, or export-path tool.
-Expose tool-side error codes: NOT_FOUND, INVALID_INPUT, OUT_OF_SCOPE, PERMISSION_DENIED, REPOSITORY_BUSY, SCANNER_UNAVAILABLE, STORAGE_BUSY, INTERNAL_ERROR. Return sanitized errors with correlation IDs, not raw stack traces.
+| pwt_info | — | Identity, capabilities, planned scanner catalog |
+| list_repositories | cursor?, limit? | Registered IDs, names, availability; scoped servers return only their project; no arbitrary registration |
+| list_runs | repository_id?, state?, cursor?, limit? | Paginated summaries with finding/target counts; repository_id optional when the server is project-scoped |
+| get_run | run_id | Status, coverage, snapshot hashes, scanner outcomes; cross-project IDs are NOT_FOUND under scope |
+| list_findings | run_id, severity?, adapter_id?, cursor?, limit? | Sanitized structured evidence, stable order |
+| get_report | run_id, format, offset?, length? | JSON or Markdown rendered from persisted records; bounded chunks with `next_offset`; files never required |
+| start_scan | repository_id, relative_paths[], adapter_ids[]?, bindings/... | Requires --allow-scans; validated IDs/scope; empty adapter set means all six (local-schema without bindings fails fast with CONFIGURATION_REQUIRED); returns run ID promptly |
+| cancel_scan | run_id | Requires scan permission; reports actual state (already-terminal is honest, not an error) |
+| get_analysis | run_id, repository_id?, revision? | Current or requested revision, structured assessments, priorities, verification status, available revision list |
+| save_analysis | run_id, expected_revision, priority, summary?, assessments[]?, ... | Requires --allow-analysis-writes; expected_revision must equal current or CONFLICT (nothing written); cross-project references rejected |
+Default list page size 100, maximum 500; bounded strings and response bytes. Report chunks default 12,000 chars, maximum 64,000, addressed by offset/length with `next_offset`. Reject unknown adapter IDs, absolute paths, traversal, and paths not inside the registered root. No shell, edit, Git push, arbitrary file read, SQL, or export-path tool.
+Exposed error codes: NOT_FOUND, INVALID_INPUT, OUT_OF_SCOPE, PERMISSION_DENIED, REPOSITORY_BUSY, CONFIGURATION_REQUIRED, CONFLICT, INTERNAL_ERROR. Sanitized errors with correlation IDs, never raw stack traces.
+Run comparison (`compare_runs`-style fingerprint matching) is PLANNED (Phase 5): fingerprints are recorded per finding today, but no compare tool exists yet. Do not document it as available.
 
 ## 10. Desktop behavior
-Open repo registration dialog; discover file tree; select targets; inspect available checks; start/cancel; filter findings; view evidence; open history/reports; compare selected runs.
-Use background executors and JavaFX-safe dispatch. Poll externally changed runs every second while active, with incremental bounded queries; stop polling on shutdown. Debounce file discovery; cancel stale discovery tasks.
-Empty, loading, unavailable, partial, failed, and permission-denied states need explicit views. Log panel consumes sanitized structured events, not a fake shell.
+Open repo registration dialog; discover file tree; select targets; inspect available checks; start/cancel; filter findings; view evidence; open history/reports; inspect saved agent analysis (read-only); compare selected runs (planned).
+Use background executors and JavaFX-safe dispatch. Poll the shared store every second while visible with incremental bounded queries; stop polling on shutdown. Debounce file discovery; cancel stale discovery tasks.
+Empty, loading, unavailable, partial, failed, stale-analysis, and permission-denied states need explicit views. Log panel consumes sanitized structured events, not a fake shell. Analysis loading shares the run-display path with scan completion; a newer scan than the displayed analysis is flagged STALE.
 
-## 11. Comparison semantics
+## 11. Comparison semantics (PLANNED — Phase 5, not implemented)
+
 Only compare the same registered repository and compatible fingerprint versions. Results: added, persisting, not_observed, and not_comparable. Not-observed is not automatically fixed: target scope and successful adapter coverage must match before presenting it as absent in equivalent coverage. Changed files or unsupported versions produce visible caveats.
+Fingerprints (SHA-256 of adapter/rule/path/occurrence identity) are already recorded per finding; the compare operation and its presentation do not exist yet.
 
 ## 12. Validation and release
 Pin the complete dependency/tool matrix in the first build spike. Package and test on each claimed OS. Keep scanner license notices and redistribution decisions separate from the application license. Shipping an app runtime does not automatically ship or license external scanners.

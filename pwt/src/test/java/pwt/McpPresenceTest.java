@@ -31,19 +31,24 @@ class McpPresenceTest {
         try (SqliteStore store = SqliteStore.open(dataDir)) {
             store.registerRepository("/repo", "repo", "hash1");
         }
-        // Simulate a pre-Phase-4 database: drop V2 artifacts, forget version 2.
+        // Simulate a pre-Phase-4 database: drop V2/V3 artifacts, forget versions 2 and 3.
         try (java.sql.Connection raw =
                 DriverManager.getConnection("jdbc:sqlite:" + dataDir.resolve("pwt.db"))) {
             try (java.sql.Statement stmt = raw.createStatement()) {
-                stmt.execute("DELETE FROM schema_migrations WHERE version=2");
-                stmt.execute("DROP TABLE mcp_sessions");
+                stmt.execute("DELETE FROM schema_migrations WHERE version IN (2,3)");
+                stmt.execute("DROP TABLE IF EXISTS analysis_assessments");
+                stmt.execute("DROP TABLE IF EXISTS analysis_revisions");
+                stmt.execute("DROP TABLE IF EXISTS analysis_threads");
+                stmt.execute("DROP TABLE IF EXISTS mcp_sessions");
                 stmt.execute("DROP INDEX IF EXISTS idx_mcp_sessions_state");
+                stmt.execute("DROP INDEX IF EXISTS idx_analysis_threads_repo");
+                stmt.execute("DROP INDEX IF EXISTS idx_analysis_revisions_thread");
             }
         }
-        // Reopening must re-apply V2 without touching V1 data.
+        // Reopening must re-apply V2+V3 without touching V1 data.
         try (SqliteStore store = SqliteStore.open(dataDir)) {
             assertFalse(store.listRepositories().isEmpty(), "V1 data must survive migration");
-            store.insertMcpSession("s1", "server-1", "READ_ONLY");
+            store.insertMcpSession("s1", "server-1", "READ_ONLY", false);
             assertEquals(1, store.listLiveMcpSessions().size());
         }
     }
@@ -51,7 +56,7 @@ class McpPresenceTest {
     @Test
     void lifecycleTransitions() throws Exception {
         try (SqliteStore store = SqliteStore.open(dataDir)) {
-            store.insertMcpSession("s1", "server-1", "READ_ONLY");
+            store.insertMcpSession("s1", "server-1", "READ_ONLY", false);
             assertEquals("STARTING", store.findMcpSession("s1").lifecycleState());
 
             // Unknown client info still flips to CONNECTED (handshake happened).
@@ -87,22 +92,22 @@ class McpPresenceTest {
         Instant now = Instant.now();
         SqliteStore.McpSessionRow live = new SqliteStore.McpSessionRow(
                 "a", "srv", "Claude Code", "2.1", "2024-11-05", "READ_ONLY", "CONNECTED",
-                now.toString(), now.toString(), now.toString(), null, null);
+                now.toString(), now.toString(), now.toString(), null, null, "DENIED");
         assertEquals(McpPresence.Presence.CONNECTED, McpPresence.classify(live, now));
 
         SqliteStore.McpSessionRow dead = new SqliteStore.McpSessionRow(
                 "b", "srv", "x", "1", null, "SCANS_ENABLED", "CONNECTED",
-                now.toString(), oldHeartbeat(), null, null, null);
+                now.toString(), oldHeartbeat(), null, null, null, "DENIED");
         assertEquals(McpPresence.Presence.STALE, McpPresence.classify(dead, now));
 
         SqliteStore.McpSessionRow starting = new SqliteStore.McpSessionRow(
                 "c", "srv", null, null, null, "READ_ONLY", "STARTING",
-                now.toString(), now.toString(), null, null, null);
+                now.toString(), now.toString(), null, null, null, "DENIED");
         assertEquals(McpPresence.Presence.STARTING, McpPresence.classify(starting, now));
 
         SqliteStore.McpSessionRow gone = new SqliteStore.McpSessionRow(
                 "d", "srv", null, null, null, "READ_ONLY", "DISCONNECTED",
-                now.toString(), now.toString(), null, now.toString(), "shutdown");
+                now.toString(), now.toString(), null, now.toString(), "shutdown", "DENIED");
         assertEquals(McpPresence.Presence.UNKNOWN, McpPresence.classify(gone, now));
         assertEquals(McpPresence.Presence.UNKNOWN, McpPresence.classify(null, now));
     }
@@ -112,17 +117,22 @@ class McpPresenceTest {
         Instant now = Instant.now();
         assertEquals("MCP: No active clients.", McpPresence.statusLine(List.of()));
         McpPresence.SessionView live = new McpPresence.SessionView(
-                "s", "Claude Code 2.1", "Read-only", McpPresence.Presence.CONNECTED,
+                "s", "Claude Code 2.1", "Read-only", false, McpPresence.Presence.CONNECTED,
                 now.toString(), now.toString(), "2s ago");
         assertEquals("MCP: Claude Code 2.1 connected · Read-only.",
                 McpPresence.statusLine(List.of(live)));
         McpPresence.SessionView live2 = new McpPresence.SessionView(
-                "t", "opencode", "Scans enabled", McpPresence.Presence.CONNECTED,
+                "t", "opencode", "Scans enabled", true, McpPresence.Presence.CONNECTED,
                 now.toString(), now.toString(), "1s ago");
         assertEquals("MCP: 2 active clients.",
                 McpPresence.statusLine(List.of(live, live2)));
+        McpPresence.SessionView liveAnalyst = new McpPresence.SessionView(
+                "v", "opencode", "Scans enabled", true, McpPresence.Presence.CONNECTED,
+                now.toString(), now.toString(), "1s ago");
+        assertEquals("MCP: opencode connected · Scans enabled + analysis.",
+                McpPresence.statusLine(List.of(liveAnalyst)));
         McpPresence.SessionView stale = new McpPresence.SessionView(
-                "u", "x", "Read-only", McpPresence.Presence.STALE,
+                "u", "x", "Read-only", false, McpPresence.Presence.STALE,
                 now.toString(), null, "5m ago");
         assertEquals("MCP: session stale / status unknown.",
                 McpPresence.statusLine(List.of(stale)));
@@ -133,10 +143,10 @@ class McpPresenceTest {
         Instant now = Instant.now();
         SqliteStore.McpSessionRow gone = new SqliteStore.McpSessionRow(
                 "d", "srv", "x", "1", null, "READ_ONLY", "DISCONNECTED",
-                now.toString(), now.toString(), null, now.toString(), "bye");
+                now.toString(), now.toString(), null, now.toString(), "bye", "DENIED");
         SqliteStore.McpSessionRow live = new SqliteStore.McpSessionRow(
                 "a", "srv", "Claude Code", "2.1", null, "SCANS_ENABLED", "CONNECTED",
-                now.toString(), now.toString(), now.toString(), null, null);
+                now.toString(), now.toString(), now.toString(), null, null, "ALLOWED");
         var views = McpPresence.summarize(List.of(gone, live), now);
         assertEquals(1, views.size());
         assertEquals("Scans enabled", views.get(0).permissionMode());

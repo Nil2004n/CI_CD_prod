@@ -38,7 +38,7 @@ public final class ScanCommand {
     public record ParsedArgs(Path root, List<String> files, Set<String> adapters,
             Path dataDir, Duration timeout, String source, List<String> schemaBindings,
             String schemaDialect, String kubeconformSchema, String kubeconformVersion,
-            boolean kubeconformStrict, LocalSchemaConfig localSchema,
+            boolean kubeconformStrict, boolean exportReports, LocalSchemaConfig localSchema,
             ScanConfig.KubeconformConfig kubeconform) {
     }
 
@@ -54,6 +54,7 @@ public final class ScanCommand {
         String kubeconformSchema = null;
         String kubeconformVersion = ScanConfig.KubeconformConfig.defaults().kubernetesVersion();
         boolean kubeconformStrict = true;
+        boolean exportReports = false;
         for (int i = 0; i < args.size(); i++) {
             String arg = args.get(i);
             switch (arg) {
@@ -104,6 +105,7 @@ public final class ScanCommand {
                         kubeconformVersion = next(args, ++i, "--kubeconform-version");
                 case "--kubeconform-strict" -> kubeconformStrict = true;
                 case "--kubeconform-lenient" -> kubeconformStrict = false;
+                case "--export" -> exportReports = true;
                 default -> throw new ScanException(ScanException.Code.INVALID_INPUT,
                         "Unknown scan argument: " + arg);
             }
@@ -111,7 +113,7 @@ public final class ScanCommand {
         if (root == null) {
             throw new ScanException(ScanException.Code.INVALID_INPUT,
                     "Usage: scan --root <directory> --file <relative>... [--adapter id,...]"
-                    + " [--data-dir <directory>] [--timeout-sec N]");
+                    + " [--data-dir <directory>] [--timeout-sec N] [--export]");
         }
         if (files.isEmpty()) {
             throw new ScanException(ScanException.Code.INVALID_INPUT,
@@ -126,7 +128,7 @@ public final class ScanCommand {
         ScanConfig.KubeconformConfig kubeconform = new ScanConfig.KubeconformConfig(
                 kubeconformSchema, kubeconformVersion, kubeconformStrict);
         return new ParsedArgs(root, files, adapters, dataDir, timeout, source, schemaBindings,
-                schemaDialect, kubeconformSchema, kubeconformVersion, kubeconformStrict,
+                schemaDialect, kubeconformSchema, kubeconformVersion, kubeconformStrict, exportReports,
                 localSchema, kubeconform);
     }
 
@@ -163,6 +165,23 @@ public final class ScanCommand {
             };
         }
         System.out.println(ScanSummaryJson.toJson(summary));
+        if (parsed.exportReports()) {
+            try (pwt.infrastructure.SqliteStore store =
+                    pwt.infrastructure.SqliteStore.open(parsed.dataDir())) {
+                pwt.application.ReportService.ReportPaths paths =
+                        new pwt.application.ReportService().generate(store, parsed.dataDir(), summary.runId());
+                System.out.println("{\"exported_json\":" + jsonOrNull(paths.jsonPath())
+                        + ",\"exported_markdown\":" + jsonOrNull(paths.markdownPath()) + "}");
+                if (paths.jsonError() != null || paths.markdownError() != null) {
+                    System.err.println("pwt scan: export failed: "
+                            + (paths.jsonError() != null ? paths.jsonError() : paths.markdownError()));
+                    return 1;
+                }
+            } catch (Exception e) {
+                System.err.println("pwt scan: export failed: " + e.getMessage());
+                return 1;
+            }
+        }
         if (summary.verdict() == ScanVerdict.FINDINGS) {
             return 4;
         }
@@ -170,6 +189,10 @@ public final class ScanCommand {
             case COMPLETED -> 0;
             default -> 1;
         };
+    }
+
+    private static String jsonOrNull(String value) {
+        return value == null ? "null" : "\"" + JsonWriter.escape(value) + "\"";
     }
 
     static List<String> split(String[] args, int from) {

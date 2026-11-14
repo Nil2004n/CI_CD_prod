@@ -72,16 +72,15 @@ public final class ScanService {
     }
 
     /**
-     * Application data directory shared by GUI, CLI, and MCP. Defaults to
-     * {@code ~/.pwt-data}; the GUI honors {@code --data-dir} by setting the
-     * {@code pwt.data.dir} system property at startup.
+     * Application data directory shared by GUI, CLI, and MCP. Delegates to
+     * {@link pwt.launcher.AppPaths}: an explicit {@code pwt.data.dir} system
+     * property wins, then the {@code PWT_DATA_DIR} environment variable
+     * (must be absolute), otherwise {@code <application-root>/.pwt-data}.
+     * The GUI honors {@code --data-dir} by setting the system property at
+     * startup.
      */
     public static Path defaultDataDir() {
-        String override = System.getProperty("pwt.data.dir");
-        if (override != null && !override.isBlank()) {
-            return Path.of(override);
-        }
-        return Path.of(System.getProperty("user.home"), ".pwt-data");
+        return pwt.launcher.AppPaths.defaultDataDir();
     }
 
     private static ScannerAdapter adapterFor(String adapterId) {
@@ -209,6 +208,21 @@ public final class ScanService {
             } catch (Exception e) {
                 throw new ScanException(ScanException.Code.STORAGE_ERROR,
                         "Cannot register repository: " + e.getMessage(), e);
+            }
+            // First scan of a directory registers it automatically (idempotent):
+            // write the PWT-owned context pointer so agents can find this
+            // project's journal. Never fails the scan; MCP scans never reach
+            // here (they require a pre-registered repository).
+            try {
+                java.nio.file.Path absData = dataDir.toAbsolutePath().normalize();
+                java.nio.file.Path journal = pwt.application.JournalWriter.journalPath(absData, repo);
+                java.nio.file.Path written = pwt.launcher.ProjectContext.writeIfManaged(root.root(), repo,
+                        journal, pwt.launcher.AppPaths.appRoot(), absData);
+                if (written != null) {
+                    LOG.info("PWT context pointer ready: {}", written);
+                }
+            } catch (Exception e) {
+                LOG.warn("PWT context pointer not written for {}: {}", repo.displayName(), e.toString());
             }
             RepoLock lock;
             try {
@@ -450,24 +464,23 @@ public final class ScanService {
             throw new ScanException(ScanException.Code.STORAGE_ERROR,
                     "Cannot finalize run: " + e.getMessage(), e);
         }
-        ReportService.ReportPaths reports = null;
-        List<String> reportGaps = new ArrayList<>(gaps);
-        if (dataDir != null) {
-            try {
-                reports = new ReportService().generate(store, dataDir, runId);
-                if (reports.jsonError() != null) {
-                    reportGaps.add("JSON report export failed: " + reports.jsonError());
-                }
-                if (reports.markdownError() != null) {
-                    reportGaps.add("Markdown report export failed: " + reports.markdownError());
-                }
-            } catch (Exception e) {
-                reportGaps.add("Report generation failed: " + e.getMessage());
-                LOG.warn("Report generation failed for run {}: {}", runId, e.toString());
+        // No automatic report export: the database is the authoritative
+        // record. Reports render on demand (MCP get_report, GUI view) or via
+        // explicit export (CLI --export, GUI Export action).
+        // The per-repository Markdown journal appends here: it is a generated
+        // reading interface only. Journal failures must never erase scan
+        // evidence, so they are logged and the run still completes.
+        try {
+            if (dataDir != null) {
+                JournalWriter.appendRun(store, dataDir, runId);
             }
+        } catch (Exception e) {
+            LOG.warn("Scan journal append failed for run {}: {}", runId, e.toString());
+        }
+        if (dataDir != null) {
             Staging.deleteRunTransient(dataDir, runId);
         }
-        List<String> allGaps = new ArrayList<>(reportGaps);
+        List<String> allGaps = new ArrayList<>(gaps);
         SqliteStore.RunView view;
         try {
             view = store.getRun(runId);
@@ -477,8 +490,7 @@ public final class ScanService {
         }
         return new ScanSummary(runId, repo.displayName(), root.root().toString(), view.state(), view.verdict(),
                 summaryTargets, outcomes, findingCount,
-                reports == null ? null : reports.jsonPath(),
-                reports == null ? null : reports.markdownPath(),
+                null, null,
                 view.startedAt(), view.finishedAt(), allGaps);
     }
 
@@ -662,6 +674,12 @@ public final class ScanService {
                             run.summaryJson(), "INTERRUPTED",
                             "Process ended without finishing this run; marked INTERRUPTED on startup");
                     LOG.warn("Run {} marked INTERRUPTED on startup", run.id());
+                    try {
+                        JournalWriter.appendRun(store, dataDir, run.id());
+                    } catch (Exception journalError) {
+                        LOG.warn("Scan journal append failed for reconciled run {}: {}",
+                                run.id(), journalError.toString());
+                    }
                 } catch (Exception e) {
                     LOG.warn("Could not reconcile run {}: {}", run.id(), e.toString());
                 }

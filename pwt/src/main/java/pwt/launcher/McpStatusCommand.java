@@ -45,6 +45,8 @@ public final class McpStatusCommand {
             sessions.append("{\"session_id\":\"").append(view.sessionId()).append("\","
                     + "\"client\":\"").append(JsonWriter.escape(view.clientLabel())).append("\","
                     + "\"permission_mode\":\"").append(JsonWriter.escape(view.permissionMode())).append("\","
+                    + "\"analysis_writes\":\"").append(view.analysisAllowed() ? "ALLOWED" : "DENIED")
+                    .append("\","
                     + "\"presence\":\"").append(view.presence().name()).append("\","
                     + "\"connected_at\":").append(jsonString(view.connectedAt())).append(","
                     + "\"last_activity\":").append(jsonString(view.lastActivityAt())).append(","
@@ -53,7 +55,9 @@ public final class McpStatusCommand {
         if (!views.isEmpty()) {
             sessions.deleteCharAt(sessions.length() - 1);
         }
-        System.out.println("{\"data_dir\":\"" + JsonWriter.escape(dataDir.toString()) + "\","
+        System.out.println("{\"data_dir\":\"" + JsonWriter.escape(dataDir.toAbsolutePath().normalize().toString()) + "\","
+                + "\"database\":\"" + JsonWriter.escape(
+                        dataDir.toAbsolutePath().normalize().resolve("pwt.db").toString()) + "\","
                 + "\"sessions\":[" + sessions + "],"
                 + "\"status_line\":\"" + JsonWriter.escape(McpPresence.statusLine(views)) + "\"}");
         return 0;

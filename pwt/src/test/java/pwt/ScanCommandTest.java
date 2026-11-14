@@ -128,7 +128,31 @@ class ScanCommandTest {
         JsonNode json = MAPPER.readTree(captured.stdout().trim());
         assertEquals("COMPLETED", json.get("state").asText());
         assertEquals("NO_FINDINGS", json.get("verdict").asText());
-        assertTrue(json.get("json_report").asText().endsWith("report.json"));
+        assertTrue(json.get("json_report").isNull(), "no automatic report export");
+        assertTrue(json.get("markdown_report").isNull(), "no automatic report export");
+    }
+
+    @Test
+    void exportFlagWritesReportFiles() throws Exception {
+        assumeTrue(new YamllintAdapter().probe().available(), "SKIP: yamllint missing");
+        assumeTrue(new GitleaksAdapter().probe().available(), "SKIP: gitleaks missing");
+        Path repo = work.resolve("repo");
+        Files.createDirectories(repo);
+        write(repo, "a.yaml", "---\nkey: value\n");
+        Path dataDir = work.resolve("data");
+
+        Captured captured = runInProcess(
+                List.of("--root", repo.toString(), "--file", "a.yaml",
+                        "--adapter", "yamllint,gitleaks", "--export",
+                        "--data-dir", dataDir.toString()));
+        assertEquals(0, captured.exit());
+        String[] lines = captured.stdout().trim().split("\\R");
+        assertEquals(2, lines.length, "summary JSON plus export JSON");
+        JsonNode exported = MAPPER.readTree(lines[1]);
+        assertTrue(exported.get("exported_json").asText().endsWith("report.json"));
+        assertTrue(exported.get("exported_markdown").asText().endsWith("report.md"));
+        assertTrue(Files.exists(dataDir.resolve(exported.get("exported_json").asText())));
+        assertTrue(Files.exists(dataDir.resolve(exported.get("exported_markdown").asText())));
     }
 
     @Test
@@ -159,16 +183,18 @@ class ScanCommandTest {
 
         SubprocessResult result = runInSubprocess(
                 List.of("--root", repo.toString(), "--file", "leak.yaml",
-                        "--data-dir", dataDir.toString()));
+                        "--data-dir", dataDir.toString(), "--export"));
         assertEquals(4, result.exit(), "seeded leak must produce findings exit code");
         assertTrue(!result.stdout().contains(FAKE_TOKEN), "stdout must not contain the secret");
         assertTrue(!result.stderr().contains(FAKE_TOKEN),
                 "application logs on stderr must not contain the secret");
-        JsonNode json = MAPPER.readTree(result.stdout().trim());
+        String[] lines = result.stdout().trim().split("\\R");
+        JsonNode json = MAPPER.readTree(lines[0]);
         assertEquals("FINDINGS", json.get("verdict").asText());
-        String reportPath = json.get("json_report").asText();
+        JsonNode exported = MAPPER.readTree(lines[lines.length - 1]);
+        String reportPath = exported.get("exported_json").asText();
         String report = Files.readString(dataDir.resolve(reportPath));
-        assertTrue(!report.contains(FAKE_TOKEN), "report file must not contain the secret");
+        assertTrue(!report.contains(FAKE_TOKEN), "exported report must not contain the secret");
     }
 
     private record Captured(int exit, String stdout) {

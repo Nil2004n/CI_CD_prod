@@ -36,15 +36,18 @@ public final class McpActivity implements AutoCloseable {
     private final String sessionId;
     private final String serverInstanceId;
     private final String permissionMode;
+    private final boolean allowAnalysis;
     private final Supplier<McpSyncServer> server;
     private final ScheduledExecutorService heartbeat;
     private final AtomicBoolean warned = new AtomicBoolean(false);
 
-    public McpActivity(Path dataDir, boolean allowScans, Supplier<McpSyncServer> server) {
+    public McpActivity(Path dataDir, boolean allowScans, boolean allowAnalysis,
+            Supplier<McpSyncServer> server) {
         this.dataDir = dataDir;
         this.sessionId = java.util.UUID.randomUUID().toString();
         this.serverInstanceId = java.util.UUID.randomUUID().toString();
         this.permissionMode = allowScans ? "SCANS_ENABLED" : "READ_ONLY";
+        this.allowAnalysis = allowAnalysis;
         this.server = server;
         this.heartbeat = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread worker = new Thread(runnable, "pwt-mcp-heartbeat");
@@ -56,7 +59,7 @@ public final class McpActivity implements AutoCloseable {
     /** Writes the STARTING row and begins heartbeats. Best-effort: never breaks server startup. */
     public void begin() {
         try (SqliteStore store = SqliteStore.open(dataDir)) {
-            store.insertMcpSession(sessionId, serverInstanceId, permissionMode);
+            store.insertMcpSession(sessionId, serverInstanceId, permissionMode, allowAnalysis);
         } catch (Exception e) {
             warnOnce("cannot record MCP session presence: " + e);
             return;

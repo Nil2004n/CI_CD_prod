@@ -1,0 +1,5 @@
+---
+server:
+ ports:
+    - 8080
+   host: localhost

@@ -88,12 +88,21 @@ class ScanServiceTest {
             assertEquals(ScannerStatus.SUCCEEDED, outcome.status(), outcome.adapterId());
             assertNotNull(outcome.toolVersion());
         }
-        assertNotNull(summary.jsonReportPath());
-        assertNotNull(summary.markdownReportPath());
-        assertTrue(Files.exists(dataDir.resolve(summary.jsonReportPath())));
-        assertTrue(Files.exists(dataDir.resolve(summary.markdownReportPath())));
-        // Transient snapshot must be gone after a finished run.
+        // No automatic export: the database is authoritative, reports render
+        // on demand. Transient snapshot must still be gone after the run.
+        assertEquals(null, summary.jsonReportPath());
+        assertEquals(null, summary.markdownReportPath());
         assertTrue(!Files.exists(dataDir.resolve("transient").resolve(summary.runId())));
+        assertTrue(!Files.exists(dataDir.resolve("artifacts").resolve(summary.runId())),
+                "no report files without explicit export");
+        // Explicit export still writes both files and records artifacts.
+        pwt.application.ReportService.ReportPaths exported;
+        try (SqliteStore store = SqliteStore.open(dataDir)) {
+            exported = new pwt.application.ReportService().generate(store, dataDir, summary.runId());
+        }
+        assertTrue(exported.jsonPath() != null && exported.markdownPath() != null);
+        assertTrue(Files.exists(dataDir.resolve(exported.jsonPath())));
+        assertTrue(Files.exists(dataDir.resolve(exported.markdownPath())));
         // yamllint records its real version.
         String yamllintVersion = summary.scannerOutcomes().stream()
                 .filter(o -> o.adapterId().equals("yamllint")).findFirst().orElseThrow().toolVersion();
@@ -141,9 +150,21 @@ class ScanServiceTest {
         assertEquals(ScannerStatus.SUCCEEDED, gitleaks.status());
         assertTrue(gitleaks.findings().stream().anyMatch(f -> f.relativePath().equals("leak.yaml")));
 
-        // Secret hygiene across every persisted sink.
-        String jsonReport = Files.readString(dataDir.resolve(summary.jsonReportPath()));
-        String mdReport = Files.readString(dataDir.resolve(summary.markdownReportPath()));
+        // Secret hygiene across every persisted sink. Reports render from
+        // the database (no files needed); exports are checked too.
+        String jsonReport;
+        String mdReport;
+        try (SqliteStore store = SqliteStore.open(dataDir)) {
+            pwt.application.ReportService.RenderedReport rendered =
+                    new pwt.application.ReportService().render(store, summary.runId());
+            jsonReport = rendered.json();
+            mdReport = rendered.markdown();
+            pwt.application.ReportService.ReportPaths exported =
+                    new pwt.application.ReportService().generate(store, dataDir, summary.runId());
+            assertNotNull(exported.jsonPath());
+            jsonReport = Files.readString(dataDir.resolve(exported.jsonPath()));
+            mdReport = Files.readString(dataDir.resolve(exported.markdownPath()));
+        }
         assertTrue(!jsonReport.contains(FAKE_TOKEN), "JSON report must not contain the secret");
         assertTrue(!mdReport.contains(FAKE_TOKEN), "Markdown report must not contain the secret");
         try (SqliteStore store = SqliteStore.open(dataDir)) {
@@ -171,7 +192,12 @@ class ScanServiceTest {
 
         ScanSummary summary = service().runScan(repo, List.of("ok.yaml"),
                 Set.of("yamllint", "gitleaks"), "CLI", dataDir, CancellationToken.none(), null);
-        String jsonReport = Files.readString(dataDir.resolve(summary.jsonReportPath()));
+        // Rendered from persisted records: no report files required.
+        assertEquals(null, summary.jsonReportPath());
+        String jsonReport;
+        try (SqliteStore store = SqliteStore.open(dataDir)) {
+            jsonReport = new pwt.application.ReportService().render(store, summary.runId()).json();
+        }
         validateAgainstSchema(jsonReport);
         JsonNode root = MAPPER.readTree(jsonReport);
         assertEquals("1.0", root.get("schema_version").asText());
@@ -332,5 +358,41 @@ class ScanServiceTest {
         Optional<RepoLock> free = RepoLock.tryAcquire(dataDir, repoRow.identityHash());
         assertTrue(free.isPresent(), "reconcile must release the lock it acquired");
         free.get().close();
+    }
+
+    @Test
+    void firstScanRegistersRepoAndWritesContextPointer() throws Exception {
+        assumeToolsPresent();
+        Path repo = repoDir("firstscan");
+        write(repo, "ok.yaml", "---\nkey: value\n");
+        Path dataDir = work.resolve("data");
+
+        // No pre-registration: the first scan must register the directory.
+        ScanSummary first = service().runScan(repo, List.of("ok.yaml"), Set.of("yamllint"),
+                "CLI", dataDir, CancellationToken.none(), null);
+        assertEquals(ScanState.COMPLETED, first.state());
+
+        String repoId;
+        try (SqliteStore store = SqliteStore.open(dataDir)) {
+            assertEquals(1, store.listRepositories().size());
+            repoId = store.listRepositories().get(0).id();
+        }
+        Path pointer = repo.resolve(".pwt/context.md");
+        assertTrue(Files.isRegularFile(pointer), "first GUI/CLI scan writes .pwt/context.md");
+        String content = Files.readString(pointer, StandardCharsets.UTF_8);
+        assertTrue(content.contains("PWT-OWNED"), "pointer carries ownership marker");
+        assertTrue(content.contains(repoId), "pointer identifies the registered repository");
+
+        // A second scan must reuse the registration, never duplicate it, and
+        // must leave a foreign-managed pointer file untouched.
+        Files.writeString(pointer, "# my own notes\n", StandardCharsets.UTF_8);
+        service().runScan(repo, List.of("ok.yaml"), Set.of("yamllint"),
+                "CLI", dataDir, CancellationToken.none(), null);
+        try (SqliteStore store = SqliteStore.open(dataDir)) {
+            assertEquals(1, store.listRepositories().size());
+            assertEquals(repoId, store.listRepositories().get(0).id());
+        }
+        assertEquals("# my own notes\n", Files.readString(pointer, StandardCharsets.UTF_8),
+                "unmarked pointer file must be preserved");
     }
 }

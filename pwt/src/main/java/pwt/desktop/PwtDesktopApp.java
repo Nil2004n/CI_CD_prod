@@ -127,6 +127,9 @@ public class PwtDesktopApp extends Application {
     private ObservableList<String> outcomeItems;
     private ListView<HistoryRow> historyList;
     private ObservableList<HistoryRow> historyItems;
+    private Label analysisLabel;
+    private ListView<String> analysisList;
+    private ObservableList<String> analysisItems;
     private final java.util.Map<String, ScannerRow> rowByTool = new java.util.HashMap<>();
     private final java.util.Map<String, CheckBox> adapterBoxes = new java.util.LinkedHashMap<>();
     private TextField bindingsField;
@@ -295,7 +298,13 @@ public class PwtDesktopApp extends Application {
         styleButton(openReportsButton);
         openReportsButton.setDisable(true);
         openReportsButton.setOnAction(event -> openReportsFolder());
-        HBox reportsBar = new HBox(8, openReportsButton, reportsLabel);
+        Button viewReportButton = new Button("View report");
+        styleButton(viewReportButton);
+        viewReportButton.setOnAction(event -> viewReport());
+        Button exportReportButton = new Button("Export report");
+        styleButton(exportReportButton);
+        exportReportButton.setOnAction(event -> exportReport());
+        HBox reportsBar = new HBox(8, viewReportButton, exportReportButton, openReportsButton, reportsLabel);
         HBox.setHgrow(reportsLabel, Priority.ALWAYS);
 
         Label findingsHeading = styledLabel("FINDINGS (selected scope only)");
@@ -363,7 +372,16 @@ public class PwtDesktopApp extends Application {
             }
         });
 
-        VBox bottom = new VBox(4, historyHeading, historyList, heading, logList, statusLabel);
+        Label analysisHeading = styledLabel("AGENT ANALYSIS (selected run — read-only view, MCP writes only)");
+        analysisLabel = styledLabel("No saved analysis for the selected run.");
+        analysisItems = FXCollections.observableArrayList();
+        analysisList = new ListView<>(analysisItems);
+        analysisList.setPrefHeight(76);
+        analysisList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; "
+                + "-fx-font-family: monospace; -fx-font-size: 11;");
+
+        VBox bottom = new VBox(4, historyHeading, historyList, analysisHeading, analysisLabel,
+                analysisList, heading, logList, statusLabel);
         bottom.setPadding(new Insets(8));
         bottom.setStyle("-fx-background-color: #0d1117; -fx-border-color: #30363d; -fx-border-width: 1 0 0 0;");
         return bottom;
@@ -686,6 +704,9 @@ public class PwtDesktopApp extends Application {
         displayedTerminal = isTerminalState(summary.state().name());
         findingRows.clear();
         outcomeItems.clear();
+        analysisItems.clear();
+        analysisLabel.setText("No saved analysis for the selected run.");
+        loadAnalysis(summary.runId());
         for (ScannerOutcome outcome : summary.scannerOutcomes()) {
             StringBuilder line = new StringBuilder(outcome.adapterId())
                     .append(": ").append(outcome.status().name().toLowerCase())
@@ -723,6 +744,10 @@ public class PwtDesktopApp extends Application {
             Path dataDir = ScanService.defaultDataDir();
             lastArtifactsDir = dataDir.resolve("artifacts").resolve(summary.runId());
             openReportsButton.setDisable(false);
+        } else {
+            reportsLabel.setText("Reports: in database (not exported)");
+            lastArtifactsDir = null;
+            openReportsButton.setDisable(true);
         }
         if (!summary.coverageGaps().isEmpty()) {
             log("Coverage gaps (" + summary.coverageGaps().size() + "):");
@@ -745,6 +770,65 @@ public class PwtDesktopApp extends Application {
         } catch (Exception e) {
             log("Could not open reports folder: " + e.getMessage());
         }
+    }
+
+    /** Renders the displayed run's Markdown report from the database (no file needed). */
+    private void viewReport() {
+        String runId = displayedRunId;
+        if (runId == null) {
+            return;
+        }
+        scanExecutor.submit(() -> {
+            String markdown;
+            try (pwt.infrastructure.SqliteStore store =
+                    pwt.infrastructure.SqliteStore.open(ScanService.defaultDataDir())) {
+                markdown = new pwt.application.ReportService().render(store, runId).markdown();
+            } catch (Exception e) {
+                String message = "Could not render report: " + e.getMessage();
+                Platform.runLater(() -> log(message));
+                return;
+            }
+            String text = markdown;
+            Platform.runLater(() -> {
+                javafx.scene.control.TextArea area = new javafx.scene.control.TextArea(text);
+                area.setEditable(false);
+                area.setWrapText(true);
+                area.setFont(Font.font("Monospace", 12));
+                area.setPrefSize(760, 520);
+                javafx.scene.Scene scene = new javafx.scene.Scene(new javafx.scene.layout.StackPane(area));
+                Stage viewer = new Stage();
+                viewer.setTitle("PWT report — " + runId);
+                viewer.setScene(scene);
+                viewer.show();
+            });
+        });
+    }
+
+    /** Explicit export: writes JSON + Markdown files and records the artifacts. */
+    private void exportReport() {
+        String runId = displayedRunId;
+        if (runId == null) {
+            return;
+        }
+        scanExecutor.submit(() -> {
+            try (pwt.infrastructure.SqliteStore store =
+                    pwt.infrastructure.SqliteStore.open(ScanService.defaultDataDir())) {
+                pwt.application.ReportService.ReportPaths paths =
+                        new pwt.application.ReportService().generate(store, ScanService.defaultDataDir(), runId);
+                Platform.runLater(() -> {
+                    StringBuilder reports = new StringBuilder("Reports: ");
+                    reports.append(paths.jsonPath() == null ? "(json failed)" : paths.jsonPath());
+                    reports.append("  |  ");
+                    reports.append(paths.markdownPath() == null ? "(markdown failed)" : paths.markdownPath());
+                    reportsLabel.setText(reports.toString());
+                    lastArtifactsDir = ScanService.defaultDataDir().resolve("artifacts").resolve(runId);
+                    openReportsButton.setDisable(paths.jsonPath() == null && paths.markdownPath() == null);
+                    log("Exported report for run " + runId);
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> log("Export failed: " + e.getMessage()));
+            }
+        });
     }
 
     /**
@@ -835,6 +919,7 @@ public class PwtDesktopApp extends Application {
                 java.util.List<String> details = new java.util.ArrayList<>();
                 for (pwt.mcp.McpPresence.SessionView view : presence) {
                     details.add(view.clientLabel() + " · " + view.permissionMode()
+                            + (view.analysisAllowed() ? " + analysis" : "")
                             + " · " + view.presence().name() + " · heartbeat "
                             + view.heartbeatAge());
                 }
@@ -861,6 +946,62 @@ public class PwtDesktopApp extends Application {
                 }
             } catch (Exception e) {
                 log("Could not load run " + runId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    /** Loads the saved agent analysis for the displayed run, if any. */
+    private void loadAnalysis(String runId) {
+        scanExecutor.submit(() -> {
+            try (pwt.infrastructure.SqliteStore store =
+                    pwt.infrastructure.SqliteStore.open(ScanService.defaultDataDir())) {
+                pwt.infrastructure.SqliteStore.RunView view = store.getRun(runId);
+                if (view == null) {
+                    return;
+                }
+                pwt.infrastructure.SqliteStore.AnalysisThreadView thread =
+                        store.findAnalysisThread(view.repositoryId(), runId);
+                final String headline;
+                final java.util.List<String> rows = new java.util.ArrayList<>();
+                if (thread == null || thread.currentRevision() < 1) {
+                    headline = "No saved analysis for the selected run.";
+                } else {
+                    pwt.infrastructure.SqliteStore.AnalysisRevisionRow revision =
+                            store.getAnalysisRevision(thread.threadId(), -1);
+                    String summary = revision == null ? "" : revision.summary();
+                    headline = "Analysis r" + thread.currentRevision() + " [" + revision.priority() + "] "
+                            + (summary.length() > 160 ? summary.substring(0, 160) + "…" : summary);
+                    if (revision != null) {
+                        for (pwt.infrastructure.SqliteStore.AnalysisAssessmentRow assessment :
+                                store.listAnalysisAssessments(revision.id())) {
+                            rows.add("[" + assessment.priority() + "] "
+                                    + (assessment.ruleId() == null ? "" : assessment.ruleId() + " ")
+                                    + (assessment.relativePath() == null ? "" : assessment.relativePath()
+                                            + (assessment.lineStart() == null ? "" : ":" + assessment.lineStart()))
+                                    + " — " + assessment.message());
+                        }
+                    }
+                    try {
+                        java.util.List<pwt.infrastructure.SqliteStore.RunView> latest =
+                                store.listRuns(view.repositoryId(), null, 1, 0);
+                        if (!latest.isEmpty() && !latest.get(0).id().equals(runId)) {
+                            rows.add(0, "STALE: a newer scan exists (" + latest.get(0).id().substring(0, 8)
+                                    + ", " + latest.get(0).state().name() + "). Re-verify before trusting this.");
+                        }
+                    } catch (Exception ignored) {
+                        // staleness check is advisory
+                    }
+                }
+                final String finalHeadline = headline;
+                Platform.runLater(() -> {
+                    if (!runId.equals(displayedRunId)) {
+                        return;
+                    }
+                    analysisLabel.setText(finalHeadline);
+                    analysisItems.setAll(rows);
+                });
+            } catch (Exception e) {
+                log("Could not load analysis: " + e.getMessage());
             }
         });
     }

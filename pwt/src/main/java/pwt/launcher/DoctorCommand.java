@@ -81,11 +81,114 @@ public final class DoctorCommand {
                 + "\"version\":\"" + JsonWriter.escape(pwt.application.BuildInfo.VERSION) + "\","
                 + "\"java_home\":\"" + JsonWriter.escape(System.getProperty("java.home", "")) + "\","
                 + "\"java_version\":\"" + JsonWriter.escape(System.getProperty("java.version", "")) + "\","
-                + "\"data_dir\":\"" + JsonWriter.escape(dataDir.toString()) + "\","
+                + "\"data_dir\":\"" + JsonWriter.escape(dataDir.toAbsolutePath().normalize().toString()) + "\","
+                + "\"database\":\"" + JsonWriter.escape(
+                        dataDir.toAbsolutePath().normalize().resolve("pwt.db").toString()) + "\","
                 + "\"repository_count\":" + repoCount + ","
                 + "\"repositories\":[" + repoArray + "],"
-                + "\"scanners\":[" + scanners + "]}");
+                + "\"scanners\":[" + scanners + "],"
+                + "\"opencode\":" + opencodeInfo() + ","
+                + "\"install\":" + installInfo(dataDir) + ","
+                + "\"permissions\":" + permissionsInfo() + "}");
         return 0;
+    }
+
+    /** Best-effort user installation state. Never fails doctor; absent pieces report false/null. */
+    static String installInfo(Path dataDir) {
+        String appRoot;
+        try {
+            appRoot = AppPaths.appRoot().toString();
+        } catch (Exception e) {
+            appRoot = null;
+        }
+        String launcherPath = findOnPath("pwt");
+        Path home = Path.of(System.getProperty("user.home", ""));
+        Path pluginPackage = home.resolve(".config/opencode/plugins/pwt/package.json");
+        Path agentFile = home.resolve(".config/opencode/agents/pwt.md");
+        Path askFile = home.resolve(".config/opencode/commands/pwt-ask.md");
+        boolean writable;
+        try {
+            writable = java.nio.file.Files.isWritable(dataDir);
+        } catch (Exception e) {
+            writable = false;
+        }
+        String owner = null;
+        try {
+            owner = String.valueOf(java.nio.file.Files.getOwner(dataDir));
+        } catch (Exception ignored) {
+            // non-POSIX filesystems or unreadable attributes: absence is data
+        }
+        return "{\"app_root\":" + jsonString(appRoot)
+                + ",\"launcher_on_path\":" + (launcherPath != null)
+                + ",\"launcher_path\":" + jsonString(launcherPath)
+                + ",\"plugin_installed\":" + java.nio.file.Files.isRegularFile(pluginPackage)
+                + ",\"agent_installed\":" + java.nio.file.Files.isRegularFile(agentFile)
+                + ",\"ask_command_installed\":" + java.nio.file.Files.isRegularFile(askFile)
+                + ",\"data_writable\":" + writable
+                + ",\"data_owner\":" + jsonString(owner) + "}";
+    }
+
+    private static String findOnPath(String name) {
+        String pathEnv = System.getenv("PATH");
+        if (pathEnv == null) {
+            return null;
+        }
+        for (String dir : pathEnv.split(java.util.regex.Pattern.quote(java.io.File.pathSeparator))) {
+            if (dir.isEmpty()) {
+                continue;
+            }
+            Path candidate = Path.of(dir, name);
+            try {
+                if (java.nio.file.Files.isRegularFile(candidate)
+                        && java.nio.file.Files.isExecutable(candidate)) {
+                    return candidate.toAbsolutePath().normalize().toString();
+                }
+            } catch (Exception ignored) {
+                // unreadable PATH entry: keep looking
+            }
+        }
+        return null;
+    }
+
+    private static String jsonString(String value) {
+        return value == null ? "null" : "\"" + JsonWriter.escape(value) + "\"";
+    }
+
+    /** Best-effort OpenCode version + native TUI-plugin compatibility. Never fails doctor. */
+    static String opencodeInfo() {
+        String version = "not-installed";
+        try {
+            Process probe = new ProcessBuilder("opencode", "--version")
+                    .redirectErrorStream(true).start();
+            String text = new String(probe.getInputStream().readAllBytes(),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            if (probe.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                String trimmed = text.strip().split("\\s+")[text.strip().split("\\s+").length - 1];
+                version = trimmed.replaceAll("[^0-9A-Za-z._-]", "").isEmpty() ? "unknown" : trimmed;
+            }
+        } catch (Exception ignored) {
+            // absence is data
+        }
+        // Native PWT commands need the OpenCode v2 TUI plugin API (keymap
+        // layer + slash entries with direct run handlers). v2.x verified.
+        boolean nativeCompatible = version.matches("v?2\\..*");
+        JsonWriter info = new JsonWriter().beginObject()
+                .field("version", version)
+                .field("native_commands_supported", nativeCompatible)
+                .field("note", "native /pwt commands need OpenCode v2 TUI plugin API")
+                .endObject();
+        return info.toString();
+    }
+
+    /** Documents the two independent MCP permission flags. */
+    static String permissionsInfo() {
+        JsonWriter info = new JsonWriter().beginObject()
+                .field("scan_writes_flag", "--allow-scans")
+                .field("analysis_writes_flag", "--allow-analysis-writes")
+                .field("note", "independent flags: scans do not imply analysis writes; "
+                        + "project connectors use --repo-id scoping, unscoped mode is explicit local admin")
+                .endObject();
+        return info.toString();
     }
 
     static List<String> split(String[] args, int from) {

@@ -1,0 +1,7 @@
+---
+name: clean-config
+version: 1
+enabled: true
+ports:
+  - 80
+  - 443

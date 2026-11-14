@@ -4,13 +4,14 @@
       "pwt": {
         "type": "local",
         "command": [
-          "java",
-          "-jar",
-          "/home/kali/Desktop/CI_CD_prod/pwt/target/pwt-0.4.0.jar",
-          "mcp",
+          "/home/kali/Desktop/CI_CD_prod/integrations/pwt-mcp-stdio.sh",
           "--data-dir",
-          "/home/kali/.pwt-data"
-        ]
+          "/home/kali/Desktop/CI_CD_prod/.pwt-data",
+          "--allow-analysis-writes"
+        ],
+        "timeout": {
+          "execution": 300000
+        }
       }
     }
   }

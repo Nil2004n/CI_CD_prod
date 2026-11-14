@@ -34,11 +34,13 @@ public final class PwtInfo {
                 "Local user-supplied schema validation (explicit bindings, dialects 2020-12/2019-09)",
                 "Explicit kubeconform local-schema setup action (scans never download schemas)",
                 "SQLite-persisted runs, scanner outcomes, and sanitized findings",
-                "Schema-versioned JSON and readable Markdown reports per terminal run",
+                "Schema-versioned JSON and readable Markdown reports rendered on demand from the store",
                 "Terminal-inspired JavaFX desktop shell with real scan execution and results",
-                "Headless scan command using the same application services",
+                "Headless scan command using the same application services (reports via --export)",
                 "MCP read-only queries (repositories, runs, findings, reports) over the shared store",
-                "Opt-in MCP start_scan/cancel_scan (--allow-scans) reusing ScanService and locks"));
+                "Opt-in MCP start_scan/cancel_scan (--allow-scans) reusing ScanService and locks",
+                "Project-scoped MCP mode (--repo-id) restricting every call to one repository",
+                "Agent analysis storage and retrieval (save_analysis/get_analysis, --allow-analysis-writes)"));
         info.put("capability_note", BuildInfo.PHASE_SUMMARY);
         List<Map<String, Object>> catalog = new ArrayList<>();
         for (ScannerDescriptor descriptor : ScannerCatalog.planned()) {

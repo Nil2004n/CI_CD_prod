@@ -2,11 +2,17 @@
 #
 # Variables (all overridable on the command line):
 #   JAVA_HOME   JDK home; $JAVA_HOME/bin/java is preferred, else PATH java.
-#   DATA_DIR    Shared application data directory (GUI, CLI, MCP).
-#               Default: ~/.pwt-data
+#   DATA_DIR    Shared application data directory (GUI, CLI, MCP): ONE database
+#               for every repository and scan.
+#               Default: <application-root>/.pwt-data (this Makefile's directory).
 #   ROOT        Absolute project directory for repo-add / setup-* targets.
-#   ALLOW_SCANS Empty = preserve an existing PWT permission mode (fresh
-#               setups default to read-only). 1 = scan-enabled, 0 = read-only.
+#   ALLOW_SCANS Ignored by OpenCode targets (setup-opencode/setup-opencode-global/
+#               enable): OpenCode entries are always dashboard-only (never
+#               --allow-scans). Still honored by `make mcp` and setup-claude for
+#               deliberate non-OpenCode uses.
+#   ALLOW_ANALYSIS
+#             Empty = preserve existing mode (fresh default: denied).
+#             1 = allow agent analysis writes, 0 = deny.
 #
 # Side effects per target:
 #   help, doctor, repo-list, mcp-status: read-only (doctor never builds).
@@ -22,7 +28,7 @@
 #   make setup
 #   make repo-add ROOT="/absolute/project"
 #   make scan ROOT=/tmp/repo FILES="a.yaml"          # headless scan
-#   make setup-opencode ROOT="/absolute/project" ALLOW_SCANS=1
+#   make setup-opencode ROOT="/absolute/project" [ALLOW_ANALYSIS=1]
 #   make setup-claude ROOT="/absolute/project" ALLOW_SCANS=0
 #   make mcp                       # read-only MCP stdio server
 #   make mcp ALLOW_SCANS=1         # scan-enabled MCP stdio server
@@ -31,9 +37,13 @@ JAVA_HOME ?= /usr/lib/jvm/java-21-openjdk-amd64
 export JAVA_HOME
 export PATH := $(JAVA_HOME)/bin:$(PATH)
 
-DATA_DIR ?= $(HOME)/.pwt-data
+DATA_DIR ?= $(CURDIR)/.pwt-data
 ROOT ?= $(CURDIR)
 ALLOW_SCANS ?=
+ALLOW_ANALYSIS ?=
+PREFIX ?= $(HOME)/.local/bin
+APPSDIR ?= $(HOME)/.local/share/applications
+DESKTOP_FILE := $(APPSDIR)/pwt-yaml-workbench.desktop
 
 APP_VERSION := $(shell grep -m1 '<version>' pwt/pom.xml | sed -e 's/.*<version>//' -e 's/<\/version.*//')
 JAR := pwt/target/pwt-$(APP_VERSION).jar
@@ -42,13 +52,15 @@ LAUNCHER := $(CURDIR)/integrations/pwt-mcp-stdio.sh
 DASHBOARD := $(CURDIR)/integrations/pwt-dashboard.sh
 
 ALLOW_FLAG := $(if $(filter 1,$(ALLOW_SCANS)),--allow-scans)
-MODE_DESC := $(if $(filter 1,$(ALLOW_SCANS)),scan-enabled,$(if $(filter 0,$(ALLOW_SCANS)),read-only,preserve-existing-or-read-only))
+ANALYSIS_FLAG := $(if $(filter 1,$(ALLOW_ANALYSIS)),--allow-analysis-writes)
+MODE_DESC := $(if $(filter 1,$(ALLOW_SCANS)),scan-enabled,$(if $(filter 0,$(ALLOW_SCANS)),read-only,preserve-existing-or-read-only))$(if $(filter 1,$(ALLOW_ANALYSIS)),+analysis-writes,)
 
 .PHONY: help doctor build test setup repo-add repo-list start dashboard \
-	setup-opencode setup-claude mcp mcp-status clean
+	setup-opencode setup-claude install-opencode uninstall-opencode mcp mcp-status clean \
+	install uninstall enable purge-data install-shell-rc setup-opencode-global
 
 help:
-	@echo "PWT targets (variables: JAVA_HOME DATA_DIR ROOT ALLOW_SCANS):"
+	@echo "PWT targets (variables: JAVA_HOME DATA_DIR ROOT ALLOW_ANALYSIS):"
 	@echo "  make help            this message"
 	@echo "  make doctor          Java/artifact/data-dir/repos/scanner report (read-only)"
 	@echo "  make build           build $(JAR) (skips tests)"
@@ -58,11 +70,27 @@ help:
 	@echo "  make repo-list       show registered roots and availability"
 	@echo "  make start           launch the desktop GUI on DATA_DIR"
 	@echo "  make dashboard       open the GUI via the dashboard helper (local display only)"
-	@echo "  make setup-opencode ROOT=<dir> [ALLOW_SCANS=1|0]   project-local OpenCode config"
-	@echo "  make setup-claude ROOT=<dir> [ALLOW_SCANS=1|0]     project-local Claude Code config"
-	@echo "  make mcp [ALLOW_SCANS=1]   MCP stdio server (stdout is protocol-only)"
+	@echo "  make setup-opencode ROOT=<dir> [ALLOW_ANALYSIS=1|0]"
+	@echo "      project-local OpenCode config (native /pwt commands + read-only MCP entry)"
+	@echo "  make setup-opencode-global [ALLOW_ANALYSIS=1|0]"
+	@echo "      user-global pwt MCP entry (any directory; unscoped, read-only default)"
+	@echo "  make setup-claude ROOT=<dir> [ALLOW_SCANS=1|0] [ALLOW_ANALYSIS=1|0]"
+	@echo "      project-local Claude Code config (slash command + MCP entry)"
+	@echo "  make install-opencode    install global PWT command plugin + PWT agent (asks before overwriting)"
+	@echo "  make uninstall-opencode  remove the global PWT plugin and agent"
+	@echo "  make mcp [ALLOW_SCANS=1] [ALLOW_ANALYSIS=1]   MCP stdio server (stdout is protocol-only)"
 	@echo "  make mcp-status      recorded MCP session presence and permission modes"
-	@echo "Permission modes: read-only (default) vs scan-enabled (--allow-scans)."
+	@echo "Permission modes: read-only (default) vs scan-enabled (--allow-scans)"
+	@echo "  vs analysis writes (--allow-analysis-writes, independent of scans)."
+	@echo "  make install [ALLOW_ANALYSIS=0|1] [DATA_DIR=..] [PREFIX=..]"
+	@echo "      one-time user install (run from the PWT checkout): global pwt launcher,"
+	@echo "      OpenCode plugin/agent/ask, desktop entry, then enable the current project"
+	@echo "      (read-only unless flags given; scans run only from the dashboard)"
+	@echo "  make enable ROOT=<dir> [ALLOW_ANALYSIS=0|1]"
+	@echo "      register + configure one project (OpenCode entry always read-only for scans)"
+	@echo "  make uninstall       remove only PWT-owned install artifacts (data kept)"
+	@echo "  make purge-data      DELETE the shared data dir after confirmation (separate!)"
+	@echo "  make install-shell-rc  append PREFIX to ~/.bashrc PATH if missing (opt-in)"
 
 build: $(JAR)
 
@@ -74,6 +102,7 @@ test:
 
 setup:
 	@mkdir -p "$(DATA_DIR)"
+	@chmod 700 "$(DATA_DIR)" 2>/dev/null || true
 	@if [ ! -f "$(JAR)" ]; then $(MAKE) build; fi
 	@echo "setup: data directory ready: $(DATA_DIR)"
 	@echo "setup: Java: $$(command -v java) ($$($(JAVA_HOME)/bin/java -version 2>&1 | head -1))"
@@ -115,22 +144,144 @@ dashboard:
 
 setup-opencode:
 	@command -v python3 >/dev/null 2>&1 || { echo "setup-opencode: python3 is required" >&2; exit 2; }
+	@if [ -n "$(ALLOW_SCANS)" ]; then echo "setup-opencode: ALLOW_SCANS is ignored: OpenCode never scans (dashboard-only); flag not written" >&2; fi
 	python3 "$(CURDIR)/integrations/setup_opencode.py" --project-dir "$(ROOT)" \
-		--data-dir "$(DATA_DIR)" $(if $(ALLOW_SCANS),--allow-scans $(ALLOW_SCANS))
+		--data-dir "$(DATA_DIR)" \
+		$(if $(ALLOW_ANALYSIS),--allow-analysis $(ALLOW_ANALYSIS))
 	@echo "setup-opencode: mode handling: $(MODE_DESC)"
+
+setup-opencode-global:
+	@command -v python3 >/dev/null 2>&1 || { echo "setup-opencode-global: python3 is required" >&2; exit 2; }
+	@if [ -n "$(ALLOW_SCANS)" ]; then echo "setup-opencode-global: ALLOW_SCANS is ignored: OpenCode never scans (dashboard-only); flag not written" >&2; fi
+	python3 "$(CURDIR)/integrations/setup_opencode.py" --global \
+		--data-dir "$(DATA_DIR)" \
+		$(if $(ALLOW_ANALYSIS),--allow-analysis $(ALLOW_ANALYSIS))
+	@echo "setup-opencode-global: host MCP available in every directory (unscoped entry;"
+	@echo "setup-opencode-global: per-project entries override it; per-call scoping still enforced)"
 
 setup-claude:
 	@command -v python3 >/dev/null 2>&1 || { echo "setup-claude: python3 is required" >&2; exit 2; }
 	python3 "$(CURDIR)/integrations/setup_claude.py" --project-dir "$(ROOT)" \
-		--data-dir "$(DATA_DIR)" $(if $(ALLOW_SCANS),--allow-scans $(ALLOW_SCANS))
+		--data-dir "$(DATA_DIR)" $(if $(ALLOW_SCANS),--allow-scans $(ALLOW_SCANS)) \
+		$(if $(ALLOW_ANALYSIS),--allow-analysis $(ALLOW_ANALYSIS))
 	@echo "setup-claude: mode handling: $(MODE_DESC)"
 
 mcp:
-	@"$(LAUNCHER)" --data-dir "$(DATA_DIR)" $(ALLOW_FLAG)
+	@"$(LAUNCHER)" --data-dir "$(DATA_DIR)" $(ALLOW_FLAG) $(ANALYSIS_FLAG)
+
+install-opencode:
+	@command -v python3 >/dev/null 2>&1 || { echo "install-opencode: python3 is required" >&2; exit 2; }
+	python3 "$(CURDIR)/integrations/install-opencode.py"
+
+uninstall-opencode:
+	@command -v python3 >/dev/null 2>&1 || { echo "uninstall-opencode: python3 is required" >&2; exit 2; }
+	python3 "$(CURDIR)/integrations/install-opencode.py" --uninstall
 
 mcp-status:
 	@if [ ! -f "$(JAR)" ]; then $(MAKE) build; fi
 	@java -jar "$(JAR)" mcp-status --data-dir "$(DATA_DIR)"
+
+install: build install-launcher install-opencode install-desktop install-path-check
+	@mkdir -p "$(DATA_DIR)"
+	@chmod 700 "$(DATA_DIR)" 2>/dev/null || true
+	@$(MAKE) enable ROOT="$(CURDIR)"
+	@echo "install: complete."
+	@echo "install: user launcher: $(PREFIX)/pwt  (try: pwt doctor)"
+	@echo "install: data kept in:  $(DATA_DIR) (repos, runs, journals, exports preserved)"
+
+install-launcher:
+	@mkdir -p "$(PREFIX)"
+	@{ \
+		echo '#!/bin/sh'; \
+		echo '# PWT-OWNED launcher (managed by `make install`; safe to delete).'; \
+		echo '# Linked development installation: resolves into the application root;'; \
+		echo '# requires the source tree (jar updates need no config edits).'; \
+		printf 'export PWT_DATA_DIR="%s"\n' "$(DATA_DIR)"; \
+		printf 'exec "%s/integrations/pwt.sh" "$$@"\n' "$(CURDIR)"; \
+	} > "$(PREFIX)/pwt"
+	@chmod 755 "$(PREFIX)/pwt"
+	@echo "install: launcher installed: $(PREFIX)/pwt"
+
+install-desktop:
+	@mkdir -p "$(APPSDIR)"
+	@{ \
+		echo '[Desktop Entry]'; \
+		echo 'Type=Application'; \
+		echo 'Name=PWT YAML Workbench'; \
+		echo 'Comment=PWT assessment workbench (shared store: $(DATA_DIR))'; \
+		printf 'Exec="%s/pwt" gui\n' "$(PREFIX)"; \
+		echo 'Terminal=false'; \
+		echo 'Categories=Development;'; \
+		echo '# PWT-OWNED desktop entry (managed by `make install`; safe to delete)'; \
+	} > "$(DESKTOP_FILE)"
+	@if command -v update-desktop-database >/dev/null 2>&1; then \
+		update-desktop-database "$(APPSDIR)" >/dev/null 2>&1 || true; \
+	fi
+	@echo "install: desktop entry installed: $(DESKTOP_FILE)"
+
+install-path-check:
+	@case ":$(PATH):" in \
+		*":$(PREFIX):"*) echo "install: $(PREFIX) is on PATH";; \
+		*) echo "install: WARNING: $(PREFIX) is not on PATH." >&2; \
+			echo "install: add this line to your shell startup file, then restart the shell:" >&2; \
+			echo "install:   export PATH=\"$(PREFIX):\$$PATH\"" >&2; \
+			echo "install: or run this opt-in step: make install-shell-rc" >&2;; \
+	esac
+
+install-shell-rc:
+	@if grep -qF '$(PREFIX)' "$(HOME)/.bashrc" 2>/dev/null; then \
+		echo "install-shell-rc: already present in ~/.bashrc"; \
+	else \
+		printf '\nexport PATH="%s:$$PATH"\n' "$(PREFIX)" >> "$(HOME)/.bashrc"; \
+		echo "install-shell-rc: appended to ~/.bashrc (restart the shell)"; \
+	fi
+
+enable:
+ifeq ($(origin ROOT),default)
+	$(error Usage: make enable ROOT="/absolute/project" [ALLOW_ANALYSIS=0|1])
+endif
+	@$(MAKE) repo-add ROOT="$(ROOT)"
+	@if [ -n "$(ALLOW_SCANS)" ]; then echo "enable: ALLOW_SCANS is ignored: OpenCode never scans (dashboard-only)" >&2; fi
+	@python3 "$(CURDIR)/integrations/setup_opencode.py" --project-dir "$(ROOT)" \
+		--data-dir "$(DATA_DIR)" \
+		$(if $(ALLOW_ANALYSIS),--allow-analysis $(ALLOW_ANALYSIS))
+	@echo "enable: $(ROOT) — scans: dashboard-only analysis=$(if $(ALLOW_ANALYSIS),$(ALLOW_ANALYSIS),default) (explicit flags only)"
+
+uninstall:
+	@if [ -f "$(PREFIX)/pwt" ]; then \
+		if grep -q "PWT-OWNED launcher" "$(PREFIX)/pwt" 2>/dev/null; then \
+			rm -f "$(PREFIX)/pwt"; echo "uninstall: removed $(PREFIX)/pwt"; \
+		else \
+			echo "uninstall: kept unmanaged file: $(PREFIX)/pwt"; \
+		fi; \
+	else \
+		echo "uninstall: not installed: $(PREFIX)/pwt"; \
+	fi
+	@if [ -f "$(DESKTOP_FILE)" ]; then \
+		if grep -q "PWT-OWNED" "$(DESKTOP_FILE)" 2>/dev/null; then \
+			rm -f "$(DESKTOP_FILE)"; echo "uninstall: removed $(DESKTOP_FILE)"; \
+			if command -v update-desktop-database >/dev/null 2>&1; then \
+				update-desktop-database "$(APPSDIR)" >/dev/null 2>&1 || true; \
+			fi; \
+		else \
+			echo "uninstall: kept unmanaged file: $(DESKTOP_FILE)"; \
+		fi; \
+	else \
+		echo "uninstall: not installed: $(DESKTOP_FILE)"; \
+	fi
+	@python3 "$(CURDIR)/integrations/install-opencode.py" --uninstall || true
+	@echo "uninstall: preserved by default: $(DATA_DIR) (repos, runs, journals, exports),"
+	@echo "uninstall: project MCP entries, and the source tree."
+	@echo "uninstall: to delete application data as well, run: make purge-data"
+
+purge-data:
+	@echo "purge-data: this permanently DELETES all PWT data in: $(DATA_DIR)"
+	@printf "purge-data: type YES to continue: "; read ans; \
+	if [ "$$ans" = "YES" ]; then \
+		rm -rf "$(DATA_DIR)"; echo "purge-data: removed $(DATA_DIR)"; \
+	else \
+		echo "purge-data: aborted (data kept)"; exit 1; \
+	fi
 
 clean:
 	cd pwt && ./mvnw -B -q clean

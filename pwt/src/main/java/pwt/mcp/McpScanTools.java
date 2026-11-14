@@ -37,10 +37,10 @@ public final class McpScanTools {
     private static final int MAX_REPORT_CHARS = 64_000;
     private static final long MAX_REPORT_BYTES = 8L * 1024 * 1024;
 
-    public record McpContext(Path dataDir, boolean allowScans, McpScanManager scans,
-            McpActivity activity) {
+    public record McpContext(Path dataDir, boolean allowScans, boolean allowAnalysisWrites,
+            McpScanManager scans, McpActivity activity, String scopedRepositoryId) {
         public McpContext(Path dataDir, boolean allowScans, McpScanManager scans) {
-            this(dataDir, allowScans, scans, null);
+            this(dataDir, allowScans, false, scans, null, null);
         }
     }
 
@@ -55,7 +55,9 @@ public final class McpScanTools {
                 listFindingsTool(context),
                 getReportTool(context),
                 startScanTool(context),
-                cancelScanTool(context));
+                cancelScanTool(context),
+                getAnalysisTool(context),
+                saveAnalysisTool(context));
     }
 
     // Argument helpers -------------------------------------------------------
@@ -199,6 +201,62 @@ public final class McpScanTools {
         }
     }
 
+    /**
+     * Resolves the effective repository: an explicit ID must equal the
+     * server's project scope when one is configured; otherwise the scope
+     * itself is used. Unknown IDs are NOT_FOUND.
+     */
+    private static SqliteStore.RepositoryRow scopedRepository(SqliteStore store, McpContext context,
+            String repositoryId, String operation) throws McpErrors.McpServiceException {
+        String effective = repositoryId;
+        if (effective == null || effective.isBlank()) {
+            effective = context.scopedRepositoryId();
+        }
+        if (context.scopedRepositoryId() != null && !context.scopedRepositoryId().equals(effective)) {
+            throw new McpErrors.McpServiceException(McpErrors.OUT_OF_SCOPE,
+                    operation + " is restricted to the configured project repository");
+        }
+        if (effective == null || effective.isBlank()) {
+            throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                    "repository_id is required");
+        }
+        try {
+            SqliteStore.RepositoryRow repo = store.findRepositoryById(effective);
+            if (repo == null) {
+                throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
+                        "unknown repository_id: " + effective);
+            }
+            return repo;
+        } catch (McpErrors.McpServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR, e.getMessage());
+        }
+    }
+
+    /** Loads a run and enforces project scope (cross-project IDs are NOT_FOUND). */
+    private static SqliteStore.RunView scopedRun(SqliteStore store, McpContext context, String runId)
+            throws McpErrors.McpServiceException {
+        if (runId == null || runId.isBlank()) {
+            throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT, "run_id is required");
+        }
+        try {
+            SqliteStore.RunView view = store.getRun(runId);
+            if (view == null) {
+                throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND, "unknown run_id: " + runId);
+            }
+            if (context.scopedRepositoryId() != null
+                    && !context.scopedRepositoryId().equals(view.repositoryId())) {
+                throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND, "unknown run_id: " + runId);
+            }
+            return view;
+        } catch (McpErrors.McpServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR, e.getMessage());
+        }
+    }
+
     // list_repositories --------------------------------------------------------
 
     private static McpServerFeatures.SyncToolSpecification listRepositoriesTool(McpContext context) {
@@ -212,7 +270,14 @@ public final class McpScanTools {
                     int offset = optOffset(args);
                     int limit = optLimit(args, DEFAULT_PAGE);
                     try (SqliteStore store = openStore(context.dataDir())) {
-                        List<SqliteStore.RepositoryRow> rows = store.listRepositories();
+                        List<SqliteStore.RepositoryRow> rows;
+                        if (context.scopedRepositoryId() != null) {
+                            SqliteStore.RepositoryRow only =
+                                    store.findRepositoryById(context.scopedRepositoryId());
+                            rows = only == null ? List.of() : List.of(only);
+                        } else {
+                            rows = store.listRepositories();
+                        }
                         List<Map<String, Object>> items = new ArrayList<>();
                         for (SqliteStore.RepositoryRow row : rows) {
                             boolean available = Files.isDirectory(Path.of(row.canonicalRoot()));
@@ -253,8 +318,8 @@ public final class McpScanTools {
         return tool(context, "list_runs",
                 "Lists scan runs for one registered repository, newest first. "
                         + "Paginated (default 100/page, max 500) with optional state filter.",
-                schema(properties, List.of("repository_id")), args -> {
-                    String repositoryId = reqString(args, "repository_id");
+                schema(properties, List.of()), args -> {
+                    String repositoryId = optString(args, "repository_id");
                     String state = optString(args, "state");
                     if (state != null && !state.isBlank()) {
                         try {
@@ -263,17 +328,19 @@ public final class McpScanTools {
                             throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
                                     "unknown state filter: " + state);
                         }
+                        state = state.trim();
+                    } else {
+                        state = null;
                     }
                     int offset = optOffset(args);
                     int limit = optLimit(args, DEFAULT_PAGE);
                     try (SqliteStore store = openStore(context.dataDir())) {
-                        if (store.findRepositoryById(repositoryId) == null) {
-                            throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
-                                    "unknown repository_id: " + repositoryId);
-                        }
-                        int total = store.countRuns(repositoryId, state);
+                        SqliteStore.RepositoryRow repo =
+                                scopedRepository(store, context, repositoryId, "list_runs");
+                        String effectiveRepoId = repo.id();
+                        int total = store.countRuns(effectiveRepoId, state);
                         List<Map<String, Object>> items = new ArrayList<>();
-                        for (SqliteStore.RunView run : store.listRuns(repositoryId, state, limit, offset)) {
+                        for (SqliteStore.RunView run : store.listRuns(effectiveRepoId, state, limit, offset)) {
                             Map<String, Object> item = new LinkedHashMap<>();
                             item.put("run_id", run.id());
                             item.put("created_at", run.createdAt());
@@ -350,6 +417,9 @@ public final class McpScanTools {
             Map<String, Object> reports = new LinkedHashMap<>();
             reports.put("json_report", summary.jsonReportPath());
             reports.put("markdown_report", summary.markdownReportPath());
+            reports.put("rendered_on_demand", true);
+            reports.put("note", "Reports render from persisted records via get_report;"
+                    + " files exist only after an explicit export.");
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("run", run);
             result.put("repository", repository);
@@ -389,6 +459,7 @@ public final class McpScanTools {
                 schema(properties, List.of("run_id")), args -> {
                     String runId = reqString(args, "run_id");
                     try (SqliteStore store = openStore(context.dataDir())) {
+                        scopedRun(store, context, runId);
                         ScanSummary summary = ScanService.loadSummary(store, runId);
                         if (summary == null) {
                             throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
@@ -442,10 +513,7 @@ public final class McpScanTools {
                     int offset = optOffset(args);
                     int limit = optLimit(args, DEFAULT_PAGE);
                     try (SqliteStore store = openStore(context.dataDir())) {
-                        if (store.getRun(runId) == null) {
-                            throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
-                                    "unknown run_id: " + runId);
-                        }
+                        scopedRun(store, context, runId);
                         Map<String, String[]> provenance = new LinkedHashMap<>();
                         for (SqliteStore.ScannerRunRow scanner : store.listScannerRuns(runId)) {
                             provenance.put(scanner.id(), new String[]{
@@ -548,43 +616,25 @@ public final class McpScanTools {
                         }
                         length = number.intValue();
                     }
-                    String wantKind = format.equals("json") ? "JSON_REPORT" : "MARKDOWN_REPORT";
                     try (SqliteStore store = openStore(context.dataDir())) {
-                        if (store.getRun(runId) == null) {
-                            throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
-                                    "unknown run_id: " + runId);
-                        }
-                        String relative = null;
-                        for (SqliteStore.ArtifactRow artifact : store.listArtifacts(runId)) {
-                            if (wantKind.equals(artifact.kind()) && "READY".equals(artifact.status())
-                                    && artifact.relativePath() != null) {
-                                relative = artifact.relativePath();
-                            }
-                        }
-                        if (relative == null) {
-                            throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
-                                    "no ready " + format + " report for run: " + runId);
-                        }
-                        Path reportFile = context.dataDir().resolve(relative).normalize();
-                        if (!reportFile.startsWith(context.dataDir().normalize())) {
-                            throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR,
-                                    "stored report path escapes the data directory");
-                        }
-                        byte[] bytes;
+                        scopedRun(store, context, runId);
+                        // Reports render from persisted records; files are
+                        // optional exports and never required for retrieval.
+                        String content;
                         try {
-                            long size = Files.size(reportFile);
-                            if (size > MAX_REPORT_BYTES) {
-                                throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR,
-                                        "stored report exceeds the readable bound");
-                            }
-                            bytes = Files.readAllBytes(reportFile);
+                            pwt.application.ReportService.RenderedReport rendered =
+                                    new pwt.application.ReportService().render(store, runId);
+                            content = format.equals("json") ? rendered.json() : rendered.markdown();
                         } catch (McpErrors.McpServiceException e) {
                             throw e;
                         } catch (Exception e) {
-                            throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
-                                    "stored report is unreadable: " + e.getMessage());
+                            throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR,
+                                    "report cannot be rendered: " + e.getMessage());
                         }
-                        String content = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                        if (content.length() > MAX_REPORT_BYTES) {
+                            throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR,
+                                    "rendered report exceeds the readable bound");
+                        }
                         int total = content.length();
                         int from = Math.min(offset, total);
                         int to = Math.min(from + length, total);
@@ -630,6 +680,11 @@ public final class McpScanTools {
                                         + " to enable start_scan/cancel_scan");
                     }
                     String repositoryId = reqString(args, "repository_id");
+                    if (context.scopedRepositoryId() != null
+                            && !context.scopedRepositoryId().equals(repositoryId)) {
+                        throw new McpErrors.McpServiceException(McpErrors.OUT_OF_SCOPE,
+                                "this MCP server is restricted to one registered project repository");
+                    }
                     List<String> relativePaths = optStringList(args, "relative_paths");
                     if (relativePaths.isEmpty()) {
                         throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
@@ -709,6 +764,16 @@ public final class McpScanTools {
                                         + " to enable start_scan/cancel_scan");
                     }
                     String runId = reqString(args, "run_id");
+                    if (context.scopedRepositoryId() != null) {
+                        try (SqliteStore scopeStore = openStore(context.dataDir())) {
+                            scopedRun(scopeStore, context, runId);
+                        } catch (McpErrors.McpServiceException e) {
+                            throw e;
+                        } catch (Exception e) {
+                            throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR,
+                                    e.getMessage());
+                        }
+                    }
                     McpScanManager.CancelResult cancelled = context.scans().cancelScan(runId);
                     Map<String, Object> result = new LinkedHashMap<>();
                     result.put("run_id", cancelled.runId());
@@ -717,5 +782,223 @@ public final class McpScanTools {
                     result.put("note", cancelled.note());
                     return result;
                 });
+    }
+    // get_analysis / save_analysis ---------------------------------------------
+
+    private static void checkPriority(String value, String field) throws McpErrors.McpServiceException {
+        if (!"LOW".equals(value) && !"MEDIUM".equals(value) && !"HIGH".equals(value)) {
+            throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                    field + " must be LOW, MEDIUM, or HIGH");
+        }
+    }
+
+    private static McpServerFeatures.SyncToolSpecification getAnalysisTool(McpContext context) {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("repository_id", prop("string"));
+        properties.put("run_id", prop("string"));
+        properties.put("revision", Map.of("type", "integer"));
+        return tool(context, "get_analysis",
+                "Returns the agent analysis for one run: current or requested revision, "
+                        + "structured per-finding assessments, priorities, change and "
+                        + "verification status, plus the list of available revisions.",
+                schema(properties, List.of("run_id")), args -> {
+                    String runId = reqString(args, "run_id");
+                    String repositoryId = optString(args, "repository_id");
+                    Object revisionArg = args.get("revision");
+                    int revision = -1;
+                    if (revisionArg != null) {
+                        if (!(revisionArg instanceof Number number) || number.intValue() < 0) {
+                            throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                                    "revision must be a non-negative integer");
+                        }
+                        revision = number.intValue();
+                    }
+                    try (SqliteStore store = openStore(context.dataDir())) {
+                        SqliteStore.RunView view = scopedRun(store, context, runId);
+                        if (repositoryId != null && !repositoryId.isBlank()
+                                && !repositoryId.equals(view.repositoryId())) {
+                            throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
+                                    "unknown run_id: " + runId);
+                        }
+                        SqliteStore.AnalysisThreadView thread =
+                                store.getOrCreateAnalysisThread(view.repositoryId(), runId);
+                        SqliteStore.AnalysisRevisionRow resolved =
+                                store.getAnalysisRevision(thread.threadId(), revision);
+                        List<Integer> available = store.listAnalysisRevisions(thread.threadId());
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        result.put("repository_id", view.repositoryId());
+                        result.put("run_id", runId);
+                        result.put("current_revision", thread.currentRevision());
+                        result.put("available_revisions", available);
+                        if (resolved == null) {
+                            result.put("revision", null);
+                            result.put("assessments", List.of());
+                            result.put("note", "no analysis saved yet for this run");
+                            return result;
+                        }
+                        result.put("revision", resolved.revision());
+                        Map<String, Object> analysis = new LinkedHashMap<>();
+                        analysis.put("summary", resolved.summary());
+                        analysis.put("priority", resolved.priority());
+                        analysis.put("priority_rationale", resolved.priorityRationale());
+                        analysis.put("category", resolved.category());
+                        analysis.put("change_status", resolved.changeStatus());
+                        analysis.put("verification_run_id", resolved.verificationRunId());
+                        analysis.put("author_client", resolved.authorClient());
+                        analysis.put("author_name", resolved.authorName());
+                        analysis.put("created_at", resolved.createdAt());
+                        result.put("analysis", analysis);
+                        List<Map<String, Object>> assessments = new ArrayList<>();
+                        for (SqliteStore.AnalysisAssessmentRow row :
+                                store.listAnalysisAssessments(resolved.id())) {
+                            Map<String, Object> item = new LinkedHashMap<>();
+                            item.put("finding_id", row.findingId());
+                            item.put("rule_id", row.ruleId());
+                            item.put("relative_path", row.relativePath());
+                            item.put("line_start", row.lineStart());
+                            item.put("priority", row.priority());
+                            item.put("rationale", row.rationale());
+                            item.put("category", row.category());
+                            item.put("change_status", row.changeStatus());
+                            item.put("verification_run_id", row.verificationRunId());
+                            item.put("message", row.message());
+                            assessments.add(item);
+                        }
+                        result.put("assessments", assessments);
+                        return result;
+                    } catch (McpErrors.McpServiceException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR, e.getMessage());
+                    }
+                });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static McpServerFeatures.SyncToolSpecification saveAnalysisTool(McpContext context) {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("repository_id", prop("string"));
+        properties.put("run_id", prop("string"));
+        properties.put("expected_revision", Map.of("type", "integer"));
+        properties.put("summary", prop("string"));
+        properties.put("priority", prop("string"));
+        properties.put("priority_rationale", prop("string"));
+        properties.put("category", prop("string"));
+        properties.put("change_status", prop("string"));
+        properties.put("verification_run_id", prop("string"));
+        properties.put("author_name", prop("string"));
+        Map<String, Object> assessmentItems = new LinkedHashMap<>();
+        assessmentItems.put("type", "object");
+        properties.put("assessments", Map.of("type", "array", "items", assessmentItems));
+        return tool(context, "save_analysis",
+                "Saves a new agent-analysis revision for one run (optimistic concurrency: "
+                        + "expected_revision must match current, else CONFLICT is returned and "
+                        + "nothing is written). Requires the server to run with "
+                        + "--allow-analysis-writes. Never edits scanner findings.",
+                schema(properties, List.of("run_id", "expected_revision", "priority")), args -> {
+                    if (!context.allowAnalysisWrites()) {
+                        throw new McpErrors.McpServiceException(McpErrors.PERMISSION_DENIED,
+                                "analysis writes are disabled: restart the MCP server with "
+                                        + "--allow-analysis-writes to enable save_analysis");
+                    }
+                    String runId = reqString(args, "run_id");
+                    String repositoryId = optString(args, "repository_id");
+                    Object expectedArg = args.get("expected_revision");
+                    if (!(expectedArg instanceof Number expectedNumber) || expectedNumber.intValue() < 0) {
+                        throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                                "expected_revision must be a non-negative integer");
+                    }
+                    String priority = reqString(args, "priority");
+                    checkPriority(priority, "priority");
+                    try (SqliteStore store = openStore(context.dataDir())) {
+                        SqliteStore.RunView view = scopedRun(store, context, runId);
+                        if (repositoryId != null && !repositoryId.isBlank()
+                                && !repositoryId.equals(view.repositoryId())) {
+                            throw new McpErrors.McpServiceException(McpErrors.NOT_FOUND,
+                                    "unknown run_id: " + runId);
+                        }
+                        SqliteStore.AnalysisThreadView thread =
+                                store.getOrCreateAnalysisThread(view.repositoryId(), runId);
+                        String verificationRunId = optString(args, "verification_run_id");
+                        List<SqliteStore.AnalysisAssessmentInput> assessments = new ArrayList<>();
+                        Object rawAssessments = args.get("assessments");
+                        if (rawAssessments instanceof List<?> list) {
+                            for (Object raw : list) {
+                                if (!(raw instanceof Map)) {
+                                    throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                                            "assessments must be objects");
+                                }
+                                Map<String, Object> item = (Map<String, Object>) raw;
+                                Object itemPriority = item.get("priority");
+                                if (!(itemPriority instanceof String)) {
+                                    throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                                            "assessment priority is required");
+                                }
+                                checkPriority((String) itemPriority, "assessment priority");
+                                Object line = item.get("line_start");
+                                Integer lineStart = null;
+                                if (line != null) {
+                                    if (!(line instanceof Number number) || number.intValue() < 1) {
+                                        throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                                                "assessment line_start must be a positive integer");
+                                    }
+                                    lineStart = number.intValue();
+                                }
+                                assessments.add(new SqliteStore.AnalysisAssessmentInput(
+                                        asString(item.get("finding_id")),
+                                        asString(item.get("rule_id")),
+                                        asString(item.get("relative_path")),
+                                        lineStart,
+                                        (String) itemPriority,
+                                        asString(item.get("rationale")),
+                                        asString(item.get("category")),
+                                        asString(item.get("change_status")),
+                                        asString(item.get("verification_run_id")),
+                                        asString(item.get("message"))));
+                            }
+                        } else if (rawAssessments != null) {
+                            throw new McpErrors.McpServiceException(McpErrors.INVALID_INPUT,
+                                    "assessments must be an array");
+                        }
+                        SqliteStore.AnalysisSaveResult saved;
+                        try {
+                            saved = store.saveAnalysis(thread.threadId(), expectedNumber.intValue(),
+                                    optString(args, "summary"), priority,
+                                    optString(args, "priority_rationale"), optString(args, "category"),
+                                    optString(args, "change_status"), blankToNull(verificationRunId),
+                                    "mcp", optString(args, "author_name"), assessments);
+                        } catch (java.sql.SQLException e) {
+                            throw new McpErrors.McpServiceException(
+                                    e.getMessage() != null && e.getMessage().contains("CHECK constraint")
+                                            ? McpErrors.INVALID_INPUT
+                                            : McpErrors.INTERNAL_ERROR,
+                                    e.getMessage() == null ? "analysis save failed" : e.getMessage());
+                        }
+                        if (saved.conflict()) {
+                            throw new McpErrors.McpServiceException(McpErrors.CONFLICT,
+                                    "stale revision: expected " + expectedNumber.intValue()
+                                            + " but current is " + saved.currentRevision()
+                                            + "; reload and merge before retrying");
+                        }
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        result.put("repository_id", view.repositoryId());
+                        result.put("run_id", runId);
+                        result.put("saved_revision", saved.savedRevision());
+                        result.put("current_revision", saved.currentRevision());
+                        return result;
+                    } catch (McpErrors.McpServiceException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new McpErrors.McpServiceException(McpErrors.INTERNAL_ERROR, e.getMessage());
+                    }
+                });
+    }
+
+    private static String asString(Object value) {
+        return value instanceof String text ? text : null;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 }
