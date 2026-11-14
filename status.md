@@ -4,6 +4,15 @@ Updated: 2026-11-13 (dashboard-only scanning: /pwt opens the dashboard;
 OpenCode scan/cancel removed; GUI first-scan self-registration; strict
 current-project /pwt-ask; OpenCode MCP never scan-enabled). Outcome: **COMPLETE**.
 
+## Release v1.0.0 (2026-11-14)
+
+Owner-requested freeze of the current state as 1.0.0: version bumped from
+0.4.0 (pom, `BuildInfo.VERSION`, plugin package.json, MCP serverInfo test,
+jar name in READMEs) on top of `dec6114`; `.gitignore` adds `.claude/` and
+`.opencode/` (already-tracked `.opencode/` files stay tracked). Tagged
+`v1.0.0`; GitHub Release carries `pwt-1.0.0.jar`. Older entries below that
+say "0.4.0" are historical. Phase 5–7 scope in `plan.md` is unchanged.
+
 ## Dashboard-only scanning (this session)
 
 - **Native commands now**: `/pwt` (dashboard), `/pwt help`, `/pwt repos`

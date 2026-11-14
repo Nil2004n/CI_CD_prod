@@ -6,13 +6,13 @@ Scope `user` keeps one entry for all projects; scope `project` writes
 `.mcp.json` in the current project. Read-only first:
 
 ```sh
-claude mcp add --scope user pwt -- java -jar /abs/path/pwt-0.4.0.jar mcp --data-dir /abs/path/pwt-data
+claude mcp add --scope user pwt -- java -jar /abs/path/pwt-1.0.0.jar mcp --data-dir /abs/path/pwt-data
 ```
 
 Scan-enabled variant (separate name so the default stays read-only):
 
 ```sh
-claude mcp add --scope user pwt-scan -- java -jar /abs/path/pwt-0.4.0.jar mcp --data-dir /abs/path/pwt-data --allow-scans
+claude mcp add --scope user pwt-scan -- java -jar /abs/path/pwt-1.0.0.jar mcp --data-dir /abs/path/pwt-data --allow-scans
 ```
 
 Check it: `claude mcp list`. MCP permission gating is enforced server-side;
@@ -36,7 +36,7 @@ The command is agent-interpreted; assessment operations go through the
 ## 3. Dashboard
 
 ```sh
-/abs/path/integrations/pwt-dashboard.sh --jar /abs/path/pwt-0.4.0.jar --data-dir /abs/path/pwt-data
+/abs/path/integrations/pwt-dashboard.sh --jar /abs/path/pwt-1.0.0.jar --data-dir /abs/path/pwt-data
 ```
 
 Local graphical machine only; refuses without a display; never opens a

@@ -81,7 +81,7 @@ opencode                         # /pwt status … | /pwt-ask … | pwt gui …
 Lower-level equivalents (the install/enable targets wrap these):
 
 ```sh
-make build                       # builds pwt/target/pwt-0.4.0.jar (skips tests)
+make build                       # builds pwt/target/pwt-1.0.0.jar (skips tests)
 make test                        # full JUnit suite
 make setup                       # create <app-root>/.pwt-data, print scanner prerequisites
 make repo-add ROOT="/abs/project"

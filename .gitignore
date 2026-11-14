@@ -2,3 +2,5 @@ pwt/target/
 pwt/dependency-reduced-pom.xml
 .pwt-data/
 .pwt/
+.claude/
+.opencode/

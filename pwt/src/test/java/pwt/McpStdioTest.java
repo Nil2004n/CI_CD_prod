@@ -141,7 +141,7 @@ class McpStdioTest {
         assertEquals(1, initResponse.get("id").asInt());
         assertNotNull(initResponse.get("result"), "initialize must succeed: " + initResponse);
         assertEquals("pwt", initResponse.get("result").get("serverInfo").get("name").asText());
-        assertEquals("0.4.0", initResponse.get("result").get("serverInfo").get("version").asText());
+        assertEquals("1.0.0", initResponse.get("result").get("serverInfo").get("version").asText());
 
         // 2. initialized notification (no response expected)
         var notification = MAPPER.createObjectNode();

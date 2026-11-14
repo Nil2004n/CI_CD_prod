@@ -12,7 +12,7 @@ No embedded chatbot, no model backend, no source-edit/Git MCP tools.
 | `install-opencode.py` | Global installer: `~/.config/opencode/plugins/pwt/` + `~/.config/opencode/agents/pwt.md`, with unmanaged-overwrite protection and uninstall. |
 | `claude-code/` | Claude Code setup: `claude mcp add` lines, `/pwt` slash command, dashboard instructions. |
 
-Placeholders like `/abs/path/pwt-0.4.0.jar` and `/abs/path/pwt-data` must be
+Placeholders like `/abs/path/pwt-1.0.0.jar` and `/abs/path/pwt-data` must be
 replaced with real absolute paths. Nothing here modifies global client
 configuration: copy the project-local files into your own project (or install
 the command files where your client looks for project commands).

@@ -26,7 +26,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ```sh
 cd pwt
 ./mvnw -B clean test        # 146 tests, all must pass, 0 skipped
-./mvnw -B -q package -DskipTests   # produces target/pwt-0.4.0.jar
+./mvnw -B -q package -DskipTests   # produces target/pwt-1.0.0.jar
 ```
 
 Root-level shortcuts live in `../Makefile`: `make build|test|setup|
@@ -38,16 +38,16 @@ install-opencode|uninstall-opencode|mcp|mcp-status|doctor|clean`.
 ```sh
 # Read-only (default): pwt_info, list_repositories, list_runs, get_run,
 # list_findings, get_report, get_analysis
-java -jar target/pwt-0.4.0.jar mcp --data-dir /abs/pwt-data
+java -jar target/pwt-1.0.0.jar mcp --data-dir /abs/pwt-data
 
 # Scan-enabled: additionally start_scan, cancel_scan
-java -jar target/pwt-0.4.0.jar mcp --data-dir /abs/pwt-data --allow-scans
+java -jar target/pwt-1.0.0.jar mcp --data-dir /abs/pwt-data --allow-scans
 
 # Analysis writes: additionally save_analysis (independent flag)
-java -jar target/pwt-0.4.0.jar mcp --data-dir /abs/pwt-data --allow-analysis-writes
+java -jar target/pwt-1.0.0.jar mcp --data-dir /abs/pwt-data --allow-analysis-writes
 
 # Project-scoped: every operation restricted to one registered repository
-java -jar target/pwt-0.4.0.jar mcp --data-dir /abs/pwt-data --repo-id <id>
+java -jar target/pwt-1.0.0.jar mcp --data-dir /abs/pwt-data --repo-id <id>
 ```
 
 stdout is MCP-protocol-only; diagnostics go to stderr. Errors are
@@ -76,7 +76,7 @@ agent conversation/analysis uses the configured OpenCode model.
 ## Dashboard
 
 ```sh
-integrations/pwt-dashboard.sh --jar /abs/pwt-0.4.0.jar --data-dir /abs/pwt-data
+integrations/pwt-dashboard.sh --jar /abs/pwt-1.0.0.jar --data-dir /abs/pwt-data
 # or: make start | make dashboard
 ```
 
@@ -91,13 +91,13 @@ OpenCode opens the same dashboard helper.
 ## Headless scan / discovery / setup
 
 ```sh
-java -jar target/pwt-0.4.0.jar scan --root <dir> --file <rel>... [--adapter id,...] \
+java -jar target/pwt-1.0.0.jar scan --root <dir> --file <rel>... [--adapter id,...] \
   [--data-dir <dir>] [--timeout-sec N] [--source CLI] [--export] \
   [--schema-binding 'GLOB=SCHEMA_PATH' ...] [--schema-dialect 2020-12|2019-09] \
   [--kubeconform-schema <local-template>] [--kubeconform-version V] \
   [--kubeconform-strict|--kubeconform-lenient]
-java -jar target/pwt-0.4.0.jar discover --root <dir> [...]
-java -jar target/pwt-0.4.0.jar kubeconform-setup --k8s-version 1.29.0 --kinds Pod,Service [...]
+java -jar target/pwt-1.0.0.jar discover --root <dir> [...]
+java -jar target/pwt-1.0.0.jar kubeconform-setup --k8s-version 1.29.0 --kinds Pod,Service [...]
 ```
 
 Result JSON on stdout (`run_id`, `state`, `verdict`, targets with
@@ -114,7 +114,7 @@ schema binding (or schema) is reported as a gap, never as valid.
 
 ```sh
 # Download schemas for the kinds you validate into the managed cache:
-java -jar target/pwt-0.4.0.jar kubeconform-setup \
+java -jar target/pwt-1.0.0.jar kubeconform-setup \
   --k8s-version 1.29.0 --kinds Pod,Service,Deployment.apps --data-dir <dir>
 ```
 
@@ -140,7 +140,7 @@ lowercase names (e.g. `widget.json`, `deployment-apps-v1.json`).
 ## Headless discovery
 
 ```sh
-java -jar target/pwt-0.4.0.jar discover --root <directory> \
+java -jar target/pwt-1.0.0.jar discover --root <directory> \
   [--max-files N] [--max-depth N] [--exclude name,...]
 ```
 
