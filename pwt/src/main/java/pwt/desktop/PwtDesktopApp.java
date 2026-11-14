@@ -148,16 +148,30 @@ public class PwtDesktopApp extends Application {
     public void start(Stage stage) {
         stage.setTitle(BuildInfo.APP_NAME + " " + BuildInfo.VERSION + " (" + BuildInfo.PHASE + ")");
 
+        // Presentation: build every existing control first (same nodes, same
+        // listeners/handlers as before), then arrange them in the workbench shell.
+        HBox toolbar = buildToolbar(stage);
+        VBox filePane = buildFilePane();
+        buildCatalogPane();
+        VBox bottom = buildBottom();
+
         BorderPane root = new BorderPane();
-        root.setStyle("-fx-background-color: #0d1117;");
-
-        root.setTop(buildToolbar(stage));
-        SplitPane center = new SplitPane(buildFilePane(), buildCatalogPane());
-        center.setDividerPositions(0.55);
+        root.getStyleClass().add("app");
+        root.setTop(toolbar);
+        SplitPane center = new SplitPane(buildSidebar(filePane), buildWorkspace(), buildSidePanel());
+        center.getStyleClass().add("main-split");
+        center.setDividerPositions(0.24, 0.72);
         root.setCenter(center);
-        root.setBottom(buildBottom());
+        root.setBottom(bottom);
 
-        Scene scene = new Scene(root, 1100, 700);
+        javafx.geometry.Rectangle2D screen = javafx.stage.Screen.getPrimary().getVisualBounds();
+        Scene scene = new Scene(root, Math.min(1440, screen.getWidth()), Math.min(900, screen.getHeight()));
+        java.net.URL theme = PwtDesktopApp.class.getResource("/pwt/desktop/pwt-theme.css");
+        if (theme != null) {
+            scene.getStylesheets().add(theme.toExternalForm());
+        }
+        stage.setMinWidth(980);
+        stage.setMinHeight(620);
         stage.setScene(scene);
         log("PWT desktop started. Open a directory to discover YAML files, "
                 + "or pick a registered root above. Shared data dir: "
@@ -170,23 +184,23 @@ public class PwtDesktopApp extends Application {
     }
 
     private HBox buildToolbar(Stage stage) {
-        Label title = styledLabel(" PWT // YAML WORKBENCH  [" + BuildInfo.PHASE + "] ");
+        Label mark = new Label("PWT");
+        mark.getStyleClass().add("brand-mark");
+        Label title = new Label("YAML Workbench");
+        title.getStyleClass().add("brand");
+        Label phase = new Label(BuildInfo.VERSION);
+        phase.getStyleClass().add("faint");
+
         rootField = new TextField();
         rootField.setPromptText("No directory open — use Open directory…");
         rootField.setEditable(false);
-        rootField.setFont(Font.font("Monospace", 12));
-        rootField.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #c9d1d9; "
-                + "-fx-prompt-text-fill: #6e7681;");
-        HBox.setHgrow(rootField, Priority.ALWAYS);
 
         Button openButton = new Button("Open directory…");
-        styleButton(openButton);
         openButton.setOnAction(event -> chooseAndDiscover(stage));
 
         rootsComboBox = new ComboBox<>();
         rootsComboBox.setPromptText("Registered roots…");
-        rootsComboBox.setPrefWidth(220);
-        rootsComboBox.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #c9d1d9;");
+        rootsComboBox.setPrefWidth(240);
         rootsComboBox.getSelectionModel().selectedItemProperty().addListener((obs, old, current) -> {
             if (!suppressRootEvents && current != null) {
                 openRegisteredRoot(current);
@@ -194,49 +208,85 @@ public class PwtDesktopApp extends Application {
         });
 
         cancelButton = new Button("Cancel discovery");
-        styleButton(cancelButton);
         cancelButton.setDisable(true);
         cancelButton.setOnAction(event -> cancelDiscovery());
 
-        HBox toolbar = new HBox(8, title, rootField, rootsComboBox, openButton, cancelButton);
-        toolbar.setPadding(new Insets(8));
-        toolbar.setStyle("-fx-background-color: #161b22; -fx-border-color: #30363d; -fx-border-width: 0 0 1 0;");
+        // scanButton is created in buildCatalogPane(); it is placed into this
+        // toolbar by buildWorkspace() once it exists.
+        toolbarSpacer = new javafx.scene.layout.Region();
+        HBox.setHgrow(toolbarSpacer, Priority.ALWAYS);
+        HBox toolbar = new HBox(8, mark, title, phase, separator(), rootsComboBox, openButton,
+                cancelButton, toolbarSpacer);
+        toolbar.getStyleClass().add("app-toolbar");
+        this.toolbar = toolbar;
         return toolbar;
     }
 
+    private HBox toolbar;
+    private javafx.scene.layout.Region toolbarSpacer;
+    private Label repoCountLabel;
+    private Label findingsBadge;
+    private Label outcomesBadge;
+
     private VBox buildFilePane() {
-        Label heading = styledLabel("DISCOVERED YAML  (mouse/keyboard multi-select)");
+        Label heading = styledLabel("FILES");
+        Label hint = new Label("mouse/keyboard multi-select");
+        hint.getStyleClass().add("section-meta");
         fileList = new ListView<>();
         fileList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        fileList.setStyle("-fx-control-inner-background: #0d1117; -fx-text-fill: #c9d1d9; -fx-font-family: monospace;");
+        fileList.getStyleClass().add("mono-small");
+        fileList.setPlaceholder(placeholder("Open a directory or pick a registered root."));
         fileList.getSelectionModel().selectedItemProperty().addListener((obs, old, current) -> updateCounts());
         VBox.setVgrow(fileList, Priority.ALWAYS);
 
         countsLabel = styledLabel("discovered: 0   selected: 0");
+        countsLabel.getStyleClass().setAll("label", "value");
         stateLabel = styledLabel("");
+        stateLabel.getStyleClass().setAll("label", "muted");
+        stateLabel.setWrapText(true);
         incompleteLabel = styledLabel("");
-        incompleteLabel.setStyle("-fx-text-fill: #e3b341; -fx-font-family: monospace; -fx-font-size: 12;");
+        incompleteLabel.getStyleClass().setAll("label", "warning-text");
+        incompleteLabel.setWrapText(true);
+        for (Label label : List.of(stateLabel, incompleteLabel)) {
+            label.managedProperty().bind(label.textProperty().isNotEmpty());
+            label.visibleProperty().bind(label.textProperty().isNotEmpty());
+        }
 
         Button selectAll = new Button("Select all");
         Button selectNone = new Button("Select none");
-        styleButton(selectAll);
-        styleButton(selectNone);
+        selectNone.getStyleClass().add("link");
         selectAll.setOnAction(event -> fileList.getSelectionModel().selectAll());
         selectNone.setOnAction(event -> fileList.getSelectionModel().clearSelection());
-        HBox selectionBar = new HBox(8, selectAll, selectNone, countsLabel);
-        selectionBar.setPadding(new Insets(4, 0, 0, 0));
+        HBox selectionBar = new HBox(8, selectAll, selectNone);
+        selectionBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-        VBox pane = new VBox(4, heading, fileList, selectionBar, stateLabel, incompleteLabel);
-        pane.setPadding(new Insets(8));
-        pane.setStyle("-fx-background-color: #0d1117;");
+        VBox pane = new VBox(6, row(heading, hint), fileList, countsLabel, stateLabel, incompleteLabel,
+                selectionBar);
+        VBox.setVgrow(pane, Priority.ALWAYS);
         return pane;
     }
 
-    private VBox buildCatalogPane() {
-        Label heading = styledLabel("SCANNER CATALOG  (availability probed locally)");
+    /** Left column: repository header, open root, discovered files, run history. */
+    private VBox buildSidebar(VBox filePane) {
+        Label heading = styledLabel("REPOSITORIES");
+        repoCountLabel = new Label("");
+        repoCountLabel.getStyleClass().add("section-meta");
+        rootField.setMaxWidth(Double.MAX_VALUE);
+        VBox sidebar = new VBox(6, row(heading, repoCountLabel), rootField, filePane,
+                historyHeading, historyList);
+        sidebar.getStyleClass().add("sidebar");
+        sidebar.setMinWidth(240);
+        return sidebar;
+    }
+
+    private Label historyHeading;
+
+    private void buildCatalogPane() {
+        Label heading = styledLabel("SCANNERS");
+        Label headingMeta = new Label("availability probed locally");
+        headingMeta.getStyleClass().add("section-meta");
         TableView<ScannerRow> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setStyle("-fx-control-inner-background: #0d1117; -fx-text-fill: #c9d1d9;");
         table.setPlaceholder(new Label(""));
 
         TableColumn<ScannerRow, String> toolColumn = new TableColumn<>("Tool");
@@ -247,7 +297,12 @@ public class PwtDesktopApp extends Application {
         stateColumn.setCellValueFactory(new PropertyValueFactory<>("state"));
         TableColumn<ScannerRow, String> availabilityColumn = new TableColumn<>("Availability");
         availabilityColumn.setCellValueFactory(new PropertyValueFactory<>("availability"));
+        availabilityColumn.setCellFactory(column -> new StatusTextCell<>());
         table.getColumns().addAll(toolColumn, purposeColumn, stateColumn, availabilityColumn);
+        toolColumn.setPrefWidth(120);
+        purposeColumn.setPrefWidth(260);
+        stateColumn.setPrefWidth(110);
+        availabilityColumn.setPrefWidth(240);
 
         ObservableList<ScannerRow> rows = FXCollections.observableArrayList();
         for (ScannerDescriptor descriptor : ScannerCatalog.planned()) {
@@ -257,134 +312,405 @@ public class PwtDesktopApp extends Application {
             rowByTool.put(descriptor.id(), row);
         }
         table.setItems(rows);
+        table.setPrefHeight(230);
+        table.setMinHeight(160);
 
         scanButton = new Button("Run scan (selected files)");
-        styleButton(scanButton);
+        scanButton.getStyleClass().add("primary");
         scanButton.setDisable(true);
         scanButton.setOnAction(event -> onScanButton());
 
         Label checksHeading = styledLabel("ENABLED CHECKS");
-        HBox checksBar = new HBox(8);
+        javafx.scene.layout.FlowPane checksBar = new javafx.scene.layout.FlowPane(14, 6);
         for (String adapterId : ScanService.ADAPTER_ORDER) {
             CheckBox box = new CheckBox(adapterId);
             box.setSelected(true);
-            box.setStyle("-fx-text-fill: #c9d1d9; -fx-font-family: monospace; -fx-font-size: 12;");
             box.setOnAction(event -> updateScanButton());
             adapterBoxes.put(adapterId, box);
             checksBar.getChildren().add(box);
         }
 
-        Label bindingsHeading = styledLabel("LOCAL SCHEMA BINDINGS  (glob=path, comma-separated; empty = not used)");
+        Label bindingsHeading = styledLabel("LOCAL SCHEMA BINDINGS");
+        Label bindingsMeta = new Label("glob=path, comma-separated; empty = not used");
+        bindingsMeta.getStyleClass().add("section-meta");
         bindingsField = new TextField();
         bindingsField.setPromptText("e.g. widgets/*.yaml=/abs/path/schema.json");
-        bindingsField.setFont(Font.font("Monospace", 12));
-        bindingsField.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #c9d1d9; "
-                + "-fx-prompt-text-fill: #6e7681;");
         HBox.setHgrow(bindingsField, Priority.ALWAYS);
 
-        Label kubeHeading = styledLabel("KUBECONFORM  (local schemas only; setup: pwt kubeconform-setup)");
+        Label kubeHeading = styledLabel("KUBECONFORM");
+        Label kubeMeta = new Label("local schemas only; setup: pwt kubeconform-setup");
+        kubeMeta.getStyleClass().add("section-meta");
         kubeVersionField = new TextField("1.29.0");
         kubeVersionField.setPrefColumnCount(8);
-        kubeVersionField.setFont(Font.font("Monospace", 12));
-        kubeVersionField.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #c9d1d9;");
         kubeStrictBox = new CheckBox("strict");
         kubeStrictBox.setSelected(true);
-        kubeStrictBox.setStyle("-fx-text-fill: #c9d1d9; -fx-font-family: monospace; -fx-font-size: 12;");
-        HBox kubeBar = new HBox(8, kubeHeading, kubeVersionField, kubeStrictBox);
+        Label kubeVersionKey = new Label("Kubernetes version");
+        kubeVersionKey.getStyleClass().add("muted");
+        HBox kubeBar = new HBox(10, kubeVersionKey, kubeVersionField, kubeStrictBox);
+        kubeBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         verdictLabel = styledLabel("");
+        verdictLabel.getStyleClass().setAll("label", "verdict");
+        verdictLabel.setWrapText(true);
         reportsLabel = styledLabel("");
+        reportsLabel.getStyleClass().setAll("label", "muted");
+        reportsLabel.setWrapText(true);
         openReportsButton = new Button("Open reports folder");
-        styleButton(openReportsButton);
         openReportsButton.setDisable(true);
         openReportsButton.setOnAction(event -> openReportsFolder());
         Button viewReportButton = new Button("View report");
-        styleButton(viewReportButton);
         viewReportButton.setOnAction(event -> viewReport());
         Button exportReportButton = new Button("Export report");
-        styleButton(exportReportButton);
         exportReportButton.setOnAction(event -> exportReport());
-        HBox reportsBar = new HBox(8, viewReportButton, exportReportButton, openReportsButton, reportsLabel);
-        HBox.setHgrow(reportsLabel, Priority.ALWAYS);
+        HBox reportsBar = new HBox(8, viewReportButton, exportReportButton, openReportsButton);
+        reportsBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-        Label findingsHeading = styledLabel("FINDINGS (selected scope only)");
+        Label findingsHeading = styledLabel("FINDINGS");
+        Label findingsMeta = new Label("selected scope only");
+        findingsMeta.getStyleClass().add("section-meta");
         findingsTable = new TableView<>();
         findingsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        findingsTable.setStyle("-fx-control-inner-background: #0d1117; -fx-text-fill: #c9d1d9;");
-        findingsTable.setPlaceholder(new Label("No scan yet — findings appear here."));
+        findingsTable.setPlaceholder(placeholder("No scan yet — findings appear here."));
         TableColumn<FindingRow, String> severityColumn = new TableColumn<>("Severity");
         severityColumn.setCellValueFactory(new PropertyValueFactory<>("severity"));
+        severityColumn.setCellFactory(column -> new SeverityCell());
         TableColumn<FindingRow, String> ruleColumn = new TableColumn<>("Rule");
         ruleColumn.setCellValueFactory(new PropertyValueFactory<>("rule"));
         TableColumn<FindingRow, String> fileColumn = new TableColumn<>("File");
         fileColumn.setCellValueFactory(new PropertyValueFactory<>("file"));
+        fileColumn.setCellFactory(column -> new TooltipCell<>());
         TableColumn<FindingRow, String> lineColumn = new TableColumn<>("Line");
         lineColumn.setCellValueFactory(new PropertyValueFactory<>("line"));
+        lineColumn.getStyleClass().add("num");
         TableColumn<FindingRow, String> messageColumn = new TableColumn<>("Message");
         messageColumn.setCellValueFactory(new PropertyValueFactory<>("message"));
+        messageColumn.setCellFactory(column -> new TooltipCell<>());
         findingsTable.getColumns().addAll(severityColumn, ruleColumn, fileColumn, lineColumn, messageColumn);
+        severityColumn.setPrefWidth(124);
+        severityColumn.setMinWidth(100);
+        ruleColumn.setPrefWidth(190);
+        fileColumn.setPrefWidth(220);
+        lineColumn.setPrefWidth(56);
+        lineColumn.setMaxWidth(80);
+        messageColumn.setPrefWidth(300);
         findingRows = FXCollections.observableArrayList();
         findingsTable.setItems(findingRows);
         findingsTable.setPrefHeight(150);
 
-        Label outcomesHeading = styledLabel("SCANNER OUTCOMES (all configured checks)");
+        Label outcomesHeading = styledLabel("SCANNER OUTCOMES");
+        Label outcomesMeta = new Label("all configured checks for the displayed run");
+        outcomesMeta.getStyleClass().add("section-meta");
         outcomeItems = FXCollections.observableArrayList();
         outcomesList = new ListView<>(outcomeItems);
         outcomesList.setPrefHeight(90);
-        outcomesList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; "
-                + "-fx-font-family: monospace; -fx-font-size: 11;");
+        outcomesList.setPlaceholder(placeholder("No run displayed — scanner outcomes appear here."));
+        outcomesList.setCellFactory(list -> new StatusListCell());
 
         presenceLabel = styledLabel("MCP: No active clients.");
+        presenceLabel.getStyleClass().setAll("label", "value");
+        presenceLabel.setWrapText(true);
         presenceDetails = FXCollections.observableArrayList();
         ListView<String> presenceDetailsList = new ListView<>(presenceDetails);
-        presenceDetailsList.setPrefHeight(64);
-        presenceDetailsList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; "
-                + "-fx-font-family: monospace; -fx-font-size: 11;");
+        presenceDetailsList.setPrefHeight(104);
+        presenceDetailsList.getStyleClass().add("mono-small");
+        presenceDetailsList.setPlaceholder(placeholder("No live sessions."));
+        presenceDetailsList.setCellFactory(list -> new WrappingCell());
         dataDirLabel = styledLabel("Shared data: " + ScanService.defaultDataDir().toString());
+        dataDirLabel.getStyleClass().setAll("label", "muted");
+        dataDirLabel.setWrapText(true);
         Label dataDirHint = styledLabel("MCP must use the same --data-dir to appear here.");
-        dataDirHint.setStyle("-fx-text-fill: #6e7681; -fx-font-family: monospace; -fx-font-size: 11;");
-        VBox pane = new VBox(6, heading, table, scanButton, checksHeading, checksBar,
-                bindingsHeading, bindingsField, kubeBar, verdictLabel, outcomesHeading,
-                outcomesList, findingsHeading, findingsTable, reportsBar, presenceLabel,
-                presenceDetailsList, dataDirLabel, dataDirHint);
-        pane.setPadding(new Insets(8));
-        pane.setStyle("-fx-background-color: #0d1117; -fx-border-color: #30363d; -fx-border-width: 0 0 0 1;");
-        return pane;
+        dataDirHint.getStyleClass().setAll("label", "faint");
+        dataDirHint.setWrapText(true);
+
+        // Keep references for the shell layout (presentation only).
+        this.catalogTable = table;
+        this.checksHeadingNode = row(checksHeading);
+        this.checksBarNode = checksBar;
+        this.bindingsNode = new VBox(4, row(bindingsHeading, bindingsMeta), bindingsField);
+        this.kubeNode = new VBox(4, row(kubeHeading, kubeMeta), kubeBar);
+        this.catalogHeadingNode = row(heading, headingMeta);
+        this.reportsBarNode = reportsBar;
+        this.findingsHeadingNode = row(findingsHeading, findingsMeta);
+        this.outcomesHeadingNode = row(outcomesHeading, outcomesMeta);
+        this.presenceDetailsNode = presenceDetailsList;
+        this.dataDirHintNode = dataDirHint;
+    }
+
+    private TableView<ScannerRow> catalogTable;
+    private javafx.scene.Node checksHeadingNode;
+    private javafx.scene.Node checksBarNode;
+    private javafx.scene.Node bindingsNode;
+    private javafx.scene.Node kubeNode;
+    private javafx.scene.Node catalogHeadingNode;
+    private javafx.scene.Node reportsBarNode;
+    private javafx.scene.Node findingsHeadingNode;
+    private javafx.scene.Node outcomesHeadingNode;
+    private javafx.scene.Node presenceDetailsNode;
+    private javafx.scene.Node dataDirHintNode;
+
+    /** Center column: Progress / Findings / Coverage / Activity tabs over existing controls. */
+    private javafx.scene.control.TabPane buildWorkspace() {
+        toolbar.getChildren().add(scanButton);
+
+        // Progress: displayed-run verdict + scan configuration + scanner catalog.
+        Label runHeading = styledLabel("RUN");
+        VBox runCard = new VBox(6, runHeading, verdictLabel);
+        runCard.getStyleClass().add("card");
+        VBox configCard = new VBox(8, checksHeadingNode, checksBarNode, bindingsNode, kubeNode);
+        configCard.getStyleClass().add("card");
+        VBox.setVgrow(catalogTable, Priority.ALWAYS);
+        VBox progressBody = new VBox(10, runCard, styledLabel("SCAN CONFIGURATION"), configCard,
+                catalogHeadingNode, catalogTable);
+        progressBody.getStyleClass().add("tab-body");
+        javafx.scene.control.ScrollPane progressScroll = new javafx.scene.control.ScrollPane(progressBody);
+        progressScroll.setFitToWidth(true);
+        progressScroll.setFitToHeight(true);
+
+        // Findings: table + report actions.
+        VBox.setVgrow(findingsTable, Priority.ALWAYS);
+        VBox findingsBody = new VBox(8, findingsHeadingNode, findingsTable, reportsBarNode, reportsLabel);
+        findingsBody.getStyleClass().add("tab-body");
+
+        // Coverage: per-check outcomes of the displayed run.
+        VBox.setVgrow(outcomesList, Priority.ALWAYS);
+        VBox coverageBody = new VBox(8, outcomesHeadingNode, outcomesList);
+        coverageBody.getStyleClass().add("tab-body");
+
+        // Activity: sanitized application events.
+        VBox.setVgrow(logList, Priority.ALWAYS);
+        Label activityMeta = new Label("sanitized · newest last");
+        activityMeta.getStyleClass().add("section-meta");
+        VBox activityBody = new VBox(8, row(styledLabel("APPLICATION EVENTS"), activityMeta), logList);
+        activityBody.getStyleClass().add("tab-body");
+
+        findingsBadge = badge(findingRows);
+        outcomesBadge = badge(outcomeItems);
+        javafx.scene.control.TabPane tabs = new javafx.scene.control.TabPane(
+                tab("Progress", null, progressScroll),
+                tab("Findings", findingsBadge, findingsBody),
+                tab("Coverage", outcomesBadge, coverageBody),
+                tab("Activity", null, activityBody));
+        tabs.setTabClosingPolicy(javafx.scene.control.TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabs.getStyleClass().add("workspace");
+        tabs.setMinWidth(480);
+        return tabs;
+    }
+
+    /** Right column: saved agent analysis (read-only) and MCP session presence. */
+    private VBox buildSidePanel() {
+        Label meta = new Label("read-only · MCP writes only");
+        meta.getStyleClass().add("section-meta");
+        VBox.setVgrow(analysisList, Priority.ALWAYS);
+        Label mcpHeading = styledLabel("MCP SESSIONS");
+        VBox panel = new VBox(6, row(styledLabel("AGENT ANALYSIS"), meta), analysisLabel, analysisList,
+                mcpHeading, presenceLabel, presenceDetailsNode, dataDirLabel, dataDirHintNode);
+        panel.getStyleClass().add("side-panel");
+        panel.setMinWidth(260);
+        return panel;
     }
 
     private VBox buildBottom() {
-        Label heading = styledLabel("APPLICATION EVENTS (sanitized)");
         logItems = FXCollections.observableArrayList();
         logList = new ListView<>(logItems);
         logList.setPrefHeight(130);
-        logList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; -fx-font-family: monospace;");
+        logList.getStyleClass().add("log");
+        logList.setCellFactory(list -> new WrappingCell());
         statusLabel = styledLabel("status: idle");
+        statusLabel.getStyleClass().setAll("label", "status-value");
 
-        Label historyHeading = styledLabel("RUN HISTORY (shared store — refreshes every second, click to load)");
+        historyHeading = styledLabel("RUN HISTORY");
         historyItems = FXCollections.observableArrayList();
         historyList = new ListView<>(historyItems);
-        historyList.setPrefHeight(76);
-        historyList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; "
-                + "-fx-font-family: monospace; -fx-font-size: 11;");
+        historyList.setPrefHeight(150);
+        historyList.setMinHeight(90);
+        historyList.getStyleClass().add("mono-small");
+        historyList.setPlaceholder(placeholder("No runs for this root yet."));
+        historyList.setCellFactory(list -> new HistoryCell());
         historyList.getSelectionModel().selectedItemProperty().addListener((obs, old, current) -> {
             if (current != null) {
                 loadHistoryRun(current.runId());
             }
         });
 
-        Label analysisHeading = styledLabel("AGENT ANALYSIS (selected run — read-only view, MCP writes only)");
         analysisLabel = styledLabel("No saved analysis for the selected run.");
+        analysisLabel.getStyleClass().setAll("label", "value");
+        analysisLabel.setWrapText(true);
         analysisItems = FXCollections.observableArrayList();
         analysisList = new ListView<>(analysisItems);
         analysisList.setPrefHeight(76);
-        analysisList.setStyle("-fx-control-inner-background: #161b22; -fx-text-fill: #8b949e; "
-                + "-fx-font-family: monospace; -fx-font-size: 11;");
+        analysisList.getStyleClass().add("mono-small");
+        analysisList.setPlaceholder(placeholder("No saved assessments."));
+        analysisList.setCellFactory(list -> new WrappingCell());
 
-        VBox bottom = new VBox(4, historyHeading, historyList, analysisHeading, analysisLabel,
-                analysisList, heading, logList, statusLabel);
-        bottom.setPadding(new Insets(8));
-        bottom.setStyle("-fx-background-color: #0d1117; -fx-border-color: #30363d; -fx-border-width: 1 0 0 0;");
+        Label appKey = new Label("STATUS");
+        appKey.getStyleClass().add("status-key");
+        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Label versionKey = new Label("PWT");
+        versionKey.getStyleClass().add("status-key");
+        Label version = new Label(BuildInfo.VERSION);
+        version.getStyleClass().add("status-value");
+        HBox statusBar = new HBox(8, appKey, statusLabel, spacer, versionKey, version);
+        statusBar.getStyleClass().add("status-bar");
+        VBox bottom = new VBox(statusBar);
         return bottom;
+    }
+
+    // ---------- presentation helpers (no behavior) ----------
+
+    private static HBox row(javafx.scene.Node... nodes) {
+        if (nodes.length > 0 && nodes[0] instanceof javafx.scene.layout.Region first) {
+            first.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        }
+        HBox box = new HBox(8, nodes);
+        box.setAlignment(javafx.geometry.Pos.BASELINE_LEFT);
+        return box;
+    }
+
+    private static javafx.scene.layout.Region separator() {
+        javafx.scene.layout.Region separator = new javafx.scene.layout.Region();
+        separator.getStyleClass().add("toolbar-separator");
+        return separator;
+    }
+
+    private static Label placeholder(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("faint");
+        return label;
+    }
+
+    private static Label badge(ObservableList<?> items) {
+        Label badge = new Label();
+        badge.getStyleClass().add("badge");
+        badge.textProperty().bind(javafx.beans.binding.Bindings.size(items).asString());
+        return badge;
+    }
+
+    private static javafx.scene.control.Tab tab(String title, Label badge, javafx.scene.Node content) {
+        javafx.scene.control.Tab tab = new javafx.scene.control.Tab();
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("tab-title");
+        HBox header = badge == null ? new HBox(titleLabel) : new HBox(6, titleLabel, badge);
+        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        tab.setGraphic(header);
+        tab.setContent(content);
+        return tab;
+    }
+
+    /** Maps existing status/severity words to a style class; text is unchanged. */
+    static String statusClass(String text) {
+        if (text == null) {
+            return "state-neutral";
+        }
+        String t = text.toLowerCase(java.util.Locale.ROOT);
+        if (t.contains("failed") || t.contains("timed_out") || t.contains("timed out")
+                || t.contains("interrupted") || t.contains("error")) {
+            return "state-error";
+        }
+        if (t.contains("unavailable") || t.contains("partial") || t.contains("cancelled")
+                || t.contains("skipped") || t.contains("indeterminate") || t.contains("not_applicable")
+                || t.contains("incomplete") || t.contains("stale")) {
+            return "state-warn";
+        }
+        if (t.contains("running") || t.contains("pending") || t.contains("probing")) {
+            return "state-info";
+        }
+        if (t.contains("succeeded") || t.contains("completed") || t.contains("available")
+                || t.contains("no_findings")) {
+            return "state-ok";
+        }
+        return "state-neutral";
+    }
+
+    private static final List<String> STATE_CLASSES =
+            List.of("state-ok", "state-warn", "state-error", "state-info", "state-neutral");
+
+    private static void applyStateClass(javafx.scene.control.Labeled cell, String text) {
+        cell.getStyleClass().removeAll(STATE_CLASSES);
+        if (text != null) {
+            cell.getStyleClass().add(statusClass(text));
+        }
+    }
+
+    /** Table cell coloring availability text by its existing wording. */
+    private static final class StatusTextCell<S> extends javafx.scene.control.TableCell<S, String> {
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            setText(empty ? null : item);
+            setTooltip(empty || item == null ? null : new javafx.scene.control.Tooltip(item));
+            applyStateClass(this, empty ? null : item);
+        }
+    }
+
+    /** Table cell that keeps long values reachable through a tooltip. */
+    private static final class TooltipCell<S> extends javafx.scene.control.TableCell<S, String> {
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            setText(empty ? null : item);
+            setTooltip(empty || item == null ? null : new javafx.scene.control.Tooltip(item));
+        }
+    }
+
+    /** Severity text is unchanged; a glyph and color reinforce it. */
+    private static final class SeverityCell extends javafx.scene.control.TableCell<FindingRow, String> {
+        private static final List<String> SEV_CLASSES =
+                List.of("sev-critical", "sev-high", "sev-medium", "sev-low", "sev-info", "sev-unknown");
+
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            getStyleClass().removeAll(SEV_CLASSES);
+            if (empty || item == null) {
+                setText(null);
+                return;
+            }
+            String glyph = switch (item) {
+                case "CRITICAL" -> "◆ ";
+                case "HIGH" -> "▲ ";
+                case "MEDIUM" -> "■ ";
+                case "LOW" -> "● ";
+                default -> "○ ";
+            };
+            setText(glyph + item);
+            getStyleClass().add("sev-" + item.toLowerCase(java.util.Locale.ROOT));
+        }
+    }
+
+    /** Outcome lines keep their text; color follows the status word they already contain. */
+    private static final class StatusListCell extends javafx.scene.control.ListCell<String> {
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            setText(empty ? null : item);
+            applyStateClass(this, empty ? null : item);
+        }
+    }
+
+    /** Run history rows keep HistoryRow.toString(); color follows the run state. */
+    private static final class HistoryCell extends javafx.scene.control.ListCell<HistoryRow> {
+        @Override
+        protected void updateItem(HistoryRow item, boolean empty) {
+            super.updateItem(item, empty);
+            String text = empty || item == null ? null : item.toString();
+            setText(text);
+            applyStateClass(this, text == null ? null : text.split(" ", 2)[0]);
+        }
+    }
+
+    /** Wrapping text cell for longer analysis lines. */
+    private static final class WrappingCell extends javafx.scene.control.ListCell<String> {
+        WrappingCell() {
+            setWrapText(true);
+            setPrefWidth(0);
+        }
+
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            setText(empty ? null : item);
+        }
     }
 
     private void chooseAndDiscover(Stage stage) {
@@ -528,6 +854,8 @@ public class PwtDesktopApp extends Application {
         if (scanButton == null) {
             return;
         }
+        scanButton.getStyleClass().removeAll("primary", "danger");
+        scanButton.getStyleClass().add(scanning ? "danger" : "primary");
         if (scanning) {
             scanButton.setDisable(false);
             scanButton.setText("Cancel scan");
@@ -915,6 +1243,7 @@ public class PwtDesktopApp extends Application {
                         suppressRootEvents = false;
                     }
                 }
+                repoCountLabel.setText(freshRoots.size() + " registered");
                 presenceLabel.setText(pwt.mcp.McpPresence.statusLine(presence));
                 java.util.List<String> details = new java.util.ArrayList<>();
                 for (pwt.mcp.McpPresence.SessionView view : presence) {
@@ -1026,13 +1355,8 @@ public class PwtDesktopApp extends Application {
 
     private static Label styledLabel(String text) {
         Label label = new Label(text);
-        label.setStyle("-fx-text-fill: #58a6ff; -fx-font-family: monospace; -fx-font-size: 12;");
+        label.getStyleClass().add("section-heading");
         return label;
-    }
-
-    private static void styleButton(Button button) {
-        button.setStyle("-fx-background-color: #21262d; -fx-text-fill: #c9d1d9; "
-                + "-fx-border-color: #30363d; -fx-font-family: monospace;");
     }
 
     @Override
